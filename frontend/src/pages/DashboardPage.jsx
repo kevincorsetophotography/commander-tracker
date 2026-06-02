@@ -62,6 +62,7 @@ export default function DashboardPage() {
   const [colorFilter, setColorFilter]   = useState([])
   const [ownerFilter, setOwnerFilter]   = useState('')
   const [deckSortDir, setDeckSortDir]   = useState('desc')
+  const [deckSearch, setDeckSearch]     = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -163,12 +164,99 @@ export default function DashboardPage() {
       list = list.filter(d => d.colors && colorFilter.every(c => d.colors.includes(c)))
     if (ownerFilter)
       list = list.filter(d => d.owner === ownerFilter)
+    if (deckSearch.trim()) {
+      const q = deckSearch.trim().toLowerCase()
+      list = list.filter(d =>
+        d.name.toLowerCase().includes(q) || (d.commander || '').toLowerCase().includes(q))
+    }
     list.sort((a, b) => deckSortDir === 'desc' ? b.winRate - a.winRate : a.winRate - b.winRate)
     return list
-  }, [deckStats, colorFilter, ownerFilter, deckSortDir])
+  }, [deckStats, colorFilter, ownerFilter, deckSortDir, deckSearch])
 
   const toggleColor = (c) =>
     setColorFilter(f => f.includes(c) ? f.filter(x => x !== c) : [...f, c])
+
+  // ── PRIMATI / META / ATTIVITÀ ──
+  const records = useMemo(() => {
+    if (games.length === 0) return null
+
+    // Streak più lunga di sempre per giocatore
+    const byPlayer = {}
+    for (const g of [...games].sort((a, b) => new Date(a.playedAt) - new Date(b.playedAt))) {
+      for (const p of g.players) {
+        if (!byPlayer[p.user.id]) byPlayer[p.user.id] = { username: p.user.username, cur: 0, best: 0 }
+        const rec = byPlayer[p.user.id]
+        if (p.isWinner) { rec.cur++; rec.best = Math.max(rec.best, rec.cur) }
+        else rec.cur = 0
+      }
+    }
+    const longestStreak = Object.values(byPlayer).sort((a, b) => b.best - a.best)[0]
+
+    // Re del mese (più vittorie nel mese corrente)
+    const now = new Date()
+    const monthWins = {}
+    for (const g of games) {
+      const d = new Date(g.playedAt)
+      if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+        const w = g.players.find(p => p.isWinner)
+        if (w) monthWins[w.user.username] = (monthWins[w.user.username] || 0) + 1
+      }
+    }
+    const kingOfMonth = Object.entries(monthWins).sort((a, b) => b[1] - a[1])[0] || null
+
+    // Tavolo più affollato
+    const biggestTable = games.reduce((max, g) => g.players.length > max.players.length ? g : max, games[0])
+
+    // Player con più vittorie / più partite / miglior winrate (min 5)
+    const mostWins = [...playerStats].sort((a, b) => b.wins - a.wins)[0]
+    const mostGames = [...playerStats].sort((a, b) => b.games - a.games)[0]
+    const bestRate = [...playerStats].filter(p => p.games >= 5).sort((a, b) => b.winRate - a.winRate)[0]
+
+    // Mazzo più vincente (min 3 partite, per winrate; tiebreak vittorie)
+    const topDeck = [...deckStats].filter(d => d.games >= 3)
+      .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)[0]
+
+    return { longestStreak, kingOfMonth, biggestTable, mostWins, mostGames, bestRate, topDeck }
+  }, [games, playerStats, deckStats])
+
+  // Meta colori: win rate per colore (su presenze nei pod)
+  const colorMeta = useMemo(() => {
+    const order = ['W', 'U', 'B', 'R', 'G']
+    const tally = Object.fromEntries(order.map(c => [c, { games: 0, wins: 0 }]))
+    for (const g of games) {
+      for (const p of g.players) {
+        const cols = (p.deck.colors || '').split('')
+        for (const c of order) {
+          if (cols.includes(c)) {
+            tally[c].games++
+            if (p.isWinner) tally[c].wins++
+          }
+        }
+      }
+    }
+    return order.map(c => ({
+      color: c,
+      games: tally[c].games,
+      winRate: tally[c].games ? Math.round(tally[c].wins / tally[c].games * 100) : 0,
+    }))
+  }, [games])
+
+  // Attività: partite per mese (ultimi 8 mesi)
+  const activity = useMemo(() => {
+    const months = []
+    const now = new Date()
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('it-IT', { month: 'short' }), count: 0 })
+    }
+    const idx = Object.fromEntries(months.map((m, i) => [m.key, i]))
+    for (const g of games) {
+      const d = new Date(g.playedAt)
+      const k = `${d.getFullYear()}-${d.getMonth()}`
+      if (k in idx) months[idx[k]].count++
+    }
+    return months
+  }, [games])
 
   const card = {
     background: t.bgSurface,
@@ -225,7 +313,7 @@ export default function DashboardPage() {
         padding: 5,
         boxShadow: t.shadow,
       }}>
-        {['giocatori', 'mazzi', 'matchup', 'storico'].map(t2 => (
+        {['giocatori', 'mazzi', 'matchup', 'storico', 'primati'].map(t2 => (
           <button key={t2} style={tabBtn(t2)} onClick={() => setTab(t2)}>
             {t2.charAt(0).toUpperCase() + t2.slice(1)}
           </button>
@@ -359,6 +447,19 @@ export default function DashboardPage() {
               </select>
             </div>
 
+            {/* Ricerca nome/commander */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+              <input
+                value={deckSearch}
+                onChange={e => setDeckSearch(e.target.value)}
+                placeholder="🔍 Cerca mazzo o commander"
+                style={{ padding: '5px 10px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, outline: 'none', width: 200 }}
+              />
+              {deckSearch && (
+                <button onClick={() => setDeckSearch('')} style={{ position: 'absolute', right: 6, fontSize: 12, color: t.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+              )}
+            </div>
+
             {/* Ordinamento */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
               <span style={{ fontSize: 12, color: t.textSub }}>Win rate:</span>
@@ -372,7 +473,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Contatore risultati */}
-          {(colorFilter.length > 0 || ownerFilter) && (
+          {(colorFilter.length > 0 || ownerFilter || deckSearch) && (
             <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8, paddingLeft: 4 }}>
               {visibleDecks.length} mazzo{visibleDecks.length !== 1 ? 'i' : ''} trovato{visibleDecks.length !== 1 ? 'i' : ''}
             </div>
@@ -641,6 +742,84 @@ export default function DashboardPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* PRIMATI */}
+      {tab === 'primati' && (
+        <div>
+          {!records ? (
+            <EmptyState icon="🏆" title="Nessun primato ancora" message="Servono partite registrate per calcolare record e statistiche del gruppo." />
+          ) : (
+            <>
+              {/* Card record */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginBottom: 18 }}>
+                {[
+                  { icon: '👑', label: 'Re del mese', value: records.kingOfMonth?.[0] || '—', sub: records.kingOfMonth ? `${records.kingOfMonth[1]} vittorie questo mese` : 'nessuna partita questo mese' },
+                  { icon: '🔥', label: 'Streak record', value: records.longestStreak ? `${records.longestStreak.best} di fila` : '—', sub: records.longestStreak?.username || '' },
+                  { icon: '🏅', label: 'Più vittorie', value: records.mostWins?.username || '—', sub: records.mostWins ? `${records.mostWins.wins} vittorie` : '' },
+                  { icon: '📈', label: 'Miglior win rate', value: records.bestRate ? `${records.bestRate.winRate}%` : '—', sub: records.bestRate ? `${records.bestRate.username} · min 5 partite` : 'min 5 partite' },
+                  { icon: '🎴', label: 'Mazzo più forte', value: records.topDeck?.name || '—', sub: records.topDeck ? `${records.topDeck.owner} · ${records.topDeck.winRate}%` : 'min 3 partite' },
+                  { icon: '🎲', label: 'Più presenze', value: records.mostGames?.username || '—', sub: records.mostGames ? `${records.mostGames.games} partite` : '' },
+                  { icon: '🪑', label: 'Tavolo più affollato', value: `${records.biggestTable.players.length} giocatori`, sub: new Date(records.biggestTable.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) },
+                ].map((r, i) => (
+                  <div key={i} style={{ ...card, marginBottom: 0, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />
+                    <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 6 }}>
+                      {r.icon} {r.label}
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: t.text, lineHeight: 1.15 }}>{r.value}</div>
+                    {r.sub && <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 4 }}>{r.sub}</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Meta colori */}
+              <div style={{ ...card }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 14 }}>Meta colori · win rate per identità</div>
+                {colorMeta.every(c => c.games === 0) ? (
+                  <div style={{ fontSize: 13, color: t.textMuted }}>Nessun dato</div>
+                ) : colorMeta.map(c => {
+                  const COLOR_BG = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
+                  const COLOR_LBL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
+                  return (
+                    <div key={c.color} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: '50%', background: COLOR_BG[c.color], border: '1px solid rgba(0,0,0,0.15)', flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{c.color}</span>
+                      <span style={{ fontSize: 12, color: t.textSub, width: 52, flexShrink: 0 }}>{COLOR_LBL[c.color]}</span>
+                      <div style={{ flex: 1, height: 8, borderRadius: 4, background: t.bgMuted, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${c.winRate}%`, background: t.primary, borderRadius: 4, transition: 'width 0.4s' }} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: t.text, width: 38, textAlign: 'right', flexShrink: 0 }}>{c.winRate}%</span>
+                      <span style={{ fontSize: 11, color: t.textMuted, width: 60, textAlign: 'right', flexShrink: 0 }}>{c.games} pres.</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Attività per mese */}
+              <div style={{ ...card }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 16 }}>Attività · partite per mese</div>
+                {(() => {
+                  const max = Math.max(1, ...activity.map(m => m.count))
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, height: 130 }}>
+                      {activity.map((m, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: m.count ? t.text : t.textMuted }}>{m.count || ''}</div>
+                          <div style={{
+                            width: '100%', maxWidth: 38, height: `${(m.count / max) * 90}px`, minHeight: m.count ? 4 : 2,
+                            background: m.count ? t.gradient : t.bgMuted,
+                            borderRadius: 6, transition: 'height 0.4s',
+                          }} />
+                          <div style={{ fontSize: 10.5, color: t.textSub, textTransform: 'capitalize' }}>{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

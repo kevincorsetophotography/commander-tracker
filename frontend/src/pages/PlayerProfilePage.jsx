@@ -76,7 +76,15 @@ export default function PlayerProfilePage() {
 
     const myDecks = deckStats.filter(d => d.ownerId === pid).sort((a, b) => b.winRate - a.winRate)
 
-    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks }
+    // Trend win rate cumulativo (cronologico)
+    const chrono = [...myGames].reverse()
+    let cw = 0
+    const trend = chrono.map((g, i) => {
+      if (g.players.find(p => p.user.id === pid)?.isWinner) cw++
+      return Math.round(cw / (i + 1) * 100)
+    })
+
+    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend }
   }, [games, deckStats, players, pid])
 
   const card = {
@@ -103,7 +111,7 @@ export default function PlayerProfilePage() {
   if (error)   return (<div>{backBtn}<EmptyState icon="⚠️" title="Errore" message={error} /></div>)
   if (!profile.player) return (<div>{backBtn}<EmptyState icon="🔍" title="Giocatore non trovato" message="Questo profilo non esiste o non ha ancora dati." /></div>)
 
-  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks } = profile
+  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend } = profile
 
   const stat = (label, value, sub) => (
     <div style={{ flex: 1, minWidth: 120 }}>
@@ -143,6 +151,37 @@ export default function PlayerProfilePage() {
         {stat('Nemesi', nemesis ? nemesis[0] : '—', nemesis ? `ti ha battuto ${nemesis[1]} volte` : 'nessuna')}
         {stat('Mazzo preferito', favDeck ? favDeck[0] : '—', favDeck ? `${favDeck[1]} partite` : '')}
       </div>
+
+      {/* Trend win rate */}
+      {trend.length >= 2 && (
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 4 }}>Andamento win rate</div>
+          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>win rate cumulativo nel corso delle {trend.length} partite</div>
+          {(() => {
+            const W = 600, H = 120, pad = 6
+            const n = trend.length
+            const x = (i) => pad + (i / (n - 1)) * (W - pad * 2)
+            const y = (v) => pad + (1 - v / 100) * (H - pad * 2)
+            const line = trend.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
+            const area = `${line} L ${x(n - 1).toFixed(1)} ${H - pad} L ${x(0).toFixed(1)} ${H - pad} Z`
+            return (
+              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }} preserveAspectRatio="none">
+                {/* griglia 50% */}
+                <line x1={pad} y1={y(50)} x2={W - pad} y2={y(50)} stroke={t.border} strokeWidth="1" strokeDasharray="4 4" />
+                <defs>
+                  <linearGradient id="ct-trend" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={t.primary} stopOpacity="0.30" />
+                    <stop offset="100%" stopColor={t.primary} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d={area} fill="url(#ct-trend)" />
+                <path d={line} fill="none" stroke={t.primary} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                <circle cx={x(n - 1)} cy={y(trend[n - 1])} r="4" fill={t.primary} />
+              </svg>
+            )
+          })()}
+        </div>
+      )}
 
       {/* Mazzi del giocatore */}
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Mazzi</div>
