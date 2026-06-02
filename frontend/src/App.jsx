@@ -9,6 +9,7 @@ import NewGamePage from './pages/NewGamePage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
+import DeckProfilePage from './pages/DeckProfilePage'
 
 function NavItem({ to, end, children }) {
   const { t } = useTheme()
@@ -147,6 +148,7 @@ function Layout() {
           <Routes>
             <Route path="/"              element={<DashboardPage />} />
             <Route path="/giocatore/:id" element={<PlayerProfilePage />} />
+            <Route path="/mazzo/:id"     element={<DeckProfilePage />} />
             <Route path="/mazzi"         element={<DecksPage />} />
             <Route path="/nuova-partita" element={<NewGamePage />} />
             <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />

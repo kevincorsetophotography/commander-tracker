@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
+import { useCountUp } from '../hooks/useCountUp'
 
 function WinBar({ pct, t }) {
   return (
@@ -28,6 +29,7 @@ function Avatar({ name, t, size = 32 }) {
 }
 
 function MetricCard({ label, value, t }) {
+  const shown = useCountUp(value)
   return (
     <div style={{
       background: t.bgSurface,
@@ -42,7 +44,7 @@ function MetricCard({ label, value, t }) {
     }}>
       <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />
       <div style={{ fontSize: 11, color: t.textSub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: t.text, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: t.text, lineHeight: 1 }}>{shown}</div>
     </div>
   )
 }
@@ -516,11 +518,11 @@ export default function DashboardPage() {
           )}
 
           {visibleDecks.map((d, i) => (
-            <div key={d.id} style={card}>
+            <div key={d.id} className="ct-lift" style={{ ...card, cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${d.id}`)}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
-                  <DeckThumb commander={d.commander} w={56} />
+                  <DeckThumb commander={d.commander} w={56} preview={false} />
                   <div>
                     <div style={{ fontWeight: 500, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                       {d.name}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useFeedback } from '../hooks/useFeedback'
+import { fireConfetti } from '../lib/confetti'
 
 const EMPTY_SLOT = { userId: '', deckId: '' }
 
@@ -107,8 +108,9 @@ export default function NewGamePage() {
         notes: notes.trim() || undefined,
         playedAt: playedAt || undefined
       })
+      fireConfetti()
       toast('Partita registrata', 'success')
-      navigate('/')
+      setTimeout(() => navigate('/'), 700)
     } catch (err) {
       setError(err.error || 'Errore nel salvataggio')
     } finally {

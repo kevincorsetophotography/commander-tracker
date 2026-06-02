@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
+import { getAchievements } from '../lib/achievements'
 
 const COLOR_MAP = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 
@@ -92,7 +93,9 @@ export default function PlayerProfilePage() {
       return Math.round(cw / (i + 1) * 100)
     })
 
-    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed }
+    const achievements = getAchievements({ myGames, myDecks, pid })
+
+    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements }
   }, [games, deckStats, players, pid])
 
   const card = {
@@ -119,7 +122,7 @@ export default function PlayerProfilePage() {
   if (error)   return (<div>{backBtn}<EmptyState icon="⚠️" title="Errore" message={error} /></div>)
   if (!profile.player) return (<div>{backBtn}<EmptyState icon="🔍" title="Giocatore non trovato" message="Questo profilo non esiste o non ha ancora dati." /></div>)
 
-  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed } = profile
+  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements } = profile
 
   const stat = (label, value, sub) => (
     <div style={{ flex: 1, minWidth: 120 }}>
@@ -193,14 +196,35 @@ export default function PlayerProfilePage() {
         </div>
       )}
 
+      {/* Achievement */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>
+        Achievement <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {achievements.filter(a => a.unlocked).length}/{achievements.length}</span>
+      </div>
+      <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+        {achievements.map(a => (
+          <div key={a.id} title={a.desc} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
+            background: a.unlocked ? t.primaryBg : t.bgMuted,
+            border: `1px solid ${a.unlocked ? t.primaryBorder : t.border}`,
+            opacity: a.unlocked ? 1 : 0.55,
+          }}>
+            <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{a.icon}</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? t.text : t.textSub }}>{a.title}</div>
+              <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{a.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Mazzi del giocatore */}
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Mazzi</div>
       {myDecks.length === 0 ? (
         <EmptyState icon="🎴" title="Nessun mazzo con partite" message="Questo giocatore non ha ancora mazzi che hanno giocato." />
       ) : (
         myDecks.map(d => (
-          <div key={d.id} style={{ ...card, marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center' }}>
-            <DeckThumb commander={d.commander} w={64} />
+          <div key={d.id} className="ct-lift" style={{ ...card, marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${d.id}`)}>
+            <DeckThumb commander={d.commander} w={64} preview={false} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {d.name}
