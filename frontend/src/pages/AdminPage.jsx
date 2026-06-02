@@ -18,7 +18,8 @@ const EMPTY_GAME_FORM = {
   winnerId: '',
   winnerDeckId: '',
   notes: '',
-  playedAt: ''
+  playedAt: '',
+  elimOrder: []
 }
 
 function SectionCard({ children, t }) {
@@ -39,6 +40,15 @@ function SectionCard({ children, t }) {
 }
 
 function formatGameForEdit(game) {
+  // Ricostruisci l'ordine di uscita dai piazzamenti esistenti (se presenti)
+  const allHavePlacement = game.players.every((p) => p.placement != null)
+  let elimOrder = []
+  if (allHavePlacement) {
+    elimOrder = game.players
+      .filter((p) => !p.isWinner)
+      .sort((a, b) => b.placement - a.placement) // placement più alto = primo eliminato
+      .map((p) => `${p.user.id}-${p.deck.id}`)
+  }
   return {
     id: game.id,
     slots: game.players.map((player) => ({
@@ -48,7 +58,8 @@ function formatGameForEdit(game) {
     winnerId: String(game.players.find((player) => player.isWinner)?.user.id || ''),
     winnerDeckId: String(game.players.find((player) => player.isWinner)?.deck.id || ''),
     notes: game.notes || '',
-    playedAt: game.playedAt ? new Date(game.playedAt).toISOString().slice(0, 10) : ''
+    playedAt: game.playedAt ? new Date(game.playedAt).toISOString().slice(0, 10) : '',
+    elimOrder
   }
 }
 
@@ -148,7 +159,8 @@ export default function AdminPage() {
         ...current,
         slots: nextSlots,
         winnerId: '',
-        winnerDeckId: ''
+        winnerDeckId: '',
+        elimOrder: []
       }
     })
   }
@@ -158,7 +170,8 @@ export default function AdminPage() {
       if (current.slots.length >= 5) return current
       return {
         ...current,
-        slots: [...current.slots, { userId: '', deckId: '' }]
+        slots: [...current.slots, { userId: '', deckId: '' }],
+        elimOrder: []
       }
     })
   }
@@ -170,7 +183,8 @@ export default function AdminPage() {
         ...current,
         slots: current.slots.filter((_, currentIndex) => currentIndex !== index),
         winnerId: '',
-        winnerDeckId: ''
+        winnerDeckId: '',
+        elimOrder: []
       }
     })
   }
@@ -284,13 +298,24 @@ export default function AdminPage() {
     setSaving(true)
 
     try {
+      const filled = gameForm.slots.filter((slot) => slot.userId && slot.deckId)
+      const losers = filled.filter((s) => !(s.userId === gameForm.winnerId && s.deckId === gameForm.winnerDeckId))
+      // placement completo solo se l'ordine copre tutti i perdenti
+      const placements = gameForm.elimOrder.length === losers.length && losers.length > 0
+        ? (() => {
+            const n = filled.length
+            const map = { [`${gameForm.winnerId}-${gameForm.winnerDeckId}`]: 1 }
+            gameForm.elimOrder.forEach((key, i) => { map[key] = n - i })
+            return map
+          })()
+        : null
+
       const payload = {
-        players: gameForm.slots
-          .filter((slot) => slot.userId && slot.deckId)
-          .map((slot) => ({
-            userId: Number.parseInt(slot.userId, 10),
-            deckId: Number.parseInt(slot.deckId, 10)
-          })),
+        players: filled.map((slot) => ({
+          userId: Number.parseInt(slot.userId, 10),
+          deckId: Number.parseInt(slot.deckId, 10),
+          ...(placements ? { placement: placements[`${slot.userId}-${slot.deckId}`] } : {})
+        })),
         winnerId: Number.parseInt(gameForm.winnerId, 10),
         winnerDeckId: Number.parseInt(gameForm.winnerDeckId, 10),
         notes: gameForm.notes.trim() || undefined,
@@ -605,7 +630,7 @@ export default function AdminPage() {
                       <button
                         key={`${slot.userId}-${slot.deckId}-${index}`}
                         type="button"
-                        onClick={() => setGameForm((current) => ({ ...current, winnerId: slot.userId, winnerDeckId: slot.deckId }))}
+                        onClick={() => setGameForm((current) => ({ ...current, winnerId: slot.userId, winnerDeckId: slot.deckId, elimOrder: [] }))}
                         style={{
                           ...buttonSecondary,
                           background: active ? t.winBg : t.bgSurface,
@@ -618,6 +643,57 @@ export default function AdminPage() {
                     )
                   })}
                 </div>
+
+                {/* Ordine di uscita (opzionale) */}
+                {gameForm.winnerId && (() => {
+                  const losers = gameCandidates.filter((s) => !(s.userId === gameForm.winnerId && s.deckId === gameForm.winnerDeckId))
+                  if (losers.length < 2) return null
+                  const total = gameCandidates.length
+                  return (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, color: t.textSub, marginBottom: 6 }}>
+                        Ordine di uscita (opzionale) — clicca dal primo eliminato all'ultimo
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {losers.map((slot, index) => {
+                          const key = `${slot.userId}-${slot.deckId}`
+                          const pos = gameForm.elimOrder.indexOf(key)
+                          const picked = pos !== -1
+                          const user = usersById.get(Number.parseInt(slot.userId, 10))
+                          const deck = decks.find((c) => c.id === Number.parseInt(slot.deckId, 10))
+                          return (
+                            <button
+                              key={`${key}-${index}`}
+                              type="button"
+                              onClick={() => setGameForm((current) => ({
+                                ...current,
+                                elimOrder: current.elimOrder.includes(key)
+                                  ? current.elimOrder.filter((k) => k !== key)
+                                  : [...current.elimOrder, key]
+                              }))}
+                              style={{
+                                ...buttonSecondary,
+                                background: picked ? t.primaryBg : t.bgSurface,
+                                color: picked ? t.primary : t.textSub,
+                                borderColor: picked ? t.primaryBorder : t.border,
+                                display: 'flex', alignItems: 'center', gap: 6,
+                              }}
+                            >
+                              {picked && <span style={{ fontWeight: 800 }}>{total - pos}°</span>}
+                              {user?.username} · {deck?.name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {gameForm.elimOrder.length > 0 && (
+                        <div style={{ marginTop: 8, fontSize: 11, color: gameForm.elimOrder.length === losers.length ? t.win : t.textMuted }}>
+                          {gameForm.elimOrder.length === losers.length ? '✓ Classifica completa' : `${gameForm.elimOrder.length}/${losers.length} ordinati`}
+                          <button type="button" onClick={() => setGameForm((c) => ({ ...c, elimOrder: [] }))} style={{ marginLeft: 10, fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}>✕ azzera</button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 <input
                   style={{ ...inputStyle, marginBottom: 12 }}

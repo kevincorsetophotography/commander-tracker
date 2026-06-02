@@ -76,6 +76,16 @@ export default function PlayerProfilePage() {
 
     const myDecks = deckStats.filter(d => d.ownerId === pid).sort((a, b) => b.winRate - a.winRate)
 
+    // Piazzamenti (solo partite con placement registrato)
+    const placed = myGames.filter(g => g.players.find(p => p.user.id === pid)?.placement != null)
+    const avgPlacement = placed.length
+      ? (placed.reduce((s, g) => s + g.players.find(p => p.user.id === pid).placement, 0) / placed.length)
+      : null
+    const firstOuts = placed.filter(g => {
+      const me = g.players.find(p => p.user.id === pid)
+      return me.placement === g.players.length
+    }).length
+
     // Trend win rate cumulativo (cronologico)
     const chrono = [...myGames].reverse()
     let cw = 0
@@ -84,7 +94,7 @@ export default function PlayerProfilePage() {
       return Math.round(cw / (i + 1) * 100)
     })
 
-    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend }
+    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed }
   }, [games, deckStats, players, pid])
 
   const card = {
@@ -111,7 +121,7 @@ export default function PlayerProfilePage() {
   if (error)   return (<div>{backBtn}<EmptyState icon="⚠️" title="Errore" message={error} /></div>)
   if (!profile.player) return (<div>{backBtn}<EmptyState icon="🔍" title="Giocatore non trovato" message="Questo profilo non esiste o non ha ancora dati." /></div>)
 
-  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend } = profile
+  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed } = profile
 
   const stat = (label, value, sub) => (
     <div style={{ flex: 1, minWidth: 120 }}>
@@ -150,6 +160,8 @@ export default function PlayerProfilePage() {
         {stat('Streak', streak > 0 ? `${streak} 🔥` : '—', streak > 0 ? 'vittorie di fila' : 'nessuna serie attiva')}
         {stat('Nemesi', nemesis ? nemesis[0] : '—', nemesis ? `ti ha battuto ${nemesis[1]} volte` : 'nessuna')}
         {stat('Mazzo preferito', favDeck ? favDeck[0] : '—', favDeck ? `${favDeck[1]} partite` : '')}
+        {stat('Piazz. medio', avgPlacement ? avgPlacement.toFixed(1) + '°' : '—', placed.length ? `su ${placed.length} partite` : 'nessun dato')}
+        {stat('Primo eliminato', placed.length ? `${firstOuts}×` : '—', placed.length ? 'volte fuori per primo' : 'nessun dato')}
       </div>
 
       {/* Trend win rate */}
@@ -239,7 +251,7 @@ export default function PlayerProfilePage() {
                   background: won ? t.winBg : t.bgMuted,
                   color: won ? t.win : t.textSub,
                 }}>
-                  {won ? 'Vittoria' : 'Sconfitta'}
+                  {won ? 'Vittoria' : 'Sconfitta'}{me?.placement ? ` · ${me.placement}°` : ''}
                 </span>
               </div>
               <div style={{ fontSize: 13, color: t.text }}>

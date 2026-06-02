@@ -15,6 +15,7 @@ export default function NewGamePage() {
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
   const [notes, setNotes] = useState('')
   const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
+  const [elimOrder, setElimOrder] = useState([])  // chiavi "userId-deckId" in ordine di uscita (primo eliminato per primo)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -55,8 +56,30 @@ export default function NewGamePage() {
 
   const filledSlots = slots.filter(s => s.userId && s.deckId)
 
+  // Reset ordine di uscita se cambia il vincitore o il tavolo
+  useEffect(() => { setElimOrder([]) }, [winnerId, slots.length])
+
+  const slotKey = (s) => `${parseInt(s.userId)}-${parseInt(s.deckId)}`
+
   const isWinner = (s) =>
     winnerId && winnerId.userId === parseInt(s.userId) && winnerId.deckId === parseInt(s.deckId)
+
+  // Perdenti = giocatori completi non vincitori
+  const losers = filledSlots.filter(s => !isWinner(s))
+
+  const toggleElim = (key) => {
+    setElimOrder(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
+  }
+
+  // placement: vincitore = 1; primo eliminato = N; ultimo eliminato (runner-up) = 2
+  const computePlacements = () => {
+    if (elimOrder.length !== losers.length || losers.length === 0) return null
+    const n = filledSlots.length
+    const map = {}
+    map[`${winnerId.userId}-${winnerId.deckId}`] = 1
+    elimOrder.forEach((key, i) => { map[key] = n - i })
+    return map
+  }
 
   const getDeckName = (deckId) => allDecks.find(d => d.id === parseInt(deckId))?.name || ''
   const getUserName = (userId) => users.find(u => u.id === parseInt(userId))?.username || ''
@@ -72,8 +95,13 @@ export default function NewGamePage() {
     setSaving(true)
     setError('')
     try {
+      const placements = computePlacements()
       await api.createGame({
-        players: filledSlots.map(s => ({ userId: parseInt(s.userId), deckId: parseInt(s.deckId) })),
+        players: filledSlots.map(s => ({
+          userId: parseInt(s.userId),
+          deckId: parseInt(s.deckId),
+          ...(placements ? { placement: placements[slotKey(s)] } : {})
+        })),
         winnerId: winnerId.userId,
         winnerDeckId: winnerId.deckId,
         notes: notes.trim() || undefined,
@@ -179,6 +207,56 @@ export default function NewGamePage() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* Ordine di eliminazione (opzionale) */}
+      {winnerId && losers.length >= 2 && (
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: t.text }}>
+            Ordine di uscita <span style={{ fontWeight: 400, color: t.textMuted }}>(opzionale)</span>
+          </div>
+          <div style={{ fontSize: 12, color: t.textSub, marginBottom: 12 }}>
+            Clicca i giocatori nell'ordine in cui sono stati eliminati, dal primo all'ultimo. Il vincitore è automaticamente 1°.
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: elimOrder.length ? 14 : 0 }}>
+            {losers.map((s, i) => {
+              const key = slotKey(s)
+              const pos = elimOrder.indexOf(key)
+              const picked = pos !== -1
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggleElim(key)}
+                  style={{
+                    padding: '8px 14px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    background: picked ? t.primaryBg : t.bgMuted,
+                    color: picked ? t.primary : t.textSub,
+                    border: picked ? `1px solid ${t.primaryBorder}` : `1px solid ${t.border}`,
+                    transition: 'all 0.15s ease',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {picked && <span style={{ fontSize: 11, fontWeight: 800 }}>{filledSlots.length - pos}°</span>}
+                  {getUserName(s.userId)} · {getDeckName(s.deckId)}
+                </button>
+              )
+            })}
+          </div>
+
+          {elimOrder.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: elimOrder.length === losers.length ? t.win : t.textMuted }}>
+                {elimOrder.length === losers.length
+                  ? '✓ Classifica completa'
+                  : `${elimOrder.length}/${losers.length} ordinati`}
+              </span>
+              <button onClick={() => setElimOrder([])} style={{ fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}>
+                ✕ azzera ordine
+              </button>
+            </div>
+          )}
         </div>
       )}
 

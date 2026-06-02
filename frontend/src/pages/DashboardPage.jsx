@@ -216,7 +216,26 @@ export default function DashboardPage() {
     const topDeck = [...deckStats].filter(d => d.games >= 3)
       .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)[0]
 
-    return { longestStreak, kingOfMonth, biggestTable, mostWins, mostGames, bestRate, topDeck }
+    // Piazzamenti: media e "primo eliminato" per giocatore
+    const placeStats = {}
+    for (const g of games) {
+      if (!g.players.every(p => p.placement != null)) continue
+      for (const p of g.players) {
+        if (!placeStats[p.user.id]) placeStats[p.user.id] = { username: p.user.username, sum: 0, n: 0, firstOuts: 0 }
+        const ps = placeStats[p.user.id]
+        ps.sum += p.placement
+        ps.n++
+        if (p.placement === g.players.length) ps.firstOuts++
+      }
+    }
+    const placeArr = Object.values(placeStats)
+    const survivalKing = placeArr.filter(p => p.n >= 3)
+      .map(p => ({ ...p, avg: p.sum / p.n }))
+      .sort((a, b) => a.avg - b.avg)[0]
+    const unluckiest = placeArr.filter(p => p.firstOuts > 0)
+      .sort((a, b) => b.firstOuts - a.firstOuts)[0]
+
+    return { longestStreak, kingOfMonth, biggestTable, mostWins, mostGames, bestRate, topDeck, survivalKing, unluckiest }
   }, [games, playerStats, deckStats])
 
   // Meta colori: win rate per colore (su presenze nei pod)
@@ -727,17 +746,25 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {g.players.map(p => (
-                    <span key={p.id} style={{
-                      fontSize: 12, padding: '3px 10px', borderRadius: 20,
-                      background: p.isWinner ? t.winBg : t.bgMuted,
-                      color: p.isWinner ? t.win : t.textSub
-                    }}>
-                      {p.user.username} · {p.deck.name}
-                    </span>
-                  ))}
-                </div>
+                {(() => {
+                  const ranked = g.players.every(p => p.placement != null)
+                  const ordered = ranked ? [...g.players].sort((a, b) => a.placement - b.placement) : g.players
+                  return (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {ordered.map(p => (
+                        <span key={p.id} style={{
+                          fontSize: 12, padding: '3px 10px', borderRadius: 20,
+                          background: p.isWinner ? t.winBg : t.bgMuted,
+                          color: p.isWinner ? t.win : t.textSub,
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                        }}>
+                          {ranked && <span style={{ fontWeight: 800, opacity: 0.8 }}>{p.placement}°</span>}
+                          {p.user.username} · {p.deck.name}
+                        </span>
+                      ))}
+                    </div>
+                  )
+                })()}
                 {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8, fontStyle: 'italic' }}>{g.notes}</div>}
               </div>
             )
@@ -762,6 +789,8 @@ export default function DashboardPage() {
                   { icon: '🎴', label: 'Mazzo più forte', value: records.topDeck?.name || '—', sub: records.topDeck ? `${records.topDeck.owner} · ${records.topDeck.winRate}%` : 'min 3 partite' },
                   { icon: '🎲', label: 'Più presenze', value: records.mostGames?.username || '—', sub: records.mostGames ? `${records.mostGames.games} partite` : '' },
                   { icon: '🪑', label: 'Tavolo più affollato', value: `${records.biggestTable.players.length} giocatori`, sub: new Date(records.biggestTable.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) },
+                  { icon: '🛡️', label: 'Re della sopravvivenza', value: records.survivalKing?.username || '—', sub: records.survivalKing ? `piazz. medio ${records.survivalKing.avg.toFixed(1)}° · min 3 partite` : 'serve l\'ordine di uscita' },
+                  { icon: '🪦', label: 'Sfortunato', value: records.unluckiest?.username || '—', sub: records.unluckiest ? `${records.unluckiest.firstOuts}× primo eliminato` : 'serve l\'ordine di uscita' },
                 ].map((r, i) => (
                   <div key={i} style={{ ...card, marginBottom: 0, position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />

@@ -30,11 +30,33 @@ const validateGamePayload = async ({ players, winnerId, winnerDeckId }) => {
 
   const normalizedPlayers = players.map((player) => ({
     userId: Number.parseInt(player.userId, 10),
-    deckId: Number.parseInt(player.deckId, 10)
+    deckId: Number.parseInt(player.deckId, 10),
+    placement: player.placement === undefined || player.placement === null || player.placement === ''
+      ? null
+      : Number.parseInt(player.placement, 10)
   }));
 
   if (normalizedPlayers.some((player) => !player.userId || !player.deckId)) {
     return { error: 'Ogni giocatore deve avere utente e mazzo validi' };
+  }
+
+  // Validazione piazzamenti: se ne è presente almeno uno, devono esserci tutti e formare 1..N univoci
+  const withPlacement = normalizedPlayers.filter((p) => p.placement !== null && !Number.isNaN(p.placement));
+  if (withPlacement.length > 0) {
+    const n = normalizedPlayers.length;
+    if (withPlacement.length !== n) {
+      return { error: 'Specifica il piazzamento per tutti i giocatori o per nessuno' };
+    }
+    const set = new Set(withPlacement.map((p) => p.placement));
+    if (set.size !== n || [...set].some((v) => v < 1 || v > n)) {
+      return { error: `I piazzamenti devono essere i numeri da 1 a ${n}, senza ripetizioni` };
+    }
+    const winnerPlacement = normalizedPlayers.find(
+      (p) => p.userId === normalizedWinnerId && p.deckId === normalizedWinnerDeckId
+    )?.placement;
+    if (winnerPlacement !== 1) {
+      return { error: 'Il vincitore deve avere piazzamento 1' };
+    }
   }
 
   const uniqueUsers = new Set(normalizedPlayers.map((player) => player.userId));
@@ -115,6 +137,7 @@ router.post('/', auth, async (req, res) => {
         create: normalizedPlayers.map((player) => ({
           userId: player.userId,
           deckId: player.deckId,
+          placement: player.placement ?? null,
           isWinner: player.userId === normalizedWinnerId && player.deckId === normalizedWinnerDeckId
         }))
       }
