@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  username    String       @unique
+  password    String       // bcrypt hash
+  role        String       @default("PLAYER")
+  createdAt   DateTime     @default(now())
+  decks       Deck[]
+  gamePlayers GamePlayer[]
+  createdGames Game[]      @relation("GameCreator")
+}
+
+model Deck {
+  id          Int          @id @default(autoincrement())
+  name        String
+  commander   String?
+  colors      String?      // es. "WUBRG"
+  decklist    String?
+  createdAt   DateTime     @default(now())
+  user        User         @relation(fields: [userId], references: [id])
+  userId      Int
+  gamePlayers GamePlayer[]
+
+  @@unique([userId, name])
+}
+
+model Game {
+  id              Int          @id @default(autoincrement())
+  playedAt        DateTime     @default(now())
+  notes           String?
+  createdByUserId Int?
+  createdBy       User?        @relation("GameCreator", fields: [createdByUserId], references: [id])
+  players         GamePlayer[]
+}
+
+model GamePlayer {
+  id       Int     @id @default(autoincrement())
+  isWinner Boolean @default(false)
+  game     Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId   Int
+  user     User    @relation(fields: [userId], references: [id])
+  userId   Int
+  deck     Deck    @relation(fields: [deckId], references: [id])
+  deckId   Int
+}

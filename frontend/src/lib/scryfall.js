@@ -1,0 +1,76 @@
+const BASE = 'https://api.scryfall.com'
+
+export function parseDecklist(text) {
+  const entries = []
+  let totalCount = 0
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    const m = line.match(/^(\d+)x?\s+(.+)$/)
+    if (!m) continue
+    const count = parseInt(m[1], 10)
+    const name = m[2].trim()
+    totalCount += count
+    entries.push({ count, name })
+  }
+  return { entries, totalCount }
+}
+
+async function batchFetch(names) {
+  const cards = []
+  const notFound = []
+  for (let i = 0; i < names.length; i += 75) {
+    const chunk = names.slice(i, i + 75)
+    const res = await fetch(`${BASE}/cards/collection`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifiers: chunk.map(name => ({ name })) })
+    })
+    const data = await res.json()
+    if (data.not_found) notFound.push(...data.not_found.map(c => c.name))
+    if (data.data) cards.push(...data.data)
+  }
+  return { cards, notFound }
+}
+
+function toCardEntry(card, countByName) {
+  return {
+    name: card.name,
+    count: countByName[card.name] || 1,
+    imageUri: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal
+  }
+}
+
+export async function validateAndFetchDecklist(text) {
+  const { entries, totalCount } = parseDecklist(text)
+  const errors = []
+
+  if (totalCount !== 100) {
+    errors.push(`Il mazzo ha ${totalCount} carte (richieste 100 per Commander)`)
+    return { valid: false, errors, cards: [] }
+  }
+
+  const countByName = {}
+  for (const { count, name } of entries) {
+    countByName[name] = (countByName[name] || 0) + count
+  }
+
+  const { cards: rawCards, notFound } = await batchFetch(Object.keys(countByName))
+
+  if (notFound.length > 0) {
+    errors.push(`Carte non trovate su Scryfall: ${notFound.join(', ')}`)
+  }
+
+  const cards = rawCards.map(card => toCardEntry(card, countByName))
+  return { valid: errors.length === 0, errors, cards }
+}
+
+export async function fetchDecklistCards(text) {
+  const { entries } = parseDecklist(text)
+  const countByName = {}
+  for (const { count, name } of entries) {
+    countByName[name] = (countByName[name] || 0) + count
+  }
+  const { cards: rawCards } = await batchFetch(Object.keys(countByName))
+  return rawCards.map(card => toCardEntry(card, countByName))
+}
