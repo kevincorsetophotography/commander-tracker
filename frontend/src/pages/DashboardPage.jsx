@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
+import DeckThumb from '../components/DeckThumb'
 
 function WinBar({ pct, t }) {
   return (
@@ -156,6 +157,13 @@ export default function DashboardPage() {
 
   // Owner unici dai deckStats
   const deckOwners = useMemo(() => [...new Set(deckStats.map(d => d.owner))].sort(), [deckStats])
+
+  // Mappa deckId → commander (i matchup dal backend non includono il commander)
+  const commanderById = useMemo(() => {
+    const m = {}
+    for (const d of deckStats) m[d.id] = d.commander
+    return m
+  }, [deckStats])
 
   // Lista mazzi filtrata e ordinata
   const visibleDecks = useMemo(() => {
@@ -392,12 +400,15 @@ export default function DashboardPage() {
                             borderBottom: di < myDecks.length - 1 ? `0.5px solid ${t.border}` : 'none'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                            <div>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>{deck.name}</span>
-                              {deck.commander && (
-                                <span style={{ fontSize: 11, color: t.textMuted, marginLeft: 8 }}>{deck.commander}</span>
-                              )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                              <DeckThumb commander={deck.commander} w={42} />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 500, color: t.text }}>{deck.name}</div>
+                                {deck.commander && (
+                                  <div style={{ fontSize: 11, color: t.textMuted }}>{deck.commander}</div>
+                                )}
+                              </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                               <span style={{ fontSize: 11, color: t.textMuted }}>
@@ -509,6 +520,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
+                  <DeckThumb commander={d.commander} w={56} />
                   <div>
                     <div style={{ fontWeight: 500, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                       {d.name}
@@ -633,11 +645,14 @@ export default function DashboardPage() {
                   </div>
                   {filteredMatchups.map((m, i) => (
                     <div key={i} style={card}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div>
-                          <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>{m.deckB.name}</div>
-                          <div style={{ fontSize: 12, color: t.textSub }}>
-                            di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'} in comune
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <DeckThumb commander={commanderById[m.deckB.id]} w={48} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>{m.deckB.name}</div>
+                            <div style={{ fontSize: 12, color: t.textSub }}>
+                              di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'} in comune
+                            </div>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -753,11 +768,12 @@ export default function DashboardPage() {
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {ordered.map(p => (
                         <span key={p.id} style={{
-                          fontSize: 12, padding: '3px 10px', borderRadius: 20,
+                          fontSize: 12, padding: '3px 10px 3px 4px', borderRadius: 20,
                           background: p.isWinner ? t.winBg : t.bgMuted,
                           color: p.isWinner ? t.win : t.textSub,
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
                         }}>
+                          <DeckThumb commander={p.deck.commander} w={20} round />
                           {ranked && <span style={{ fontWeight: 800, opacity: 0.8 }}>{p.placement}°</span>}
                           {p.user.username} · {p.deck.name}
                         </span>

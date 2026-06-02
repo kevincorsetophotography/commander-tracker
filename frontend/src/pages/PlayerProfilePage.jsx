@@ -4,11 +4,9 @@ import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
+import DeckThumb from '../components/DeckThumb'
 
 const COLOR_MAP = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
-
-const commanderArtUrl = (name) =>
-  `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
 
 function WinBar({ pct, t }) {
   return (
@@ -202,13 +200,7 @@ export default function PlayerProfilePage() {
       ) : (
         myDecks.map(d => (
           <div key={d.id} style={{ ...card, marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center' }}>
-            {d.commander && (
-              <img
-                src={commanderArtUrl(d.commander)} alt=""
-                onError={e => { e.currentTarget.style.display = 'none' }}
-                style={{ width: 64, height: 46, objectFit: 'cover', objectPosition: 'center top', borderRadius: 8, flexShrink: 0 }}
-              />
-            )}
+            <DeckThumb commander={d.commander} w={64} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {d.name}
@@ -254,9 +246,12 @@ export default function PlayerProfilePage() {
                   {won ? 'Vittoria' : 'Sconfitta'}{me?.placement ? ` · ${me.placement}°` : ''}
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: t.text }}>
-                {me?.deck.name}
-                {!won && winner && <span style={{ color: t.textSub }}> · ha vinto {winner.user.username} ({winner.deck.name})</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <DeckThumb commander={me?.deck.commander} w={32} />
+                <div style={{ fontSize: 13, color: t.text }}>
+                  {me?.deck.name}
+                  {!won && winner && <span style={{ color: t.textSub }}> · ha vinto {winner.user.username} ({winner.deck.name})</span>}
+                </div>
               </div>
               {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4, fontStyle: 'italic' }}>{g.notes}</div>}
             </div>
