@@ -1,5 +1,19 @@
 const BASE = 'https://api.scryfall.com'
 
+export async function fetchCommanderCard(name) {
+  try {
+    const res = await fetch(`${BASE}/cards/named?fuzzy=${encodeURIComponent(name)}`)
+    if (!res.ok) return null
+    const card = await res.json()
+    return {
+      name: card.name,
+      artUri: card.image_uris?.art_crop || card.card_faces?.[0]?.image_uris?.art_crop,
+    }
+  } catch {
+    return null
+  }
+}
+
 export function parseDecklist(text) {
   const entries = []
   let totalCount = 0

@@ -15,5 +15,6 @@ pnpm-debug.log*
 
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
-
-{backend/
+backend/prisma/dev-clean.db-journal
+backend/prisma/*.db-shm
+backend/prisma/*.db-wal

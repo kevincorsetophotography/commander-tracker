@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api'
 import DeckListPanel from '../components/DeckListPanel'
+import { useTheme } from '../hooks/useTheme'
 
 const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '' }
 const EMPTY_USER_FORM = { username: '', password: '', role: 'PLAYER' }
@@ -16,9 +17,9 @@ const EMPTY_GAME_FORM = {
   notes: ''
 }
 
-function SectionCard({ children }) {
+function SectionCard({ children, t }) {
   return (
-    <div style={{ background: '#fff', border: '0.5px solid #e0ddd5', borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 12 }}>
+    <div style={{ background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 12 }}>
       {children}
     </div>
   )
@@ -38,6 +39,7 @@ function formatGameForEdit(game) {
 }
 
 export default function AdminPage() {
+  const { t } = useTheme()
   const [tab, setTab] = useState('utenti')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -292,17 +294,18 @@ export default function AdminPage() {
   const inputStyle = {
     padding: '9px 12px',
     borderRadius: 8,
-    border: '0.5px solid #ccc',
+    border: `0.5px solid ${t.border}`,
     fontSize: 14,
     width: '100%',
     boxSizing: 'border-box',
-    background: '#fff'
+    background: t.inputBg,
+    color: t.text,
   }
 
   const buttonPrimary = {
     padding: '9px 16px',
-    background: '#534AB7',
-    color: '#fff',
+    background: t.primary,
+    color: t.primaryFg,
     border: 'none',
     borderRadius: 8,
     fontSize: 14,
@@ -311,9 +314,9 @@ export default function AdminPage() {
 
   const buttonSecondary = {
     padding: '8px 12px',
-    background: '#fff',
-    color: '#555',
-    border: '0.5px solid #ccc',
+    background: t.bgSurface,
+    color: t.textSub,
+    border: `0.5px solid ${t.border}`,
     borderRadius: 8,
     fontSize: 13,
     cursor: 'pointer'
@@ -321,20 +324,20 @@ export default function AdminPage() {
 
   const buttonDanger = {
     padding: '8px 12px',
-    background: '#fcebeb',
-    color: '#a32d2d',
-    border: '0.5px solid #f7c1c1',
+    background: t.dangerBg,
+    color: t.danger,
+    border: `0.5px solid ${t.dangerBorder}`,
     borderRadius: 8,
     fontSize: 13,
     cursor: 'pointer'
   }
 
   if (loading) {
-    return <div style={{ color: '#888', fontSize: 14, padding: '2rem' }}>Caricamento area admin...</div>
+    return <div style={{ color: t.textSub, fontSize: 14, padding: '2rem' }}>Caricamento area admin...</div>
   }
 
   return (
-    <div>
+    <div style={{ color: t.text }}>
       <div style={{ fontSize: 18, fontWeight: 600, marginBottom: '1rem' }}>Amministrazione</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         {['utenti', 'mazzi', 'partite'].map((item) => (
@@ -343,9 +346,9 @@ export default function AdminPage() {
             onClick={() => setTab(item)}
             style={{
               ...buttonSecondary,
-              background: tab === item ? '#534AB7' : '#fff',
-              color: tab === item ? '#fff' : '#555',
-              borderColor: tab === item ? '#534AB7' : '#ccc'
+              background: tab === item ? t.primary : t.bgSurface,
+              color: tab === item ? t.primaryFg : t.textSub,
+              borderColor: tab === item ? t.primary : t.border
             }}
           >
             {item.charAt(0).toUpperCase() + item.slice(1)}
@@ -353,11 +356,11 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {error && <div style={{ color: '#a32d2d', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+      {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
 
       {tab === 'utenti' && (
         <div>
-          <SectionCard>
+          <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea utente</div>
             <form onSubmit={submitUser} style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr auto', gap: 8 }}>
               <input style={inputStyle} placeholder="Username" value={userForm.username} onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))} />
@@ -371,7 +374,7 @@ export default function AdminPage() {
           </SectionCard>
 
           {users.map((user) => (
-            <SectionCard key={user.id}>
+            <SectionCard key={user.id} t={t}>
               {editingUserId === user.id ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr auto auto', gap: 8 }}>
                   <input style={inputStyle} value={editingUserForm.username} onChange={(event) => setEditingUserForm((current) => ({ ...current, username: event.target.value }))} />
@@ -386,8 +389,8 @@ export default function AdminPage() {
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontWeight: 600 }}>{user.username} <span style={{ color: '#888', fontWeight: 500 }}>· {user.role}</span></div>
-                    <div style={{ fontSize: 12, color: '#888' }}>
+                    <div style={{ fontWeight: 600, color: t.text }}>{user.username} <span style={{ color: t.textSub, fontWeight: 500 }}>· {user.role}</span></div>
+                    <div style={{ fontSize: 12, color: t.textSub }}>
                       Mazzi: {user._count.decks} · Presenze: {user._count.gamePlayers} · Partite create: {user._count.createdGames}
                     </div>
                   </div>
@@ -404,7 +407,7 @@ export default function AdminPage() {
 
       {tab === 'mazzi' && (
         <div>
-          <SectionCard>
+          <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea mazzo</div>
             <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr auto', gap: 8 }}>
               <select style={inputStyle} value={deckForm.userId} onChange={(event) => setDeckForm((current) => ({ ...current, userId: event.target.value }))}>
@@ -419,7 +422,7 @@ export default function AdminPage() {
           </SectionCard>
 
           {decks.map((deck) => (
-            <SectionCard key={deck.id}>
+            <SectionCard key={deck.id} t={t}>
               {editingDeckId === deck.id ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr auto auto', gap: 8 }}>
                   <select style={inputStyle} value={editingDeckForm.userId} onChange={(event) => setEditingDeckForm((current) => ({ ...current, userId: event.target.value }))}>
@@ -442,16 +445,17 @@ export default function AdminPage() {
                     />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>{deck.name}</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>
+                    <div style={{ fontWeight: 600, color: t.text }}>{deck.name}</div>
+                    <div style={{ fontSize: 12, color: t.textSub }}>
                       {deck.user.username} · {deck.commander || 'Nessun commander'} · {deck.colors || 'Senza colori'}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                     <DeckListPanel
                       decklist={deck.decklist}
-                      onSave={async (newList) => {
-                        await api.updateDeck(deck.id, { decklist: newList })
+                      commander={deck.commander}
+                      onSave={async (newList, newCommander) => {
+                        await api.updateDeck(deck.id, { decklist: newList, commander: newCommander })
                         await loadData()
                       }}
                     />
@@ -467,18 +471,18 @@ export default function AdminPage() {
 
       {tab === 'partite' && (
         <div>
-          <SectionCard>
+          <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>Gestione partite</div>
             <div style={{ fontSize: 13, color: '#888' }}>Per creare nuove partite puoi continuare a usare la pagina "+ Partita". Qui puoi modificare o eliminare le partite esistenti.</div>
           </SectionCard>
 
           {gameForm.id && (
-            <SectionCard>
+            <SectionCard t={t}>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Modifica partita #{gameForm.id}</div>
               <form onSubmit={submitGameEdit}>
                 {gameForm.slots.map((slot, index) => (
                   <div key={index} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                    <div style={{ textAlign: 'center', color: '#666' }}>{index + 1}</div>
+                    <div style={{ textAlign: 'center', color: t.textSub }}>{index + 1}</div>
                     <select style={inputStyle} value={slot.userId} onChange={(event) => updateGameSlot(index, 'userId', event.target.value)}>
                       <option value="">Giocatore</option>
                       {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
@@ -508,9 +512,9 @@ export default function AdminPage() {
                         onClick={() => setGameForm((current) => ({ ...current, winnerId: slot.userId, winnerDeckId: slot.deckId }))}
                         style={{
                           ...buttonSecondary,
-                          background: active ? '#EAF3DE' : '#fff',
-                          color: active ? '#3B6D11' : '#555',
-                          borderColor: active ? '#C0DD97' : '#ccc'
+                          background: active ? t.winBg : t.bgSurface,
+                          color: active ? t.win : t.textSub,
+                          borderColor: active ? t.win : t.border
                         }}
                       >
                         {user?.username} · {deck?.name}
@@ -537,17 +541,17 @@ export default function AdminPage() {
           {games.map((game) => {
             const winner = game.players.find((player) => player.isWinner)
             return (
-              <SectionCard key={game.id}>
+              <SectionCard key={game.id} t={t}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontWeight: 600 }}>Partita #{game.id}</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>
+                    <div style={{ fontWeight: 600, color: t.text }}>Partita #{game.id}</div>
+                    <div style={{ fontSize: 12, color: t.textSub }}>
                       Creata da {game.createdBy?.username || 'sconosciuto'} · {winner ? `${winner.user.username} vince con ${winner.deck.name}` : 'Nessun vincitore'}
                     </div>
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: t.textSub, marginTop: 4 }}>
                       {game.players.map((player) => `${player.user.username} · ${player.deck.name}`).join(' | ')}
                     </div>
-                    {game.notes && <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>{game.notes}</div>}
+                    {game.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{game.notes}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button style={buttonSecondary} onClick={() => startGameEdit(game)}>Modifica</button>
