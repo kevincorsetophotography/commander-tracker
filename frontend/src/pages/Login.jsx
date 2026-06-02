@@ -5,13 +5,14 @@ import { useTheme } from '../hooks/useTheme'
 
 export default function Login() {
   const { login, register } = useAuth()
-  const { t } = useTheme()
+  const { t, dark } = useTheme()
   const navigate = useNavigate()
   const [mode, setMode] = useState('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [focusField, setFocusField] = useState('')
 
   const submit = async (e) => {
     e.preventDefault()
@@ -28,60 +29,98 @@ export default function Login() {
     }
   }
 
-  const inputStyle = {
-    width: '100%', padding: '10px 12px', borderRadius: 8,
-    border: `0.5px solid ${t.border}`, fontSize: 14,
-    boxSizing: 'border-box', background: t.inputBg, color: t.text, outline: 'none',
-  }
+  const inputStyle = (field) => ({
+    width: '100%', padding: '12px 14px', borderRadius: 12,
+    border: `1px solid ${focusField === field ? t.primaryBorder : t.border}`,
+    fontSize: 14, boxSizing: 'border-box',
+    background: t.inputBg, color: t.text, outline: 'none',
+    boxShadow: focusField === field ? t.glow : 'none',
+    transition: 'all 0.18s ease',
+  })
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: t.bgPage, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      {/* Sfondo aurora */}
+      <div className={`ct-aurora ${dark ? 'dark' : 'light'}`} />
 
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
-        <img src="/logo.png" alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ height: 56, width: 56, objectFit: 'contain' }} />
-        <div style={{ lineHeight: 1.2 }}>
-          <div style={{ fontWeight: 800, fontSize: 18, color: t.primary, letterSpacing: '0.06em' }}>COMMANDERONE</div>
-          <div style={{ fontSize: 11, color: t.textMuted, letterSpacing: '0.14em' }}>VILLASTELLONE</div>
-        </div>
-      </div>
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', alignItems: 'center' }} className="ct-fade-up">
 
-      {/* Card */}
-      <div style={{ background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 16, padding: '2rem', width: '100%', maxWidth: 360, color: t.text }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
-            {mode === 'login' ? 'Accedi' : 'Crea account'}
-          </div>
-          <div style={{ fontSize: 13, color: t.textSub }}>
-            {mode === 'login' ? 'Bentornato!' : 'Registra un nuovo giocatore'}
+        {/* Logo */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 30 }}>
+          <img
+            src="/logo.png"
+            alt=""
+            onError={e => { e.currentTarget.style.display = 'none' }}
+            style={{ height: 92, width: 92, objectFit: 'contain', filter: dark ? `drop-shadow(0 0 22px ${t.primaryBorder})` : 'drop-shadow(0 6px 18px rgba(108,74,224,0.25))' }}
+          />
+          <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
+            <div className={`ct-wordmark ${dark ? 'dark' : 'light'}`} style={{ fontWeight: 900, fontSize: 24, letterSpacing: '0.05em' }}>COMMANDERONE</div>
+            <div style={{ fontSize: 12, color: t.textMuted, letterSpacing: '0.22em', fontWeight: 600, marginTop: 2 }}>VILLASTELLONE</div>
           </div>
         </div>
 
-        <form onSubmit={submit}>
-          <div style={{ marginBottom: 12 }}>
-            <input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required style={inputStyle} />
+        {/* Card */}
+        <div style={{
+          background: t.bgSurface,
+          backdropFilter: 'blur(18px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+          border: `1px solid ${t.border}`,
+          borderRadius: 20,
+          padding: '2rem',
+          width: '100%',
+          boxSizing: 'border-box',
+          color: t.text,
+          boxShadow: t.shadow,
+        }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
+              {mode === 'login' ? 'Bentornato' : 'Crea account'}
+            </div>
+            <div style={{ fontSize: 13, color: t.textSub }}>
+              {mode === 'login' ? 'Accedi per tracciare le tue partite' : 'Registra un nuovo giocatore'}
+            </div>
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
-          </div>
-          {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', padding: '10px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-          >
-            {loading ? '...' : mode === 'login' ? 'Accedi' : 'Registrati'}
-          </button>
-        </form>
 
-        <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: t.textSub }}>
-          {mode === 'login' ? 'Non hai un account?' : 'Hai già un account?'}{' '}
-          <span
-            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
-            style={{ color: t.primary, cursor: 'pointer', fontWeight: 500 }}
-          >
-            {mode === 'login' ? 'Registrati' : 'Accedi'}
-          </span>
+          <form onSubmit={submit}>
+            <div style={{ marginBottom: 12 }}>
+              <input
+                type="text" placeholder="Username" value={username}
+                onChange={e => setUsername(e.target.value)} required
+                onFocus={() => setFocusField('user')} onBlur={() => setFocusField('')}
+                style={inputStyle('user')}
+              />
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <input
+                type="password" placeholder="Password" value={password}
+                onChange={e => setPassword(e.target.value)} required
+                onFocus={() => setFocusField('pass')} onBlur={() => setFocusField('')}
+                style={inputStyle('pass')}
+              />
+            </div>
+            {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '12px', background: t.primary, color: t.primaryFg,
+                border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                boxShadow: t.glow, transition: 'all 0.18s ease', opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading ? '...' : mode === 'login' ? 'Accedi' : 'Registrati'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 18, textAlign: 'center', fontSize: 13, color: t.textSub }}>
+            {mode === 'login' ? 'Non hai un account?' : 'Hai già un account?'}{' '}
+            <span
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
+              style={{ color: t.primary, cursor: 'pointer', fontWeight: 600 }}
+            >
+              {mode === 'login' ? 'Registrati' : 'Accedi'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,33 @@
 const BASE = 'https://api.scryfall.com'
 
+const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G']
+
+// Suggerimenti nomi carta esatti (max 20) — più affidabile della ricerca fuzzy
+export async function autocompleteCardName(query) {
+  const q = query.trim()
+  if (q.length < 2) return []
+  try {
+    const res = await fetch(`${BASE}/cards/autocomplete?q=${encodeURIComponent(q)}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.data) ? data.data : []
+  } catch {
+    return []
+  }
+}
+
+export async function fetchCommanderColors(name) {
+  try {
+    const res = await fetch(`${BASE}/cards/named?fuzzy=${encodeURIComponent(name)}`)
+    if (!res.ok) return null
+    const card = await res.json()
+    const ci = card.color_identity || []
+    return ci.sort((a, b) => COLOR_ORDER.indexOf(a) - COLOR_ORDER.indexOf(b))
+  } catch {
+    return null
+  }
+}
+
 export async function fetchCommanderCard(name) {
   try {
     const res = await fetch(`${BASE}/cards/named?fuzzy=${encodeURIComponent(name)}`)

@@ -1,0 +1,109 @@
+* {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Sfondo aurora: blob sfocati che si muovono lentamente */
+.ct-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ct-aurora::before,
+.ct-aurora::after {
+  content: '';
+  position: absolute;
+  width: 55vw;
+  height: 55vw;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.45;
+  will-change: transform;
+}
+.ct-aurora.dark::before {
+  background: radial-gradient(circle, #34F08F 0%, transparent 70%);
+  top: -15%;
+  left: -10%;
+  animation: ct-float-1 22s ease-in-out infinite;
+}
+.ct-aurora.dark::after {
+  background: radial-gradient(circle, #8B5CF6 0%, transparent 70%);
+  bottom: -20%;
+  right: -10%;
+  animation: ct-float-2 26s ease-in-out infinite;
+}
+.ct-aurora.light::before {
+  background: radial-gradient(circle, #6C4AE0 0%, transparent 70%);
+  top: -20%;
+  left: -10%;
+  opacity: 0.14;
+  animation: ct-float-1 24s ease-in-out infinite;
+}
+.ct-aurora.light::after {
+  background: radial-gradient(circle, #22C55E 0%, transparent 70%);
+  bottom: -25%;
+  right: -10%;
+  opacity: 0.12;
+  animation: ct-float-2 28s ease-in-out infinite;
+}
+
+@keyframes ct-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(8vw, 6vh) scale(1.12); }
+}
+@keyframes ct-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-7vw, -5vh) scale(1.08); }
+}
+
+/* Entrata morbida delle card */
+@keyframes ct-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ct-fade-up { animation: ct-fade-up 0.35s ease both; }
+
+/* Wordmark con gradiente (background-clip robusto in CSS puro) */
+.ct-wordmark {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  display: inline-block;
+  line-height: 1.1;
+}
+.ct-wordmark.dark  { background-image: linear-gradient(135deg, #34F08F, #8B5CF6); }
+.ct-wordmark.light { background-image: linear-gradient(135deg, #6C4AE0, #22C55E); }
+
+/* Lift al passaggio del mouse */
+.ct-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ct-lift:hover {
+  transform: translateY(-3px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(130,140,190,0.30);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(130,140,190,0.50); background-clip: content-box; }
+
+/* Riduce motion per chi lo preferisce */
+@media (prefers-reduced-motion: reduce) {
+  .ct-aurora::before, .ct-aurora::after, .ct-fade-up { animation: none; }
+}

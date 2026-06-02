@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api'
 import DeckListPanel from '../components/DeckListPanel'
 import { useTheme } from '../hooks/useTheme'
+import { fetchCommanderColors } from '../lib/scryfall'
+import CommanderInput from '../components/CommanderInput'
 
 const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '' }
 const EMPTY_USER_FORM = { username: '', password: '', role: 'PLAYER' }
@@ -14,12 +16,22 @@ const EMPTY_GAME_FORM = {
   ],
   winnerId: '',
   winnerDeckId: '',
-  notes: ''
+  notes: '',
+  playedAt: ''
 }
 
 function SectionCard({ children, t }) {
   return (
-    <div style={{ background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 12 }}>
+    <div style={{
+      background: t.bgSurface,
+      backdropFilter: 'blur(14px) saturate(150%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+      border: `1px solid ${t.border}`,
+      borderRadius: 14,
+      padding: '1rem 1.25rem',
+      marginBottom: 12,
+      boxShadow: t.shadow,
+    }}>
       {children}
     </div>
   )
@@ -34,13 +46,16 @@ function formatGameForEdit(game) {
     })),
     winnerId: String(game.players.find((player) => player.isWinner)?.user.id || ''),
     winnerDeckId: String(game.players.find((player) => player.isWinner)?.deck.id || ''),
-    notes: game.notes || ''
+    notes: game.notes || '',
+    playedAt: game.playedAt ? new Date(game.playedAt).toISOString().slice(0, 10) : ''
   }
 }
 
 export default function AdminPage() {
   const { t } = useTheme()
   const [tab, setTab] = useState('utenti')
+  const [detectingDeckColors, setDetectingDeckColors]       = useState(false)
+  const [detectingEditColors, setDetectingEditColors]       = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [users, setUsers] = useState([])
@@ -264,7 +279,8 @@ export default function AdminPage() {
           })),
         winnerId: Number.parseInt(gameForm.winnerId, 10),
         winnerDeckId: Number.parseInt(gameForm.winnerDeckId, 10),
-        notes: gameForm.notes.trim() || undefined
+        notes: gameForm.notes.trim() || undefined,
+        playedAt: gameForm.playedAt || undefined
       }
 
       await api.updateGame(gameForm.id, payload)
@@ -288,6 +304,30 @@ export default function AdminPage() {
       await loadData()
     } catch (err) {
       setError(err.error || 'Errore nell\'eliminazione partita')
+    }
+  }
+
+  const handleDeckCommanderBlur = async () => {
+    const name = deckForm.commander.trim()
+    if (!name) return
+    setDetectingDeckColors(true)
+    try {
+      const colors = await fetchCommanderColors(name)
+      if (colors !== null) setDeckForm(f => ({ ...f, colors: colors.join('') }))
+    } finally {
+      setDetectingDeckColors(false)
+    }
+  }
+
+  const handleEditCommanderBlur = async () => {
+    const name = editingDeckForm.commander.trim()
+    if (!name) return
+    setDetectingEditColors(true)
+    try {
+      const colors = await fetchCommanderColors(name)
+      if (colors !== null) setEditingDeckForm(f => ({ ...f, colors: colors.join('') }))
+    } finally {
+      setDetectingEditColors(false)
     }
   }
 
@@ -415,8 +455,20 @@ export default function AdminPage() {
                 {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
               </select>
               <input style={inputStyle} placeholder="Nome mazzo" value={deckForm.name} onChange={(event) => setDeckForm((current) => ({ ...current, name: event.target.value }))} />
-              <input style={inputStyle} placeholder="Commander" value={deckForm.commander} onChange={(event) => setDeckForm((current) => ({ ...current, commander: event.target.value }))} />
-              <input style={inputStyle} placeholder="Colori es. WUG" value={deckForm.colors} onChange={(event) => setDeckForm((current) => ({ ...current, colors: event.target.value }))} />
+              <CommanderInput
+                style={inputStyle}
+                placeholder="Commander"
+                value={deckForm.commander}
+                onChange={(name) => setDeckForm((current) => ({ ...current, commander: name }))}
+                onBlur={handleDeckCommanderBlur}
+              />
+              <input
+                style={{ ...inputStyle, color: detectingDeckColors ? t.primary : t.text }}
+                placeholder={detectingDeckColors ? 'rilevamento...' : 'Colori es. WUG'}
+                value={deckForm.colors}
+                onChange={(event) => setDeckForm((current) => ({ ...current, colors: event.target.value }))}
+                readOnly={detectingDeckColors}
+              />
               <button type="submit" style={buttonPrimary} disabled={saving}>Crea</button>
             </form>
           </SectionCard>
@@ -429,8 +481,19 @@ export default function AdminPage() {
                     {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
                   </select>
                   <input style={inputStyle} value={editingDeckForm.name} onChange={(event) => setEditingDeckForm((current) => ({ ...current, name: event.target.value }))} />
-                  <input style={inputStyle} value={editingDeckForm.commander} onChange={(event) => setEditingDeckForm((current) => ({ ...current, commander: event.target.value }))} />
-                  <input style={inputStyle} value={editingDeckForm.colors} onChange={(event) => setEditingDeckForm((current) => ({ ...current, colors: event.target.value }))} />
+                  <CommanderInput
+                    style={inputStyle}
+                    value={editingDeckForm.commander}
+                    onChange={(name) => setEditingDeckForm((current) => ({ ...current, commander: name }))}
+                    onBlur={handleEditCommanderBlur}
+                  />
+                  <input
+                    style={{ ...inputStyle, color: detectingEditColors ? t.primary : t.text }}
+                    placeholder={detectingEditColors ? 'rilevamento...' : ''}
+                    value={editingDeckForm.colors}
+                    onChange={(event) => setEditingDeckForm((current) => ({ ...current, colors: event.target.value }))}
+                    readOnly={detectingEditColors}
+                  />
                   <button style={buttonPrimary} onClick={() => saveDeckEdit(deck.id)}>Salva</button>
                   <button style={buttonSecondary} onClick={() => setEditingDeckId(null)}>Annulla</button>
                 </div>
@@ -454,8 +517,12 @@ export default function AdminPage() {
                     <DeckListPanel
                       decklist={deck.decklist}
                       commander={deck.commander}
-                      onSave={async (newList, newCommander) => {
-                        await api.updateDeck(deck.id, { decklist: newList, commander: newCommander })
+                      onSave={async (newList, newCommander, newColors) => {
+                        await api.updateDeck(deck.id, {
+                          decklist: newList,
+                          commander: newCommander,
+                          colors: newColors || undefined
+                        })
                         await loadData()
                       }}
                     />
@@ -497,6 +564,17 @@ export default function AdminPage() {
 
                 <div style={{ marginBottom: 12 }}>
                   <button type="button" style={buttonSecondary} onClick={addGameSlot}>Aggiungi giocatore</button>
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4 }}>Data partita</div>
+                  <input
+                    type="date"
+                    style={{ ...inputStyle, width: 'auto', minWidth: 180 }}
+                    value={gameForm.playedAt}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(event) => setGameForm((current) => ({ ...current, playedAt: event.target.value }))}
+                  />
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>

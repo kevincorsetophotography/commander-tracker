@@ -3,9 +3,12 @@ const auth = require('../middleware/auth');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const PLAYER_ONLY = { role: 'PLAYER' };
+
 // GET /api/stats/players
 router.get('/players', auth, async (req, res) => {
   const players = await prisma.user.findMany({
+    where: PLAYER_ONLY,
     select: {
       id: true,
       username: true,
@@ -13,11 +16,11 @@ router.get('/players', auth, async (req, res) => {
     }
   });
   const stats = players.map(p => ({
-    id:       p.id,
+    id:      p.id,
     username: p.username,
-    games:    p.gamePlayers.length,
-    wins:     p.gamePlayers.filter(gp => gp.isWinner).length,
-    winRate:  p.gamePlayers.length > 0
+    games:   p.gamePlayers.length,
+    wins:    p.gamePlayers.filter(gp => gp.isWinner).length,
+    winRate: p.gamePlayers.length > 0
       ? Math.round(p.gamePlayers.filter(gp => gp.isWinner).length / p.gamePlayers.length * 100)
       : 0
   }));
@@ -27,6 +30,7 @@ router.get('/players', auth, async (req, res) => {
 // GET /api/stats/decks
 router.get('/decks', auth, async (req, res) => {
   const decks = await prisma.deck.findMany({
+    where: { user: PLAYER_ONLY },
     include: {
       user:        { select: { id: true, username: true } },
       gamePlayers: { select: { isWinner: true } }
@@ -49,30 +53,27 @@ router.get('/decks', auth, async (req, res) => {
 });
 
 // GET /api/stats/matchups
-// Ritorna win rate per ogni coppia di mazzi che si sono affrontati nello stesso pod
 router.get('/matchups', auth, async (req, res) => {
   const games = await prisma.game.findMany({
     include: {
       players: {
-        include: { deck: { include: { user: { select: { username: true } } } } }
+        include: { deck: { include: { user: { select: { username: true, role: true } } } } }
       }
     }
   });
 
-  // matchupMap[deckA_id][deckB_id] = { games, wins }
   const matchupMap = {};
-  const deckMeta = {};
+  const deckMeta   = {};
 
   games.forEach(g => {
-    g.players.forEach(p => {
-      deckMeta[p.deckId] = {
-        id:    p.deckId,
-        name:  p.deck.name,
-        owner: p.deck.user.username
-      };
-      g.players.forEach(opp => {
+    // Considera solo i giocatori non-admin
+    const players = g.players.filter(p => p.deck.user.role === 'PLAYER');
+
+    players.forEach(p => {
+      deckMeta[p.deckId] = { id: p.deckId, name: p.deck.name, owner: p.deck.user.username };
+      players.forEach(opp => {
         if (opp.id === p.id) return;
-        if (!matchupMap[p.deckId])           matchupMap[p.deckId] = {};
+        if (!matchupMap[p.deckId])             matchupMap[p.deckId] = {};
         if (!matchupMap[p.deckId][opp.deckId]) matchupMap[p.deckId][opp.deckId] = { games: 0, wins: 0 };
         matchupMap[p.deckId][opp.deckId].games++;
         if (p.isWinner) matchupMap[p.deckId][opp.deckId].wins++;

@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useTheme } from '../hooks/useTheme'
 
 const EMPTY_SLOT = { userId: '', deckId: '' }
 
 export default function NewGamePage() {
   const navigate = useNavigate()
+  const { t } = useTheme()
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
   const [slots, setSlots] = useState([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
   const [notes, setNotes] = useState('')
+  const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -71,7 +74,8 @@ export default function NewGamePage() {
         players: filledSlots.map(s => ({ userId: parseInt(s.userId), deckId: parseInt(s.deckId) })),
         winnerId: winnerId.userId,
         winnerDeckId: winnerId.deckId,
-        notes: notes.trim() || undefined
+        notes: notes.trim() || undefined,
+        playedAt: playedAt || undefined
       })
       navigate('/')
     } catch (err) {
@@ -81,27 +85,48 @@ export default function NewGamePage() {
     }
   }
 
-  const card = { background: '#fff', border: '0.5px solid #e0ddd5', borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 12 }
-  const sel = { padding: '9px 12px', borderRadius: 8, border: '0.5px solid #ccc', fontSize: 14, background: '#fff', outline: 'none', cursor: 'pointer' }
+  const card = {
+    background: t.bgSurface,
+    backdropFilter: 'blur(14px) saturate(150%)',
+    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+    border: `1px solid ${t.border}`,
+    borderRadius: 16,
+    padding: '1.15rem 1.35rem',
+    marginBottom: 12,
+    boxShadow: t.shadow,
+  }
+  const sel = { padding: '9px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, background: t.inputBg, color: t.text, outline: 'none', cursor: 'pointer' }
 
   return (
     <div>
-      <div style={{ fontSize: 18, fontWeight: 500, marginBottom: '1.25rem' }}>Nuova partita</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: '1.25rem', color: t.text }}>Nuova partita</div>
 
       {allDecks.length === 0 && !error && (
-        <div style={{ ...card, color: '#888', fontSize: 14 }}>
+        <div style={{ ...card, color: t.textSub, fontSize: 14 }}>
           Nessun mazzo trovato. Prima aggiungete i mazzi dalla pagina <strong>Mazzi</strong>.
         </div>
       )}
 
+      {/* Data partita */}
+      <div style={card}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: t.text }}>Data partita</div>
+        <input
+          type="date"
+          value={playedAt}
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={e => setPlayedAt(e.target.value)}
+          style={{ ...sel, minWidth: 180 }}
+        />
+      </div>
+
       {/* Slot giocatori */}
       <div style={card}>
-        <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 12 }}>Giocatori al tavolo</div>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>Giocatori al tavolo</div>
         {slots.map((slot, i) => {
           const userDecks = slot.userId ? (byUser[slot.userId]?.decks || []) : []
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#EEEDFE', color: '#534AB7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
                 {i + 1}
               </div>
               <select style={{ ...sel, flex: 1, minWidth: 120 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)}>
@@ -113,13 +138,13 @@ export default function NewGamePage() {
                 {userDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
               {i >= 3 && (
-                <button onClick={() => removeSlot(i)} style={{ padding: '6px 10px', border: '0.5px solid #ccc', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#888' }}>×</button>
+                <button onClick={() => removeSlot(i)} style={{ padding: '6px 11px', border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgMuted, cursor: 'pointer', fontSize: 14, color: t.textSub }}>×</button>
               )}
             </div>
           )
         })}
         {slots.length < 5 && (
-          <button onClick={addSlot} style={{ marginTop: 4, padding: '7px 14px', border: '0.5px solid #ccc', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#666' }}>
+          <button onClick={addSlot} style={{ marginTop: 4, padding: '8px 14px', border: `1px solid ${t.border}`, borderRadius: 10, background: t.bgMuted, cursor: 'pointer', fontSize: 13, color: t.textSub, fontWeight: 500 }}>
             + Aggiungi giocatore
           </button>
         )}
@@ -128,7 +153,7 @@ export default function NewGamePage() {
       {/* Selezione vincitore */}
       {filledSlots.length >= 2 && (
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 12 }}>Chi ha vinto?</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>Chi ha vinto?</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {filledSlots.map((s, i) => {
               const active = isWinner(s)
@@ -137,11 +162,12 @@ export default function NewGamePage() {
                   key={i}
                   onClick={() => setWinnerId({ userId: parseInt(s.userId), deckId: parseInt(s.deckId) })}
                   style={{
-                    padding: '8px 16px', borderRadius: 20, cursor: 'pointer', fontSize: 13, fontWeight: 500,
-                    background: active ? '#EAF3DE' : '#fff',
-                    color: active ? '#3B6D11' : '#555',
-                    border: active ? '0.5px solid #C0DD97' : '0.5px solid #ccc',
-                    transition: 'all 0.15s'
+                    padding: '8px 16px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    background: active ? t.winBg : t.bgMuted,
+                    color: active ? t.win : t.textSub,
+                    border: active ? `1px solid ${t.win}` : `1px solid ${t.border}`,
+                    boxShadow: active ? t.glow : 'none',
+                    transition: 'all 0.18s ease'
                   }}
                 >
                   {getUserName(s.userId)} · {getDeckName(s.deckId)}
@@ -155,21 +181,21 @@ export default function NewGamePage() {
 
       {/* Note */}
       <div style={card}>
-        <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Note (opzionale)</div>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: t.text }}>Note (opzionale)</div>
         <input
-          style={{ padding: '9px 12px', borderRadius: 8, border: '0.5px solid #ccc', fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none' }}
+          style={{ padding: '10px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }}
           placeholder="es. combo al turno 9, partita lunga..."
           value={notes}
           onChange={e => setNotes(e.target.value)}
         />
       </div>
 
-      {error && <div style={{ color: '#a32d2d', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+      {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
 
       <button
         onClick={submit}
         disabled={saving}
-        style={{ padding: '11px 28px', background: '#534AB7', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+        style={{ padding: '12px 30px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: t.glow, transition: 'all 0.18s ease' }}
       >
         {saving ? 'Salvataggio...' : 'Salva partita'}
       </button>

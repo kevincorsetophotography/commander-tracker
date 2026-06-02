@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider, useTheme } from './hooks/useTheme'
@@ -7,75 +8,147 @@ import NewGamePage from './pages/NewGamePage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
 
+function NavItem({ to, end, children }) {
+  const { t } = useTheme()
+  const [hover, setHover] = useState(false)
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={({ isActive }) => ({
+        padding: '7px 15px',
+        borderRadius: 10,
+        textDecoration: 'none',
+        fontSize: 13,
+        fontWeight: 600,
+        letterSpacing: '0.01em',
+        background: isActive ? t.primary : hover ? t.bgMuted : 'transparent',
+        color: isActive ? t.primaryFg : hover ? t.text : t.textSub,
+        boxShadow: isActive ? t.glow : 'none',
+        transition: 'all 0.18s ease',
+      })}
+    >
+      {children}
+    </NavLink>
+  )
+}
+
+function IconButton({ onClick, title, children }) {
+  const { t } = useTheme()
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding: '6px 12px',
+        border: `1px solid ${hover ? t.borderStrong : t.border}`,
+        borderRadius: 10,
+        background: hover ? t.bgMuted : t.bgSurfaceAlt,
+        cursor: 'pointer',
+        fontSize: 13,
+        fontWeight: 500,
+        color: t.textSub,
+        transition: 'all 0.18s ease',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 function Layout() {
   const { user, logout } = useAuth()
   const { t, dark, toggleDark } = useTheme()
 
-  const navLink = ({ isActive }) => ({
-    padding: '6px 14px',
-    borderRadius: 20,
-    textDecoration: 'none',
-    fontSize: 13,
-    fontWeight: 500,
-    background: isActive ? t.primary : 'transparent',
-    color: isActive ? t.primaryFg : t.textSub,
-    transition: 'all 0.15s',
-  })
-
   return (
-    <div style={{ minHeight: '100vh', background: t.bgPage, fontFamily: 'system-ui, sans-serif', color: t.text, transition: 'background 0.2s, color 0.2s' }}>
-      {/* Navbar */}
-      <div style={{ background: t.bgNav, borderBottom: `0.5px solid ${t.border}`, padding: '0 1rem', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56 }}>
+    <div style={{ minHeight: '100vh', position: 'relative', color: t.text }}>
+      {/* Sfondo aurora */}
+      <div className={`ct-aurora ${dark ? 'dark' : 'light'}`} />
 
-          {/* Logo + nav links */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginRight: 10, textDecoration: 'none' }}>
-              <img
-                src="/logo.png"
-                alt="Commanderone"
-                onError={e => { e.currentTarget.style.display = 'none' }}
-                style={{ height: 38, width: 38, objectFit: 'contain' }}
-              />
-              <div style={{ lineHeight: 1.15 }}>
-                <div style={{ fontWeight: 800, fontSize: 13, color: t.primary, letterSpacing: '0.06em' }}>COMMANDERONE</div>
-                <div style={{ fontSize: 9, color: t.textMuted, letterSpacing: '0.14em' }}>VILLASTELLONE</div>
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Navbar */}
+        <div style={{
+          background: t.bgNav,
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+          borderBottom: `1px solid ${t.border}`,
+          padding: '0 1rem',
+          position: 'sticky',
+          top: 0,
+          zIndex: 20,
+        }}>
+          <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62, gap: 12 }}>
+
+            {/* Logo + nav links */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginRight: 8 }}>
+                <div style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <img
+                    src="/logo.png"
+                    alt="Commanderone"
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                    style={{ height: 42, width: 42, objectFit: 'contain', filter: dark ? `drop-shadow(0 0 10px ${t.primaryBorder})` : 'none' }}
+                  />
+                </div>
+                <div style={{ lineHeight: 1.12 }}>
+                  <div className={`ct-wordmark ${dark ? 'dark' : 'light'}`} style={{ fontWeight: 900, fontSize: 14, letterSpacing: '0.04em' }}>COMMANDERONE</div>
+                  <div style={{ fontSize: 9, color: t.textMuted, letterSpacing: '0.18em', fontWeight: 600 }}>VILLASTELLONE</div>
+                </div>
               </div>
+              <NavItem to="/" end>Riepilogo</NavItem>
+              <NavItem to="/mazzi">Mazzi</NavItem>
+              <NavItem to="/nuova-partita">+ Partita</NavItem>
+              {user?.role === 'ADMIN' && <NavItem to="/admin">Admin</NavItem>}
             </div>
-            <NavLink to="/"               end style={navLink}>Riepilogo</NavLink>
-            <NavLink to="/mazzi"              style={navLink}>Mazzi</NavLink>
-            <NavLink to="/nuova-partita"      style={navLink}>+ Partita</NavLink>
-            {user?.role === 'ADMIN' && <NavLink to="/admin" style={navLink}>Admin</NavLink>}
-          </div>
 
-          {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: t.textSub }}>{user?.username}</span>
-            <button
-              onClick={toggleDark}
-              title={dark ? 'Passa a light mode' : 'Passa a dark mode'}
-              style={{ padding: '5px 10px', border: `0.5px solid ${t.border}`, borderRadius: 8, background: t.bgSurface, cursor: 'pointer', fontSize: 14, color: t.textSub }}
-            >
-              {dark ? '☀' : '🌙'}
-            </button>
-            <button
-              onClick={logout}
-              style={{ padding: '6px 14px', border: `0.5px solid ${t.border}`, borderRadius: 8, background: t.bgSurface, cursor: 'pointer', fontSize: 12, color: t.textSub }}
-            >
-              Esci
-            </button>
+            {/* Right side */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: t.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+              }}>
+                <span style={{
+                  width: 26, height: 26, borderRadius: '50%',
+                  background: t.primaryBg, color: t.primary,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700,
+                  border: `1px solid ${t.primaryBorder}`,
+                }}>
+                  {user?.username?.substring(0, 2).toUpperCase()}
+                </span>
+                {user?.username}
+              </span>
+              <IconButton onClick={toggleDark} title={dark ? 'Passa a light mode' : 'Passa a dark mode'}>
+                {dark ? '☀' : '🌙'}
+              </IconButton>
+              <IconButton onClick={logout} title="Esci">Esci</IconButton>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Page content */}
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '1.5rem 1rem' }}>
-        <Routes>
-          <Route path="/"              element={<DashboardPage />} />
-          <Route path="/mazzi"         element={<DecksPage />} />
-          <Route path="/nuova-partita" element={<NewGamePage />} />
-          <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />
-        </Routes>
+        {/* Page content */}
+        <div style={{ maxWidth: 980, margin: '0 auto', padding: '1.75rem 1rem 3rem' }}>
+          <Routes>
+            <Route path="/"              element={<DashboardPage />} />
+            <Route path="/mazzi"         element={<DecksPage />} />
+            <Route path="/nuova-partita" element={<NewGamePage />} />
+            <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </div>
     </div>
   )

@@ -9,6 +9,13 @@ const parseGameId = (value) => {
   return Number.isInteger(id) ? id : null;
 };
 
+// Converte una data in input in Date valida; null se assente, undefined se invalida
+const parsePlayedAt = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+};
+
 const validateGamePayload = async ({ players, winnerId, winnerDeckId }) => {
   const normalizedWinnerId = Number.parseInt(winnerId, 10);
   const normalizedWinnerDeckId = Number.parseInt(winnerDeckId, 10);
@@ -85,11 +92,16 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post('/', auth, async (req, res) => {
-  const { players, winnerId, winnerDeckId, notes } = req.body;
+  const { players, winnerId, winnerDeckId, notes, playedAt } = req.body;
   const validation = await validateGamePayload({ players, winnerId, winnerDeckId });
 
   if (validation.error) {
     return res.status(400).json({ error: validation.error });
+  }
+
+  const parsedDate = parsePlayedAt(playedAt);
+  if (parsedDate === undefined) {
+    return res.status(400).json({ error: 'Data partita non valida' });
   }
 
   const { normalizedPlayers, normalizedWinnerId, normalizedWinnerDeckId } = validation;
@@ -97,6 +109,7 @@ router.post('/', auth, async (req, res) => {
   const game = await prisma.game.create({
     data: {
       notes,
+      ...(parsedDate ? { playedAt: parsedDate } : {}),
       createdByUserId: req.user.id,
       players: {
         create: normalizedPlayers.map((player) => ({
@@ -126,11 +139,16 @@ router.patch('/:id', auth, async (req, res) => {
     return res.status(403).json({ error: 'Solo admin o creatore possono modificare la partita' });
   }
 
-  const { players, winnerId, winnerDeckId, notes } = req.body;
+  const { players, winnerId, winnerDeckId, notes, playedAt } = req.body;
   const validation = await validateGamePayload({ players, winnerId, winnerDeckId });
 
   if (validation.error) {
     return res.status(400).json({ error: validation.error });
+  }
+
+  const parsedDate = parsePlayedAt(playedAt);
+  if (parsedDate === undefined) {
+    return res.status(400).json({ error: 'Data partita non valida' });
   }
 
   const { normalizedPlayers, normalizedWinnerId, normalizedWinnerDeckId } = validation;
@@ -142,6 +160,7 @@ router.patch('/:id', auth, async (req, res) => {
       where: { id: game.id },
       data: {
         notes,
+        ...(parsedDate ? { playedAt: parsedDate } : {}),
         players: {
           create: normalizedPlayers.map((player) => ({
             userId: player.userId,

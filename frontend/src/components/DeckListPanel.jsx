@@ -1,18 +1,24 @@
 import { useState } from 'react'
-import { parseDecklist, validateAndFetchDecklist, fetchDecklistCards, fetchCommanderCard } from '../lib/scryfall'
+import { parseDecklist, validateAndFetchDecklist, fetchDecklistCards, fetchCommanderCard, fetchCommanderColors } from '../lib/scryfall'
 import { useTheme } from '../hooks/useTheme'
+import CommanderInput from './CommanderInput'
+
+const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
+const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
 
 export default function DeckListPanel({ decklist, commander, onSave }) {
   const { t } = useTheme()
-  const [open, setOpen]                 = useState(false)
-  const [mode, setMode]                 = useState('view')
+  const [open, setOpen]                     = useState(false)
+  const [mode, setMode]                     = useState('view')
   const [commanderInput, setCommanderInput] = useState('')
-  const [editText, setEditText]         = useState('')
-  const [saving, setSaving]             = useState(false)
-  const [errors, setErrors]             = useState([])
-  const [cards, setCards]               = useState([])
-  const [loadingCards, setLoadingCards] = useState(false)
-  const [selectedCard, setSelectedCard] = useState(null)
+  const [detectedColors, setDetectedColors] = useState(null)
+  const [detectingColors, setDetectingColors] = useState(false)
+  const [editText, setEditText]             = useState('')
+  const [saving, setSaving]                 = useState(false)
+  const [errors, setErrors]                 = useState([])
+  const [cards, setCards]                   = useState([])
+  const [loadingCards, setLoadingCards]     = useState(false)
+  const [selectedCard, setSelectedCard]     = useState(null)
 
   const hasList = !!decklist
 
@@ -33,8 +39,21 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
     }
   }
 
+  const handleCommanderBlur = async () => {
+    const name = commanderInput.trim()
+    if (!name) return
+    setDetectingColors(true)
+    try {
+      const colors = await fetchCommanderColors(name)
+      setDetectedColors(colors)
+    } finally {
+      setDetectingColors(false)
+    }
+  }
+
   const enterEditMode = () => {
     setCommanderInput(commander || '')
+    setDetectedColors(null)
     if (decklist) {
       // Estrai le 99 carte (tutto tranne la riga del commander)
       const lines = decklist.split('\n').map(l => l.trim()).filter(Boolean)
@@ -91,10 +110,12 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
         return
       }
 
-      // 4. Salva — passa anche il nome esatto del commander per aggiornare il banner
-      await onSave(fullList, commanderCard.name)
+      // 4. Salva — passa nome esatto commander + colori rilevati
+      const colorsToSave = detectedColors ? detectedColors.join('') : null
+      await onSave(fullList, commanderCard.name, colorsToSave)
       setCards(result.cards)
       setSelectedCard(null)
+      setDetectedColors(null)
       setMode('view')
     } catch (e) {
       setErrors([e?.error || 'Errore nel salvataggio'])
@@ -172,10 +193,30 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
             <>
               {/* Campo commander */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4, fontWeight: 500 }}>Commander</div>
-                <input
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: t.textSub, fontWeight: 500 }}>Commander</span>
+                  {detectingColors && (
+                    <span style={{ fontSize: 11, color: t.primary }}>rilevamento colori...</span>
+                  )}
+                  {!detectingColors && detectedColors !== null && (
+                    <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                      {detectedColors.length === 0
+                        ? <span style={{ fontSize: 11, color: t.textMuted }}>Incolore</span>
+                        : detectedColors.map(c => (
+                            <span key={c} title={c} style={{
+                              display: 'inline-block', width: 14, height: 14, borderRadius: '50%',
+                              background: COLOR_MAP[c], border: '1px solid rgba(0,0,0,0.2)',
+                              fontSize: 9, lineHeight: '14px', textAlign: 'center', fontWeight: 700, color: '#444'
+                            }}>{c}</span>
+                          ))
+                      }
+                    </span>
+                  )}
+                </div>
+                <CommanderInput
                   value={commanderInput}
-                  onChange={e => setCommanderInput(e.target.value)}
+                  onChange={(name) => { setCommanderInput(name); setDetectedColors(null) }}
+                  onBlur={handleCommanderBlur}
                   placeholder="es. Atraxa, Praetors' Voice"
                   style={inputSt}
                 />

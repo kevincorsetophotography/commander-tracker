@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { fetchCommanderColors } from '../lib/scryfall'
 import DeckListPanel from '../components/DeckListPanel'
+import CommanderInput from '../components/CommanderInput'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
@@ -21,27 +23,33 @@ const commanderArtUrl = (name) =>
 
 export default function DecksPage() {
   const { t } = useTheme()
-  const [decks, setDecks]         = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState('')
-  const [form, setForm]           = useState({ name: '', commander: '', colors: [] })
-  const [saving, setSaving]       = useState(false)
-  const [formError, setFormError] = useState('')
+  const [decks, setDecks]                     = useState([])
+  const [loading, setLoading]                 = useState(true)
+  const [error, setError]                     = useState('')
+  const [form, setForm]                       = useState({ name: '', commander: '', colors: [] })
+  const [saving, setSaving]                   = useState(false)
+  const [formError, setFormError]             = useState('')
+  const [detectingColors, setDetectingColors] = useState(false)
 
   const loadDecks = async () => {
-    try {
-      setDecks(await api.getMyDecks())
-    } catch {
-      setError('Errore nel caricamento mazzi')
-    } finally {
-      setLoading(false)
-    }
+    try { setDecks(await api.getMyDecks()) }
+    catch { setError('Errore nel caricamento mazzi') }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { loadDecks() }, [])
 
-  const toggleColor = (c) => {
+  const toggleColor = (c) =>
     setForm(f => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter(x => x !== c) : [...f.colors, c] }))
+
+  const handleCommanderBlur = async () => {
+    const name = form.commander.trim()
+    if (!name) return
+    setDetectingColors(true)
+    try {
+      const colors = await fetchCommanderColors(name)
+      if (colors !== null) setForm(f => ({ ...f, colors }))
+    } finally { setDetectingColors(false) }
   }
 
   const submit = async (e) => {
@@ -54,24 +62,25 @@ export default function DecksPage() {
       await loadDecks()
     } catch (err) {
       setFormError(err.error || 'Errore nel salvataggio')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   const deleteDeck = async (id) => {
     if (!confirm('Eliminare questo mazzo?')) return
-    try {
-      await api.deleteDeck(id)
-      await loadDecks()
-    } catch (err) {
-      alert(err.error || 'Errore nella cancellazione')
-    }
+    try { await api.deleteDeck(id); await loadDecks() }
+    catch (err) { alert(err.error || 'Errore nella cancellazione') }
   }
 
-  const formCard  = { background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 10 }
-  const deckCard  = { background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, marginBottom: 10, overflow: 'hidden' }
-  const inputSt   = { padding: '9px 12px', borderRadius: 8, border: `0.5px solid ${t.border}`, fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }
+  const glass = {
+    background: t.bgSurface,
+    backdropFilter: 'blur(14px) saturate(150%)',
+    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+    border: `1px solid ${t.border}`,
+    boxShadow: t.shadow,
+  }
+  const formCard = { ...glass, borderRadius: 16, padding: '1.15rem 1.35rem', marginBottom: 14 }
+  const deckCard = { ...glass, borderRadius: 16, marginBottom: 12, overflow: 'hidden' }
+  const inputSt  = { padding: '9px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }
   const btnPrimary  = { padding: '9px 20px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer' }
   const btnDanger   = { padding: '5px 12px', background: t.dangerBg, color: t.danger, border: `0.5px solid ${t.dangerBorder}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
 
@@ -85,21 +94,25 @@ export default function DecksPage() {
         <form onSubmit={submit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
             <input style={inputSt} placeholder="Nome mazzo *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-            <input style={inputSt} placeholder="Commander (opzionale)" value={form.commander} onChange={e => setForm(f => ({ ...f, commander: e.target.value }))} />
+            <CommanderInput
+              style={inputSt}
+              placeholder="Commander (opzionale)"
+              value={form.commander}
+              onChange={(name) => setForm(f => ({ ...f, commander: name }))}
+              onBlur={handleCommanderBlur}
+            />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: t.textSub }}>Colori:</span>
+            <span style={{ fontSize: 13, color: t.textSub }}>
+              Colori:{detectingColors && <span style={{ marginLeft: 6, fontSize: 11, color: t.primary }}>rilevamento...</span>}
+            </span>
             {['W', 'U', 'B', 'R', 'G'].map(c => (
-              <button
-                key={c} type="button" onClick={() => toggleColor(c)}
-                style={{
-                  width: 32, height: 32, borderRadius: '50%', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 600, color: '#444',
-                  background: COLOR_MAP[c],
-                  border: form.colors.includes(c) ? `2px solid ${t.primary}` : '1px solid #ccc',
-                  outline: form.colors.includes(c) ? `2px solid ${t.primaryBorder}` : 'none'
-                }}
-              >{c}</button>
+              <button key={c} type="button" onClick={() => toggleColor(c)} style={{
+                width: 32, height: 32, borderRadius: '50%', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, color: '#444', background: COLOR_MAP[c],
+                border: form.colors.includes(c) ? `2px solid ${t.primary}` : '1px solid #ccc',
+                outline: form.colors.includes(c) ? `2px solid ${t.primaryBorder}` : 'none'
+              }}>{c}</button>
             ))}
           </div>
           {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 8 }}>{formError}</div>}
@@ -108,7 +121,7 @@ export default function DecksPage() {
       </div>
 
       {loading && <div style={{ color: t.textSub, fontSize: 14, padding: '1rem' }}>Caricamento...</div>}
-      {error   && <div style={{ color: t.danger,  fontSize: 14 }}>{error}</div>}
+      {error   && <div style={{ color: t.danger, fontSize: 14 }}>{error}</div>}
       {!loading && decks.length === 0 && (
         <div style={{ ...formCard, textAlign: 'center', color: t.textSub, fontSize: 14, padding: '2rem' }}>
           Nessun mazzo ancora. Aggiungine uno sopra!
@@ -116,9 +129,7 @@ export default function DecksPage() {
       )}
 
       {decks.map(deck => (
-        <div key={deck.id} style={deckCard}>
-
-          {/* Banner commander */}
+        <div key={deck.id} className="ct-lift ct-fade-up" style={deckCard}>
           {deck.commander ? (
             <div style={{ position: 'relative', height: 96, background: '#1a1640', overflow: 'hidden' }}>
               <img
@@ -142,19 +153,21 @@ export default function DecksPage() {
             </div>
           )}
 
-          {/* Azioni */}
           <div style={{ padding: '10px 14px', display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
             <DeckListPanel
               decklist={deck.decklist}
               commander={deck.commander}
-              onSave={async (newList, newCommander) => {
-                await api.updateDeck(deck.id, { decklist: newList, commander: newCommander })
+              onSave={async (newList, newCommander, newColors) => {
+                await api.updateDeck(deck.id, {
+                  decklist: newList,
+                  commander: newCommander,
+                  colors: newColors || undefined
+                })
                 await loadDecks()
               }}
             />
             <button style={btnDanger} onClick={() => deleteDeck(deck.id)}>Elimina</button>
           </div>
-
         </div>
       ))}
     </div>

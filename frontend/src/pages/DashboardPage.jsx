@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../hooks/useAuth'
 
 function WinBar({ pct, t }) {
   return (
@@ -24,15 +25,27 @@ function Avatar({ name, t, size = 32 }) {
 
 function MetricCard({ label, value, t }) {
   return (
-    <div style={{ background: t.bgMuted, borderRadius: 10, padding: '0.9rem 1rem', border: `0.5px solid ${t.border}` }}>
-      <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 600, color: t.text }}>{value}</div>
+    <div style={{
+      background: t.bgSurface,
+      backdropFilter: 'blur(14px) saturate(150%)',
+      WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+      borderRadius: 16,
+      padding: '1rem 1.15rem',
+      border: `1px solid ${t.border}`,
+      boxShadow: t.shadow,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />
+      <div style={{ fontSize: 11, color: t.textSub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: t.text, lineHeight: 1 }}>{value}</div>
     </div>
   )
 }
 
 export default function DashboardPage() {
   const { t } = useTheme()
+  const { user } = useAuth()
   const [tab, setTab] = useState('giocatori')
   const [playerStats, setPlayerStats] = useState([])
   const [deckStats, setDeckStats] = useState([])
@@ -40,6 +53,11 @@ export default function DashboardPage() {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedMatchupDeckId, setSelectedMatchupDeckId] = useState(null)
+  const [expandedPlayerId, setExpandedPlayerId]           = useState(null)
+  const [colorFilter, setColorFilter]   = useState([])
+  const [ownerFilter, setOwnerFilter]   = useState('')
+  const [deckSortDir, setDeckSortDir]   = useState('desc')
 
   useEffect(() => {
     Promise.all([
@@ -52,13 +70,119 @@ export default function DashboardPage() {
     }).catch(() => setError('Errore nel caricamento statistiche')).finally(() => setLoading(false))
   }, [])
 
-  const card = { background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: 10 }
+  const [matchupOppOwner,  setMatchupOppOwner]  = useState('')
+  const [matchupOppDeck,   setMatchupOppDeck]   = useState('')
+  const [matchupSortDir,   setMatchupSortDir]   = useState('desc')
+  const [historicPeriod,   setHistoricPeriod]   = useState('all')
+  const [historicFrom,     setHistoricFrom]     = useState('')
+  const [historicTo,       setHistoricTo]       = useState('')
+
+  // I miei mazzi che compaiono nei matchup
+  const myMatchupDecks = useMemo(() => {
+    const seen = new Set()
+    const result = []
+    for (const m of matchups) {
+      if (m.deckA.owner === user?.username && !seen.has(m.deckA.id)) {
+        seen.add(m.deckA.id)
+        result.push(m.deckA)
+      }
+    }
+    return result
+  }, [matchups, user?.username])
+
+  // Auto-seleziona primo mazzo
+  useEffect(() => {
+    if (myMatchupDecks.length > 0 && !selectedMatchupDeckId) {
+      setSelectedMatchupDeckId(myMatchupDecks[0].id)
+    }
+  }, [myMatchupDecks])
+
+  // Tutti i matchup del mazzo selezionato (senza filtri avversario)
+  const baseMatchups = useMemo(() => {
+    if (!selectedMatchupDeckId) return []
+    return matchups
+      .filter(m => m.deckA.id === selectedMatchupDeckId && m.deckA.owner === user?.username)
+      .sort((a, b) => b.games - a.games)
+  }, [matchups, selectedMatchupDeckId, user?.username])
+
+  // Opzioni filtro avversari derivate dai matchup del mazzo selezionato
+  const oppPlayers   = useMemo(() => [...new Set(baseMatchups.map(m => m.deckB.owner))].sort(), [baseMatchups])
+  const oppDeckNames = useMemo(() => {
+    const source = matchupOppOwner
+      ? baseMatchups.filter(m => m.deckB.owner === matchupOppOwner)
+      : baseMatchups
+    return [...new Set(source.map(m => m.deckB.name))].sort()
+  }, [baseMatchups, matchupOppOwner])
+
+  // Reset filtri avversario quando cambia il mazzo
+  useEffect(() => { setMatchupOppOwner(''); setMatchupOppDeck('') }, [selectedMatchupDeckId])
+
+  // Storico filtrato per periodo / range date
+  const visibleGames = useMemo(() => {
+    const hasCustom = historicFrom || historicTo
+    let from = null, to = null
+
+    if (hasCustom) {
+      if (historicFrom) from = new Date(historicFrom + 'T00:00:00')
+      if (historicTo)   { to = new Date(historicTo + 'T23:59:59') }
+    } else if (historicPeriod !== 'all') {
+      from = new Date()
+      from.setDate(from.getDate() - { '7d': 7, '30d': 30, '90d': 90, '180d': 180 }[historicPeriod])
+      from.setHours(0, 0, 0, 0)
+    }
+
+    if (!from && !to) return games
+    return games.filter(g => {
+      const d = new Date(g.playedAt)
+      if (from && d < from) return false
+      if (to   && d > to)   return false
+      return true
+    })
+  }, [games, historicPeriod, historicFrom, historicTo])
+
+  // Matchup filtrati
+  const filteredMatchups = useMemo(() => {
+    let list = [...baseMatchups]
+    if (matchupOppOwner) list = list.filter(m => m.deckB.owner === matchupOppOwner)
+    if (matchupOppDeck)  list = list.filter(m => m.deckB.name  === matchupOppDeck)
+    list.sort((a, b) => matchupSortDir === 'desc' ? b.winRate - a.winRate : a.winRate - b.winRate)
+    return list
+  }, [baseMatchups, matchupOppOwner, matchupOppDeck, matchupSortDir])
+
+  // Owner unici dai deckStats
+  const deckOwners = useMemo(() => [...new Set(deckStats.map(d => d.owner))].sort(), [deckStats])
+
+  // Lista mazzi filtrata e ordinata
+  const visibleDecks = useMemo(() => {
+    let list = [...deckStats]
+    if (colorFilter.length > 0)
+      list = list.filter(d => d.colors && colorFilter.every(c => d.colors.includes(c)))
+    if (ownerFilter)
+      list = list.filter(d => d.owner === ownerFilter)
+    list.sort((a, b) => deckSortDir === 'desc' ? b.winRate - a.winRate : a.winRate - b.winRate)
+    return list
+  }, [deckStats, colorFilter, ownerFilter, deckSortDir])
+
+  const toggleColor = (c) =>
+    setColorFilter(f => f.includes(c) ? f.filter(x => x !== c) : [...f, c])
+
+  const card = {
+    background: t.bgSurface,
+    backdropFilter: 'blur(14px) saturate(150%)',
+    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+    border: `1px solid ${t.border}`,
+    borderRadius: 14,
+    padding: '1rem 1.25rem',
+    marginBottom: 10,
+    boxShadow: t.shadow,
+  }
 
   const tabBtn = (tab2) => ({
-    padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
-    background: tab === tab2 ? t.primary : t.bgMuted,
+    padding: '8px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    background: tab === tab2 ? t.primary : 'transparent',
     color: tab === tab2 ? t.primaryFg : t.textSub,
-    transition: 'all 0.15s'
+    boxShadow: tab === tab2 ? t.glow : 'none',
+    transition: 'all 0.18s ease',
   })
 
   if (loading) return <div style={{ color: t.textSub, fontSize: 14, padding: '2rem' }}>Caricamento...</div>
@@ -79,7 +203,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Tab selector */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+      <div style={{
+        display: 'inline-flex', gap: 4, marginBottom: '1.25rem', flexWrap: 'wrap',
+        background: t.bgSurface,
+        backdropFilter: 'blur(14px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+        border: `1px solid ${t.border}`,
+        borderRadius: 14,
+        padding: 5,
+        boxShadow: t.shadow,
+      }}>
         {['giocatori', 'mazzi', 'matchup', 'storico'].map(t2 => (
           <button key={t2} style={tabBtn(t2)} onClick={() => setTab(t2)}>
             {t2.charAt(0).toUpperCase() + t2.slice(1)}
@@ -90,37 +223,168 @@ export default function DashboardPage() {
       {/* GIOCATORI */}
       {tab === 'giocatori' && (
         <div>
-          {playerStats.length === 0 && <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>Nessuna partita ancora</div>}
-          {playerStats.map((p, i) => (
-            <div key={p.id} style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
-                  <Avatar name={p.username} t={t} />
-                  <div>
-                    <div style={{ fontWeight: 500, color: t.text }}>{p.username}</div>
-                    <div style={{ fontSize: 12, color: t.textSub }}>{p.wins}V / {p.games - p.wins}P · {p.games} partite</div>
+          {playerStats.length === 0 && (
+            <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
+              Nessuna partita ancora
+            </div>
+          )}
+          {playerStats.map((p, i) => {
+            const isOpen   = expandedPlayerId === p.id
+            const myDecks  = deckStats.filter(d => d.ownerId === p.id).sort((a, b) => b.winRate - a.winRate)
+
+            return (
+              <div key={p.id} style={card}>
+                {/* Header — cliccabile */}
+                <div
+                  onClick={() => setExpandedPlayerId(isOpen ? null : p.id)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
+                    <Avatar name={p.username} t={t} />
+                    <div>
+                      <div style={{ fontWeight: 500, color: t.text }}>{p.username}</div>
+                      <div style={{ fontSize: 12, color: t.textSub }}>{p.wins}V / {p.games - p.wins}P · {p.games} partite</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 22, fontWeight: 600, color: t.primary }}>{p.winRate}%</div>
+                    <span style={{ fontSize: 12, color: t.textMuted }}>{isOpen ? '▲' : '▼'}</span>
                   </div>
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 600, color: t.primary }}>{p.winRate}%</div>
+
+                <WinBar pct={p.winRate} t={t} />
+
+                {/* Sezione mazzi espandibile */}
+                {isOpen && (
+                  <div style={{ marginTop: 12, borderTop: `0.5px solid ${t.border}`, paddingTop: 12 }}>
+                    {myDecks.length === 0 ? (
+                      <div style={{ fontSize: 13, color: t.textMuted }}>Nessun mazzo con partite registrate</div>
+                    ) : (
+                      myDecks.map((deck, di) => (
+                        <div
+                          key={deck.id}
+                          style={{
+                            padding: '8px 0',
+                            borderBottom: di < myDecks.length - 1 ? `0.5px solid ${t.border}` : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                            <div>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>{deck.name}</span>
+                              {deck.commander && (
+                                <span style={{ fontSize: 11, color: t.textMuted, marginLeft: 8 }}>{deck.commander}</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                              <span style={{ fontSize: 11, color: t.textMuted }}>
+                                {deck.wins}V · {deck.games - deck.wins}P
+                              </span>
+                              <span style={{
+                                fontSize: 14, fontWeight: 600, minWidth: 38, textAlign: 'right',
+                                color: deck.winRate >= 50 ? t.win : deck.winRate > 0 ? t.primary : t.textMuted
+                              }}>
+                                {deck.games > 0 ? `${deck.winRate}%` : 'n/a'}
+                              </span>
+                            </div>
+                          </div>
+                          {deck.games > 0 && <WinBar pct={deck.winRate} t={t} />}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-              <WinBar pct={p.winRate} t={t} />
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
       {/* MAZZI */}
       {tab === 'mazzi' && (
         <div>
-          {deckStats.length === 0 && <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>Nessun mazzo ha ancora giocato</div>}
-          {deckStats.map((d, i) => (
+          {/* Filtri */}
+          <div style={{ background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '0.85rem 1rem', marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+
+            {/* Filtro colore */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, color: t.textSub }}>Colore:</span>
+              {['W','U','B','R','G'].map(c => {
+                const bg = { W:'#f5f0e0', U:'#b8d4e8', B:'#c8b8d8', R:'#e8c0b0', G:'#b8d8b8' }[c]
+                const active = colorFilter.includes(c)
+                return (
+                  <button key={c} onClick={() => toggleColor(c)} title={c} style={{
+                    width: 26, height: 26, borderRadius: '50%', cursor: 'pointer',
+                    background: bg, fontSize: 10, fontWeight: 700, color: '#444',
+                    border: active ? `2px solid ${t.primary}` : `1px solid ${t.border}`,
+                    outline: active ? `2px solid ${t.primaryBorder}` : 'none',
+                    opacity: colorFilter.length > 0 && !active ? 0.45 : 1,
+                    transition: 'all 0.12s'
+                  }}>{c}</button>
+                )
+              })}
+              {colorFilter.length > 0 && (
+                <button onClick={() => setColorFilter([])} style={{ fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>
+                  ✕ reset
+                </button>
+              )}
+            </div>
+
+            {/* Filtro utente */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, color: t.textSub }}>Giocatore:</span>
+              <select
+                value={ownerFilter}
+                onChange={e => setOwnerFilter(e.target.value)}
+                style={{ padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, cursor: 'pointer', outline: 'none' }}
+              >
+                <option value=''>Tutti</option>
+                {deckOwners.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+
+            {/* Ordinamento */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              <span style={{ fontSize: 12, color: t.textSub }}>Win rate:</span>
+              <button
+                onClick={() => setDeckSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                style={{ padding: '4px 10px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.bgMuted, color: t.text, fontSize: 13, cursor: 'pointer' }}
+              >
+                {deckSortDir === 'desc' ? '↓ Desc' : '↑ Asc'}
+              </button>
+            </div>
+          </div>
+
+          {/* Contatore risultati */}
+          {(colorFilter.length > 0 || ownerFilter) && (
+            <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8, paddingLeft: 4 }}>
+              {visibleDecks.length} mazzo{visibleDecks.length !== 1 ? 'i' : ''} trovato{visibleDecks.length !== 1 ? 'i' : ''}
+            </div>
+          )}
+
+          {visibleDecks.length === 0 && (
+            <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
+              {deckStats.length === 0 ? 'Nessun mazzo ha ancora giocato' : 'Nessun mazzo corrisponde ai filtri'}
+            </div>
+          )}
+
+          {visibleDecks.map((d, i) => (
             <div key={d.id} style={card}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
                   <div>
-                    <div style={{ fontWeight: 500, color: t.text }}>{d.name}</div>
+                    <div style={{ fontWeight: 500, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {d.name}
+                      {d.colors && (
+                        <span style={{ display: 'inline-flex', gap: 2 }}>
+                          {d.colors.split('').map(c => {
+                            const bg = { W:'#f5f0e0', U:'#b8d4e8', B:'#c8b8d8', R:'#e8c0b0', G:'#b8d8b8' }[c] || '#eee'
+                            return <span key={c} style={{ width: 12, height: 12, borderRadius: '50%', background: bg, border: '1px solid rgba(0,0,0,0.15)', display: 'inline-block' }} title={c} />
+                          })}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 12, color: t.textSub }}>
                       {d.owner}{d.commander ? ` · ${d.commander}` : ''} · {d.wins}V / {d.games - d.wins}P
                     </div>
@@ -142,55 +406,198 @@ export default function DashboardPage() {
       {/* MATCHUP */}
       {tab === 'matchup' && (
         <div>
-          {matchups.length === 0 && (
+          {myMatchupDecks.length === 0 ? (
             <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
-              Servono più partite per i dati di matchup
+              Nessun matchup disponibile — gioca qualche partita prima!
             </div>
-          )}
-          {matchups
-            .filter(m => m.deckA.id < m.deckB.id)
-            .sort((a, b) => b.games - a.games)
-            .map((m, i) => {
-              const wrA = m.winRate
-              const wrB = 100 - wrA
-              return (
-                <div key={i} style={card}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 100 }}>
-                      <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>{m.deckA.name}</div>
-                      <div style={{ fontSize: 11, color: t.textSub }}>{m.deckA.owner}</div>
-                    </div>
-                    <div style={{ textAlign: 'center', padding: '0 8px' }}>
-                      <div style={{ fontSize: 12, color: t.textSub }}>{m.games} partite</div>
-                      <div style={{ fontSize: 11, color: t.textMuted }}>vs</div>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 100, textAlign: 'right' }}>
-                      <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>{m.deckB.name}</div>
-                      <div style={{ fontSize: 11, color: t.textSub }}>{m.deckB.owner}</div>
-                    </div>
+          ) : (
+            <>
+              {/* Selettore mio mazzo */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8 }}>Il tuo mazzo:</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {myMatchupDecks.map(deck => (
+                    <button
+                      key={deck.id}
+                      onClick={() => setSelectedMatchupDeckId(deck.id)}
+                      style={{
+                        padding: '7px 16px', borderRadius: 20, border: 'none',
+                        cursor: 'pointer', fontSize: 13, fontWeight: 500, transition: 'all 0.15s',
+                        background: selectedMatchupDeckId === deck.id ? t.primary : t.bgMuted,
+                        color: selectedMatchupDeckId === deck.id ? t.primaryFg : t.textSub,
+                      }}
+                    >
+                      {deck.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filtri avversari */}
+              {baseMatchups.length > 0 && (
+                <div style={{ background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '0.85rem 1rem', marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
+
+                  {/* Per giocatore */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: t.textSub }}>Giocatore:</span>
+                    <select
+                      value={matchupOppOwner}
+                      onChange={e => { setMatchupOppOwner(e.target.value); setMatchupOppDeck('') }}
+                      style={{ padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, cursor: 'pointer', outline: 'none' }}
+                    >
+                      <option value=''>Tutti</option>
+                      {oppPlayers.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: t.primary, minWidth: 36 }}>{wrA}%</span>
-                    <div style={{ flex: 1, height: 8, borderRadius: 4, background: t.bgMuted, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${wrA}%`, background: t.primary, borderRadius: 4, transition: 'width 0.4s' }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: t.textSub, minWidth: 36, textAlign: 'right' }}>{wrB}%</span>
+
+                  {/* Per mazzo */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, color: t.textSub }}>Mazzo:</span>
+                    <select
+                      value={matchupOppDeck}
+                      onChange={e => setMatchupOppDeck(e.target.value)}
+                      style={{ padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, cursor: 'pointer', outline: 'none' }}
+                    >
+                      <option value=''>Tutti</option>
+                      {oppDeckNames.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+
+                  {(matchupOppOwner || matchupOppDeck) && (
+                    <button
+                      onClick={() => { setMatchupOppOwner(''); setMatchupOppDeck('') }}
+                      style={{ fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      ✕ reset
+                    </button>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 12, color: t.textSub }}>Win rate:</span>
+                    <button
+                      onClick={() => setMatchupSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                      style={{ padding: '4px 10px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.bgMuted, color: t.text, fontSize: 13, cursor: 'pointer' }}
+                    >
+                      {matchupSortDir === 'desc' ? '↓ Desc' : '↑ Asc'}
+                    </button>
                   </div>
                 </div>
-              )
-            })}
+              )}
+
+              {/* Risultati */}
+              {filteredMatchups.length === 0 ? (
+                <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '1.5rem' }}>
+                  Nessun dato per i filtri selezionati
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8, paddingLeft: 4 }}>
+                    {filteredMatchups.length} avversar{filteredMatchups.length === 1 ? 'io' : 'i'}
+                    {(matchupOppOwner || matchupOppDeck) && ' (filtrati)'}
+                  </div>
+                  {filteredMatchups.map((m, i) => (
+                    <div key={i} style={card}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>{m.deckB.name}</div>
+                          <div style={{ fontSize: 12, color: t.textSub }}>
+                            di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'} in comune
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: 22, fontWeight: 600, color: m.winRate >= 50 ? t.win : m.winRate > 0 ? t.primary : t.textMuted }}>
+                            {m.winRate}%
+                          </div>
+                          <div style={{ fontSize: 11, color: t.textMuted }}>
+                            {m.wins}V · {m.games - m.wins}P
+                          </div>
+                        </div>
+                      </div>
+                      <WinBar pct={m.winRate} t={t} />
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
 
       {/* STORICO */}
       {tab === 'storico' && (
         <div>
-          {games.length === 0 && (
-            <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
-              Nessuna partita ancora. Vai su "+ Partita" per registrarne una!
+          {/* Filtri data */}
+          <div style={{ background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: '0.85rem 1rem', marginBottom: 12 }}>
+
+            {/* Presets periodo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: t.textSub }}>Periodo:</span>
+              {[
+                { key: 'all',  label: 'Tutto' },
+                { key: '7d',   label: '7 giorni' },
+                { key: '30d',  label: 'Mese' },
+                { key: '90d',  label: '3 mesi' },
+                { key: '180d', label: '6 mesi' },
+              ].map(({ key, label }) => {
+                const active = !historicFrom && !historicTo && historicPeriod === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setHistoricPeriod(key); setHistoricFrom(''); setHistoricTo('') }}
+                    style={{
+                      padding: '4px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                      fontSize: 12, fontWeight: 500, transition: 'all 0.12s',
+                      background: active ? t.primary : t.bgMuted,
+                      color: active ? t.primaryFg : t.textSub,
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Range personalizzato */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: t.textSub }}>Da:</span>
+              <input
+                type='date'
+                value={historicFrom}
+                onChange={e => { setHistoricFrom(e.target.value); setHistoricPeriod('') }}
+                style={{ padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, outline: 'none', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: 12, color: t.textSub }}>A:</span>
+              <input
+                type='date'
+                value={historicTo}
+                onChange={e => { setHistoricTo(e.target.value); setHistoricPeriod('') }}
+                style={{ padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, outline: 'none', cursor: 'pointer' }}
+              />
+              {(historicFrom || historicTo) && (
+                <button
+                  onClick={() => { setHistoricFrom(''); setHistoricTo(''); setHistoricPeriod('all') }}
+                  style={{ fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  ✕ reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Contatore */}
+          {(historicPeriod !== 'all' || historicFrom || historicTo) && (
+            <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8, paddingLeft: 4 }}>
+              {visibleGames.length} partita{visibleGames.length !== 1 ? 'e' : ''} nel periodo selezionato
             </div>
           )}
-          {games.map(g => {
+
+          {visibleGames.length === 0 && (
+            <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
+              {games.length === 0 ? 'Nessuna partita ancora. Vai su "+ Partita" per registrarne una!' : 'Nessuna partita nel periodo selezionato'}
+            </div>
+          )}
+
+          {visibleGames.map(g => {
             const winner = g.players.find(p => p.isWinner)
             const date = new Date(g.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
             return (

@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { PrismaClient } = require('@prisma/client');
+const { validateDecklist } = require('../lib/decklist');
 const prisma = new PrismaClient();
 
 const parseDeckId = (value) => {
@@ -8,9 +9,10 @@ const parseDeckId = (value) => {
   return Number.isInteger(id) ? id : null;
 };
 
-// GET /api/decks — tutti i mazzi (visibili a tutti per comporre il tavolo)
+// GET /api/decks — mazzi dei soli PLAYER (esclude admin), usato per comporre il tavolo
 router.get('/', auth, async (req, res) => {
   const decks = await prisma.deck.findMany({
+    where:   { user: { role: 'PLAYER' } },
     include: { user: { select: { id: true, username: true } } },
     orderBy: [{ userId: 'asc' }, { name: 'asc' }]
   });
@@ -63,6 +65,14 @@ router.patch('/:id', auth, async (req, res) => {
   const nextOwnerId = req.user.role === 'ADMIN' && Number.parseInt(userId, 10)
     ? Number.parseInt(userId, 10)
     : deck.userId;
+
+  // Valida la decklist se viene fornita una lista non vuota
+  if (typeof decklist === 'string' && decklist.trim()) {
+    const result = await validateDecklist(decklist);
+    if (!result.valid) {
+      return res.status(400).json({ error: result.errors.join(' · ') });
+    }
+  }
 
   try {
     const updated = await prisma.deck.update({

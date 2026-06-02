@@ -2,6 +2,15 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// Guard di sicurezza: il server non parte con un JWT_SECRET assente o debole
+const WEAK_SECRETS = new Set(['change-me-in-production', 'secret', 'changeme', '']);
+if (!process.env.JWT_SECRET || WEAK_SECRETS.has(process.env.JWT_SECRET) || process.env.JWT_SECRET.length < 32) {
+  console.error('\n[FATAL] JWT_SECRET mancante o troppo debole.');
+  console.error('Imposta una stringa casuale di almeno 32 caratteri nel file .env.');
+  console.error('Puoi generarne una con: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'base64url\'))"\n');
+  process.exit(1);
+}
+
 const authRoutes  = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const deckRoutes  = require('./routes/decks');
