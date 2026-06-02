@@ -13,9 +13,18 @@ const signToken = (user) =>
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, inviteCode } = req.body;
   if (!username || !password)
     return res.status(400).json({ error: 'username e password richiesti' });
+
+  // Registrazione protetta da codice d'invito
+  const expected = process.env.INVITE_CODE;
+  if (!expected) {
+    return res.status(403).json({ error: 'Registrazione disabilitata. Contatta un amministratore.' });
+  }
+  if (!inviteCode || inviteCode.trim() !== expected) {
+    return res.status(403).json({ error: 'Codice d\'invito non valido' });
+  }
 
   const hash = await bcrypt.hash(password, 10);
   try {

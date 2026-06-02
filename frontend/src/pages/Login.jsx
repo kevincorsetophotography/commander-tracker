@@ -10,6 +10,7 @@ export default function Login() {
   const [mode, setMode] = useState('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [focusField, setFocusField] = useState('')
@@ -20,7 +21,7 @@ export default function Login() {
     setLoading(true)
     try {
       if (mode === 'login') await login(username, password)
-      else await register(username, password)
+      else await register(username, password, inviteCode)
       navigate('/')
     } catch (err) {
       setError(err.error || 'Errore di connessione')
@@ -98,6 +99,19 @@ export default function Login() {
                 style={inputStyle('pass')}
               />
             </div>
+            {mode === 'register' && (
+              <div style={{ marginBottom: 18 }}>
+                <input
+                  type="text" placeholder="Codice d'invito" value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value)} required
+                  onFocus={() => setFocusField('invite')} onBlur={() => setFocusField('')}
+                  style={inputStyle('invite')}
+                />
+                <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>
+                  Chiedi il codice a un membro del gruppo
+                </div>
+              </div>
+            )}
             {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
             <button
               type="submit"

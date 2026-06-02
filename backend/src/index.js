@@ -1,3 +1,4 @@
+// Commanderne API — registrazione protetta da INVITE_CODE
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
