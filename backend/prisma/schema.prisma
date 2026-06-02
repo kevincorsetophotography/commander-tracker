@@ -24,6 +24,7 @@ model Deck {
   commander   String?
   colors      String?      // es. "WUBRG"
   decklist    String?
+  bracket     Int?         // 1=Casual, 2=Bilanciato, 3=Potente, 4=cEDH
   createdAt   DateTime     @default(now())
   user        User         @relation(fields: [userId], references: [id])
   userId      Int

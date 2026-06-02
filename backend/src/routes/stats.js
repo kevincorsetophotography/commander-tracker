@@ -41,6 +41,7 @@ router.get('/decks', auth, async (req, res) => {
     name:      d.name,
     commander: d.commander,
     colors:    d.colors,
+    bracket:   d.bracket,
     owner:     d.user.username,
     ownerId:   d.user.id,
     games:     d.gamePlayers.length,

@@ -39,6 +39,7 @@ export const api = {
   createUser: (data) => req('POST', '/admin/users', data),
   updateUser: (id, data) => req('PATCH', `/admin/users/${id}`, data),
   deleteUser: (id) => req('DELETE', `/admin/users/${id}`),
+  exportData: () => req('GET', '/admin/export'),
 
   // decks
   getDecks:    ()     => req('GET',    '/decks'),
@@ -46,6 +47,7 @@ export const api = {
   createDeck:  (data) => req('POST',   '/decks', data),
   updateDeck:  (id, data) => req('PATCH', `/decks/${id}`, data),
   deleteDeck:  (id)   => req('DELETE', `/decks/${id}`),
+  importDeck:  (url)  => req('POST',   '/decks/import', { url }),
 
   // games
   getGames:   ()     => req('GET',    '/games'),

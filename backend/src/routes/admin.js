@@ -15,6 +15,47 @@ const normalizeRole = (role) => role === 'ADMIN' ? 'ADMIN' : 'PLAYER';
 
 router.use(auth, requireAdmin);
 
+// GET /api/admin/export — backup completo (senza password)
+router.get('/export', async (req, res) => {
+  const [users, decks, games] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { id: 'asc' },
+      select: { id: true, username: true, role: true, createdAt: true }
+    }),
+    prisma.deck.findMany({
+      orderBy: { id: 'asc' },
+      include: { user: { select: { username: true } } }
+    }),
+    prisma.game.findMany({
+      orderBy: { id: 'asc' },
+      include: {
+        createdBy: { select: { username: true } },
+        players: { include: { user: { select: { username: true } }, deck: { select: { name: true } } } }
+      }
+    })
+  ]);
+
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    counts: { users: users.length, decks: decks.length, games: games.length },
+    users,
+    decks: decks.map(d => ({ id: d.id, name: d.name, commander: d.commander, colors: d.colors, bracket: d.bracket, owner: d.user.username, hasDecklist: !!d.decklist })),
+    games: games.map(g => ({
+      id: g.id,
+      playedAt: g.playedAt,
+      notes: g.notes,
+      createdBy: g.createdBy?.username || null,
+      players: g.players
+        .sort((a, b) => (a.placement || 99) - (b.placement || 99))
+        .map(p => ({ player: p.user.username, deck: p.deck.name, placement: p.placement, isWinner: p.isWinner }))
+    }))
+  };
+
+  res.setHeader('Content-Disposition', `attachment; filename="commanderone-backup-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(payload, null, 2));
+});
+
 router.get('/users', async (req, res) => {
   const users = await prisma.user.findMany({
     orderBy: { username: 'asc' },

@@ -6,6 +6,8 @@ import { useAuth } from '../hooks/useAuth'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
+import BracketBadge from '../components/BracketBadge'
+import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { useCountUp } from '../hooks/useCountUp'
 
 function WinBar({ pct, t }) {
@@ -66,6 +68,7 @@ export default function DashboardPage() {
   const [ownerFilter, setOwnerFilter]   = useState('')
   const [deckSortDir, setDeckSortDir]   = useState('desc')
   const [deckSearch, setDeckSearch]     = useState('')
+  const [bracketFilter, setBracketFilter] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -174,6 +177,8 @@ export default function DashboardPage() {
       list = list.filter(d => d.colors && colorFilter.every(c => d.colors.includes(c)))
     if (ownerFilter)
       list = list.filter(d => d.owner === ownerFilter)
+    if (bracketFilter)
+      list = list.filter(d => String(d.bracket) === bracketFilter)
     if (deckSearch.trim()) {
       const q = deckSearch.trim().toLowerCase()
       list = list.filter(d =>
@@ -181,7 +186,7 @@ export default function DashboardPage() {
     }
     list.sort((a, b) => deckSortDir === 'desc' ? b.winRate - a.winRate : a.winRate - b.winRate)
     return list
-  }, [deckStats, colorFilter, ownerFilter, deckSortDir, deckSearch])
+  }, [deckStats, colorFilter, ownerFilter, bracketFilter, deckSortDir, deckSearch])
 
   const toggleColor = (c) =>
     setColorFilter(f => f.includes(c) ? f.filter(x => x !== c) : [...f, c])
@@ -479,6 +484,19 @@ export default function DashboardPage() {
               </select>
             </div>
 
+            {/* Filtro bracket */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, color: t.textSub }}>Livello:</span>
+              <select
+                value={bracketFilter}
+                onChange={e => setBracketFilter(e.target.value)}
+                style={{ padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, cursor: 'pointer', outline: 'none' }}
+              >
+                <option value=''>Tutti</option>
+                {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
+              </select>
+            </div>
+
             {/* Ricerca nome/commander */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
               <input
@@ -505,7 +523,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Contatore risultati */}
-          {(colorFilter.length > 0 || ownerFilter || deckSearch) && (
+          {(colorFilter.length > 0 || ownerFilter || deckSearch || bracketFilter) && (
             <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8, paddingLeft: 4 }}>
               {visibleDecks.length} mazzo{visibleDecks.length !== 1 ? 'i' : ''} trovato{visibleDecks.length !== 1 ? 'i' : ''}
             </div>
@@ -534,6 +552,7 @@ export default function DashboardPage() {
                           })}
                         </span>
                       )}
+                      <BracketBadge bracket={d.bracket} />
                     </div>
                     <div style={{ fontSize: 12, color: t.textSub }}>
                       {d.owner}{d.commander ? ` · ${d.commander}` : ''} · {d.wins}V / {d.games - d.wins}P

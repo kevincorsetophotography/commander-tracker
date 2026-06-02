@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { parseDecklist, validateAndFetchDecklist, fetchDecklistCards, fetchCommanderCard, fetchCommanderColors } from '../lib/scryfall'
+import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import CommanderInput from './CommanderInput'
 
@@ -19,6 +20,8 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
   const [cards, setCards]                   = useState([])
   const [loadingCards, setLoadingCards]     = useState(false)
   const [selectedCard, setSelectedCard]     = useState(null)
+  const [importUrl, setImportUrl]           = useState('')
+  const [importing, setImporting]           = useState(false)
 
   const hasList = !!decklist
 
@@ -124,6 +127,29 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
     }
   }
 
+  const doImport = async () => {
+    const url = importUrl.trim()
+    if (!url) return
+    setImporting(true)
+    setErrors([])
+    try {
+      const res = await api.importDeck(url)
+      if (res.commander) setCommanderInput(res.commander)
+      // togli la riga del commander dalla lista (resta nel campo dedicato)
+      const lines = (res.decklist || '').split('\n')
+      const rest = res.commander
+        ? lines.filter(l => l.trim().toLowerCase() !== `1 ${res.commander.toLowerCase()}`)
+        : lines
+      setEditText(rest.join('\n').trim())
+      setDetectedColors(null)
+      setImportUrl('')
+    } catch (e) {
+      setErrors([e?.error || 'Errore durante l\'import'])
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const toggleCard = (card) => setSelectedCard(prev => prev?.name === card.name ? null : card)
   const totalCount = hasList ? parseDecklist(decklist).totalCount : 0
 
@@ -191,6 +217,22 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
           {/* ── EDITOR ── */}
           {mode === 'edit' && (
             <>
+              {/* Import da URL */}
+              <div style={{ marginBottom: 12, padding: '10px 12px', background: t.bgMuted, borderRadius: 10, border: `1px solid ${t.border}` }}>
+                <div style={{ fontSize: 12, color: t.textSub, marginBottom: 6, fontWeight: 500 }}>Importa da Archidekt o Moxfield</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    value={importUrl}
+                    onChange={e => setImportUrl(e.target.value)}
+                    placeholder="https://archidekt.com/decks/... oppure moxfield.com/decks/..."
+                    style={{ ...inputSt, flex: 1 }}
+                  />
+                  <button type="button" style={{ ...btnPrimary, padding: '8px 16px', whiteSpace: 'nowrap' }} onClick={doImport} disabled={importing}>
+                    {importing ? 'Import...' : 'Importa'}
+                  </button>
+                </div>
+              </div>
+
               {/* Campo commander */}
               <div style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

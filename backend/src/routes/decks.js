@@ -28,9 +28,15 @@ router.get('/mine', auth, async (req, res) => {
   res.json(decks);
 });
 
+const parseBracket = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const b = Number.parseInt(value, 10);
+  return b >= 1 && b <= 4 ? b : null;
+};
+
 // POST /api/decks
 router.post('/', auth, async (req, res) => {
-  const { name, commander, colors, userId } = req.body;
+  const { name, commander, colors, userId, bracket } = req.body;
   if (!name) return res.status(400).json({ error: 'name richiesto' });
 
   const ownerId = req.user.role === 'ADMIN' && Number.parseInt(userId, 10)
@@ -39,7 +45,7 @@ router.post('/', auth, async (req, res) => {
 
   try {
     const deck = await prisma.deck.create({
-      data: { name, commander, colors, userId: ownerId }
+      data: { name, commander, colors, bracket: parseBracket(bracket), userId: ownerId }
     });
     res.json(deck);
   } catch (error) {
@@ -61,7 +67,7 @@ router.patch('/:id', auth, async (req, res) => {
   if (!deck) return res.status(404).json({ error: 'Mazzo non trovato' });
   if (req.user.role !== 'ADMIN' && deck.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const { name, commander, colors, decklist, userId } = req.body;
+  const { name, commander, colors, decklist, userId, bracket } = req.body;
   const nextOwnerId = req.user.role === 'ADMIN' && Number.parseInt(userId, 10)
     ? Number.parseInt(userId, 10)
     : deck.userId;
@@ -77,7 +83,12 @@ router.patch('/:id', auth, async (req, res) => {
   try {
     const updated = await prisma.deck.update({
       where: { id: deck.id },
-      data: { name, commander, colors, decklist: decklist ?? undefined, userId: nextOwnerId }
+      data: {
+        name, commander, colors,
+        decklist: decklist ?? undefined,
+        bracket: bracket === undefined ? undefined : parseBracket(bracket),
+        userId: nextOwnerId
+      }
     });
     res.json(updated);
   } catch (error) {
@@ -87,6 +98,55 @@ router.patch('/:id', auth, async (req, res) => {
 
     console.error('update deck error', error);
     res.status(500).json({ error: 'Errore durante l\'aggiornamento del mazzo' });
+  }
+});
+
+// POST /api/decks/import — importa una lista da Archidekt o Moxfield via URL
+router.post('/import', auth, async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL richiesto' });
+
+  try {
+    if (/archidekt\.com/i.test(url)) {
+      const m = url.match(/decks\/(\d+)/);
+      if (!m) return res.status(400).json({ error: 'URL Archidekt non valido' });
+      const r = await fetch(`https://archidekt.com/api/decks/${m[1]}/`, {
+        headers: { 'User-Agent': 'CommanderoneTracker/1.0' }
+      });
+      if (!r.ok) return res.status(502).json({ error: 'Mazzo Archidekt non raggiungibile' });
+      const data = await r.json();
+      const lines = [];
+      let commander = null;
+      for (const c of data.cards || []) {
+        const name = c.card?.oracleCard?.name;
+        if (!name) continue;
+        const cats = c.categories || [];
+        const isCommander = cats.includes('Commander') || c.modifier === 'Commander';
+        if (isCommander && !commander) commander = name;
+        else lines.push(`${c.quantity || 1} ${name}`);
+      }
+      const decklist = [commander ? `1 ${commander}` : null, ...lines].filter(Boolean).join('\n');
+      return res.json({ commander, decklist, name: data.name || null });
+    }
+
+    if (/moxfield\.com/i.test(url)) {
+      const m = url.match(/decks\/([A-Za-z0-9_-]+)/);
+      if (!m) return res.status(400).json({ error: 'URL Moxfield non valido' });
+      const r = await fetch(`https://api.moxfield.com/v2/decks/all/${m[1]}`, {
+        headers: { 'User-Agent': 'CommanderoneTracker/1.0', 'Accept': 'application/json' }
+      });
+      if (!r.ok) return res.status(502).json({ error: 'Moxfield ha bloccato la richiesta. Prova a incollare la lista a mano.' });
+      const data = await r.json();
+      const commanderName = Object.values(data.commanders || {})[0]?.card?.name || null;
+      const lines = Object.values(data.mainboard || {}).map(c => `${c.quantity || 1} ${c.card?.name}`).filter(l => !l.endsWith('undefined'));
+      const decklist = [commanderName ? `1 ${commanderName}` : null, ...lines].filter(Boolean).join('\n');
+      return res.json({ commander: commanderName, decklist, name: data.name || null });
+    }
+
+    return res.status(400).json({ error: 'Supportati solo URL Archidekt o Moxfield' });
+  } catch (error) {
+    console.error('import deck error', error);
+    return res.status(500).json({ error: 'Errore durante l\'import' });
   }
 });
 

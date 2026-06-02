@@ -7,6 +7,8 @@ import DeckListPanel from '../components/DeckListPanel'
 import CommanderInput from '../components/CommanderInput'
 import { SkeletonList } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
+import BracketBadge from '../components/BracketBadge'
+import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
@@ -30,7 +32,7 @@ export default function DecksPage() {
   const [decks, setDecks]                     = useState([])
   const [loading, setLoading]                 = useState(true)
   const [error, setError]                     = useState('')
-  const [form, setForm]                       = useState({ name: '', commander: '', colors: [] })
+  const [form, setForm]                       = useState({ name: '', commander: '', colors: [], bracket: '' })
   const [saving, setSaving]                   = useState(false)
   const [formError, setFormError]             = useState('')
   const [detectingColors, setDetectingColors] = useState(false)
@@ -61,8 +63,8 @@ export default function DecksPage() {
     if (!form.name.trim()) { setFormError('Il nome è obbligatorio'); return }
     setSaving(true); setFormError('')
     try {
-      await api.createDeck({ name: form.name.trim(), commander: form.commander.trim() || null, colors: form.colors.join('') || null })
-      setForm({ name: '', commander: '', colors: [] })
+      await api.createDeck({ name: form.name.trim(), commander: form.commander.trim() || null, colors: form.colors.join('') || null, bracket: form.bracket || null })
+      setForm({ name: '', commander: '', colors: [], bracket: '' })
       await loadDecks()
       toast('Mazzo aggiunto', 'success')
     } catch (err) {
@@ -130,6 +132,15 @@ export default function DecksPage() {
                 outline: form.colors.includes(c) ? `2px solid ${t.primaryBorder}` : 'none'
               }}>{c}</button>
             ))}
+            <span style={{ fontSize: 13, color: t.textSub, marginLeft: 8 }}>Livello:</span>
+            <select
+              style={{ ...inputSt, width: 'auto', padding: '6px 10px' }}
+              value={form.bracket}
+              onChange={e => setForm(f => ({ ...f, bracket: e.target.value }))}
+            >
+              <option value="">—</option>
+              {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
+            </select>
           </div>
           {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 8 }}>{formError}</div>}
           <button type="submit" style={btnPrimary} disabled={saving}>{saving ? 'Salvataggio...' : '+ Aggiungi mazzo'}</button>
@@ -157,13 +168,19 @@ export default function DecksPage() {
                   <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>{deck.name}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{deck.commander}</div>
                 </div>
-                {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                  {deck.bracket && <BracketBadge bracket={deck.bracket} />}
+                  {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
+                </div>
               </div>
             </div>
           ) : (
             <div style={{ padding: '12px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontWeight: 600, fontSize: 15, color: t.text }}>{deck.name}</div>
-              {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {deck.bracket && <BracketBadge bracket={deck.bracket} />}
+                {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
+              </div>
             </div>
           )}
 

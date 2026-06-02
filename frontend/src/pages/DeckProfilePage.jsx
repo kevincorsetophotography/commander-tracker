@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
+import BracketBadge from '../components/BracketBadge'
 
 const COLOR_MAP = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const artUrl = (name) => `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
@@ -95,7 +96,10 @@ export default function DeckProfilePage() {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 22, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>{deck.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: 22, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>{deck.name}</span>
+                <BracketBadge bracket={deck.bracket} size="lg" />
+              </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{deck.commander || 'Nessun commander'} · di {deck.owner}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

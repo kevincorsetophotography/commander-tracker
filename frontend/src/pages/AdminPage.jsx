@@ -5,8 +5,10 @@ import { useTheme } from '../hooks/useTheme'
 import { fetchCommanderColors } from '../lib/scryfall'
 import { useFeedback } from '../hooks/useFeedback'
 import CommanderInput from '../components/CommanderInput'
+import BracketBadge from '../components/BracketBadge'
+import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 
-const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '' }
+const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '', bracket: '' }
 const EMPTY_USER_FORM = { username: '', password: '', role: 'PLAYER' }
 const EMPTY_GAME_FORM = {
   id: null,
@@ -137,7 +139,8 @@ export default function AdminPage() {
       userId: String(deck.userId),
       name: deck.name,
       commander: deck.commander || '',
-      colors: deck.colors || ''
+      colors: deck.colors || '',
+      bracket: deck.bracket ? String(deck.bracket) : ''
     })
   }
 
@@ -245,7 +248,8 @@ export default function AdminPage() {
         ...deckForm,
         userId: Number.parseInt(deckForm.userId, 10),
         commander: deckForm.commander.trim() || null,
-        colors: deckForm.colors.trim().toUpperCase() || null
+        colors: deckForm.colors.trim().toUpperCase() || null,
+        bracket: deckForm.bracket || null
       })
       setDeckForm(EMPTY_DECK_FORM)
       await loadData()
@@ -266,7 +270,8 @@ export default function AdminPage() {
         ...editingDeckForm,
         userId: Number.parseInt(editingDeckForm.userId, 10),
         commander: editingDeckForm.commander.trim() || null,
-        colors: editingDeckForm.colors.trim().toUpperCase() || null
+        colors: editingDeckForm.colors.trim().toUpperCase() || null,
+        bracket: editingDeckForm.bracket || null
       })
       setEditingDeckId(null)
       setEditingDeckForm(EMPTY_DECK_FORM)
@@ -373,6 +378,22 @@ export default function AdminPage() {
     }
   }
 
+  const exportData = async () => {
+    try {
+      const data = await api.exportData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `commanderone-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Backup scaricato', 'success')
+    } catch (err) {
+      toast(err.error || 'Errore durante l\'export', 'error')
+    }
+  }
+
   const inputStyle = {
     padding: '9px 12px',
     borderRadius: 8,
@@ -420,7 +441,10 @@ export default function AdminPage() {
 
   return (
     <div style={{ color: t.text }}>
-      <div style={{ fontSize: 18, fontWeight: 600, marginBottom: '1rem' }}>Amministrazione</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 18, fontWeight: 600 }}>Amministrazione</div>
+        <button onClick={exportData} style={{ ...buttonSecondary, fontWeight: 600 }}>⬇ Esporta backup (JSON)</button>
+      </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         {['utenti', 'mazzi', 'partite'].map((item) => (
           <button
@@ -491,7 +515,7 @@ export default function AdminPage() {
         <div>
           <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea mazzo</div>
-            <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr auto', gap: 8 }}>
+            <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr 1fr auto', gap: 8 }}>
               <select style={inputStyle} value={deckForm.userId} onChange={(event) => setDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                 <option value="">Owner</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
@@ -511,6 +535,10 @@ export default function AdminPage() {
                 onChange={(event) => setDeckForm((current) => ({ ...current, colors: event.target.value }))}
                 readOnly={detectingDeckColors}
               />
+              <select style={inputStyle} value={deckForm.bracket} onChange={(event) => setDeckForm((current) => ({ ...current, bracket: event.target.value }))}>
+                <option value="">Livello</option>
+                {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
+              </select>
               <button type="submit" style={buttonPrimary} disabled={saving}>Crea</button>
             </form>
           </SectionCard>
@@ -518,7 +546,7 @@ export default function AdminPage() {
           {decks.map((deck) => (
             <SectionCard key={deck.id} t={t}>
               {editingDeckId === deck.id ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr auto auto', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr 1fr auto auto', gap: 8 }}>
                   <select style={inputStyle} value={editingDeckForm.userId} onChange={(event) => setEditingDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                     {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
                   </select>
@@ -536,6 +564,10 @@ export default function AdminPage() {
                     onChange={(event) => setEditingDeckForm((current) => ({ ...current, colors: event.target.value }))}
                     readOnly={detectingEditColors}
                   />
+                  <select style={inputStyle} value={editingDeckForm.bracket} onChange={(event) => setEditingDeckForm((current) => ({ ...current, bracket: event.target.value }))}>
+                    <option value="">Livello</option>
+                    {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b}</option>)}
+                  </select>
                   <button style={buttonPrimary} onClick={() => saveDeckEdit(deck.id)}>Salva</button>
                   <button style={buttonSecondary} onClick={() => setEditingDeckId(null)}>Annulla</button>
                 </div>
@@ -550,7 +582,10 @@ export default function AdminPage() {
                     />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: t.text }}>{deck.name}</div>
+                    <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {deck.name}
+                      <BracketBadge bracket={deck.bracket} />
+                    </div>
                     <div style={{ fontSize: 12, color: t.textSub }}>
                       {deck.user.username} · {deck.commander || 'Nessun commander'} · {deck.colors || 'Senza colori'}
                     </div>
