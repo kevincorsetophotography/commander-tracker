@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider, useTheme } from './hooks/useTheme'
+import { FeedbackProvider } from './hooks/useFeedback'
 import Login from './pages/Login'
 import DecksPage from './pages/DecksPage'
 import NewGamePage from './pages/NewGamePage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
+import PlayerProfilePage from './pages/PlayerProfilePage'
 
 function NavItem({ to, end, children }) {
   const { t } = useTheme()
@@ -82,7 +84,7 @@ function Layout() {
           top: 0,
           zIndex: 20,
         }}>
-          <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62, gap: 12 }}>
+          <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 62, padding: '8px 0', gap: 12, flexWrap: 'wrap' }}>
 
             {/* Logo + nav links */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -144,6 +146,7 @@ function Layout() {
         <div style={{ maxWidth: 980, margin: '0 auto', padding: '1.75rem 1rem 3rem' }}>
           <Routes>
             <Route path="/"              element={<DashboardPage />} />
+            <Route path="/giocatore/:id" element={<PlayerProfilePage />} />
             <Route path="/mazzi"         element={<DecksPage />} />
             <Route path="/nuova-partita" element={<NewGamePage />} />
             <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />
@@ -162,14 +165,16 @@ function PrivateRoute({ children }) {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/*"     element={<PrivateRoute><Layout /></PrivateRoute>} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/*"     element={<PrivateRoute><Layout /></PrivateRoute>} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </FeedbackProvider>
     </ThemeProvider>
   )
 }

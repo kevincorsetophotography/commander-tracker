@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
+import { SkeletonList, Skeleton } from '../components/Skeleton'
+import EmptyState from '../components/EmptyState'
 
 function WinBar({ pct, t }) {
   return (
@@ -46,6 +49,7 @@ function MetricCard({ label, value, t }) {
 export default function DashboardPage() {
   const { t } = useTheme()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab] = useState('giocatori')
   const [playerStats, setPlayerStats] = useState([])
   const [deckStats, setDeckStats] = useState([])
@@ -185,8 +189,16 @@ export default function DashboardPage() {
     transition: 'all 0.18s ease',
   })
 
-  if (loading) return <div style={{ color: t.textSub, fontSize: 14, padding: '2rem' }}>Caricamento...</div>
-  if (error)   return <div style={{ color: t.danger,  fontSize: 14 }}>{error}</div>
+  if (loading) return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: '1.5rem' }}>
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} h={78} r={16} />)}
+      </div>
+      <Skeleton w={280} h={48} r={14} style={{ marginBottom: '1.25rem' }} />
+      <SkeletonList rows={5} />
+    </div>
+  )
+  if (error)   return <EmptyState icon="⚠️" title="Errore" message={error} />
 
   const totalGames = games.length
   const topPlayer  = playerStats[0]
@@ -224,9 +236,7 @@ export default function DashboardPage() {
       {tab === 'giocatori' && (
         <div>
           {playerStats.length === 0 && (
-            <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
-              Nessuna partita ancora
-            </div>
+            <EmptyState icon="🃏" title="Ancora nessuna partita" message="Registrate la prima partita dalla pagina '+ Partita' per vedere le classifiche dei giocatori." />
           )}
           {playerStats.map((p, i) => {
             const isOpen   = expandedPlayerId === p.id
@@ -258,6 +268,12 @@ export default function DashboardPage() {
                 {/* Sezione mazzi espandibile */}
                 {isOpen && (
                   <div style={{ marginTop: 12, borderTop: `0.5px solid ${t.border}`, paddingTop: 12 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate(`/giocatore/${p.id}`) }}
+                      style={{ marginBottom: 10, padding: '6px 14px', borderRadius: 10, border: `1px solid ${t.primaryBorder}`, background: t.primaryBg, color: t.primary, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Vedi profilo completo →
+                    </button>
                     {myDecks.length === 0 ? (
                       <div style={{ fontSize: 13, color: t.textMuted }}>Nessun mazzo con partite registrate</div>
                     ) : (
@@ -592,9 +608,9 @@ export default function DashboardPage() {
           )}
 
           {visibleGames.length === 0 && (
-            <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>
-              {games.length === 0 ? 'Nessuna partita ancora. Vai su "+ Partita" per registrarne una!' : 'Nessuna partita nel periodo selezionato'}
-            </div>
+            games.length === 0
+              ? <EmptyState icon="🃏" title="Storico vuoto" message="Nessuna partita registrata. Vai su '+ Partita' per aggiungerne una." />
+              : <div style={{ ...card, color: t.textSub, fontSize: 14, textAlign: 'center', padding: '2rem' }}>Nessuna partita nel periodo selezionato</div>
           )}
 
           {visibleGames.map(g => {

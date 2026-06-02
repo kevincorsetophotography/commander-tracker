@@ -150,8 +150,8 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
               {loadingCards ? (
                 <div style={{ fontSize: 13, color: t.textSub, padding: '0.5rem 0' }}>Caricamento carte...</div>
               ) : (
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, maxHeight: 480, overflowY: 'auto', borderRadius: 8, border: `0.5px solid ${t.border}`, background: t.bgSurface }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 220, maxHeight: 480, overflowY: 'auto', borderRadius: 8, border: `0.5px solid ${t.border}`, background: t.bgSurface }}>
                     {cards.map((card, i) => {
                       const active = selectedCard?.name === card.name
                       return (

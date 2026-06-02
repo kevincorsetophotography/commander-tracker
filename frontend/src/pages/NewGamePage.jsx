@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { useFeedback } from '../hooks/useFeedback'
 
 const EMPTY_SLOT = { userId: '', deckId: '' }
 
 export default function NewGamePage() {
   const navigate = useNavigate()
   const { t } = useTheme()
+  const { toast } = useFeedback()
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
   const [slots, setSlots] = useState([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
@@ -77,6 +79,7 @@ export default function NewGamePage() {
         notes: notes.trim() || undefined,
         playedAt: playedAt || undefined
       })
+      toast('Partita registrata', 'success')
       navigate('/')
     } catch (err) {
       setError(err.error || 'Errore nel salvataggio')

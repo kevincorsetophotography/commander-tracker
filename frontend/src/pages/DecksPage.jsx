@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { fetchCommanderColors } from '../lib/scryfall'
+import { useFeedback } from '../hooks/useFeedback'
 import DeckListPanel from '../components/DeckListPanel'
 import CommanderInput from '../components/CommanderInput'
+import { SkeletonList } from '../components/Skeleton'
+import EmptyState from '../components/EmptyState'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
@@ -23,6 +26,7 @@ const commanderArtUrl = (name) =>
 
 export default function DecksPage() {
   const { t } = useTheme()
+  const { toast, confirm } = useFeedback()
   const [decks, setDecks]                     = useState([])
   const [loading, setLoading]                 = useState(true)
   const [error, setError]                     = useState('')
@@ -60,15 +64,27 @@ export default function DecksPage() {
       await api.createDeck({ name: form.name.trim(), commander: form.commander.trim() || null, colors: form.colors.join('') || null })
       setForm({ name: '', commander: '', colors: [] })
       await loadDecks()
+      toast('Mazzo aggiunto', 'success')
     } catch (err) {
       setFormError(err.error || 'Errore nel salvataggio')
     } finally { setSaving(false) }
   }
 
-  const deleteDeck = async (id) => {
-    if (!confirm('Eliminare questo mazzo?')) return
-    try { await api.deleteDeck(id); await loadDecks() }
-    catch (err) { alert(err.error || 'Errore nella cancellazione') }
+  const deleteDeck = async (id, name) => {
+    const ok = await confirm({
+      title: 'Eliminare il mazzo?',
+      message: `"${name}" verrà eliminato definitivamente.`,
+      confirmLabel: 'Elimina',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await api.deleteDeck(id)
+      await loadDecks()
+      toast('Mazzo eliminato', 'success')
+    } catch (err) {
+      toast(err.error || 'Errore nella cancellazione', 'error')
+    }
   }
 
   const glass = {
@@ -120,12 +136,10 @@ export default function DecksPage() {
         </form>
       </div>
 
-      {loading && <div style={{ color: t.textSub, fontSize: 14, padding: '1rem' }}>Caricamento...</div>}
+      {loading && <SkeletonList rows={3} />}
       {error   && <div style={{ color: t.danger, fontSize: 14 }}>{error}</div>}
       {!loading && decks.length === 0 && (
-        <div style={{ ...formCard, textAlign: 'center', color: t.textSub, fontSize: 14, padding: '2rem' }}>
-          Nessun mazzo ancora. Aggiungine uno sopra!
-        </div>
+        <EmptyState icon="🎴" title="Nessun mazzo" message="Aggiungi il tuo primo mazzo dal modulo qui sopra: bastano nome e commander." />
       )}
 
       {decks.map(deck => (
@@ -164,9 +178,10 @@ export default function DecksPage() {
                   colors: newColors || undefined
                 })
                 await loadDecks()
+                toast('Lista salvata', 'success')
               }}
             />
-            <button style={btnDanger} onClick={() => deleteDeck(deck.id)}>Elimina</button>
+            <button style={btnDanger} onClick={() => deleteDeck(deck.id, deck.name)}>Elimina</button>
           </div>
         </div>
       ))}

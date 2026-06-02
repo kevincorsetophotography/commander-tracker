@@ -92,6 +92,23 @@ html, body {
   transform: translateY(-3px);
 }
 
+/* Skeleton shimmer */
+.ct-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(130,140,190,0.13);
+  border-radius: 8px;
+}
+.ct-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(130,140,190,0.20), transparent);
+  animation: ct-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ct-shimmer { 100% { transform: translateX(100%); } }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }

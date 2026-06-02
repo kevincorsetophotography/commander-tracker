@@ -1,0 +1,16 @@
+{
+  "name": "Commanderone · Villastellone",
+  "short_name": "Commanderone",
+  "description": "Tracker di partite Magic: The Gathering formato Commander",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080A1C",
+  "theme_color": "#080A1C",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

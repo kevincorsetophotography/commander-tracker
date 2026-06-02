@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import DeckListPanel from '../components/DeckListPanel'
 import { useTheme } from '../hooks/useTheme'
 import { fetchCommanderColors } from '../lib/scryfall'
+import { useFeedback } from '../hooks/useFeedback'
 import CommanderInput from '../components/CommanderInput'
 
 const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '' }
@@ -53,6 +54,7 @@ function formatGameForEdit(game) {
 
 export default function AdminPage() {
   const { t } = useTheme()
+  const { toast, confirm } = useFeedback()
   const [tab, setTab] = useState('utenti')
   const [detectingDeckColors, setDetectingDeckColors]       = useState(false)
   const [detectingEditColors, setDetectingEditColors]       = useState(false)
@@ -181,8 +183,10 @@ export default function AdminPage() {
       await api.createUser(userForm)
       setUserForm(EMPTY_USER_FORM)
       await loadData()
+      toast('Utente creato', 'success')
     } catch (err) {
       setError(err.error || 'Errore nel salvataggio utente')
+      toast(err.error || 'Errore nel salvataggio utente', 'error')
     } finally {
       setSaving(false)
     }
@@ -196,21 +200,25 @@ export default function AdminPage() {
       setEditingUserId(null)
       setEditingUserForm(EMPTY_USER_FORM)
       await loadData()
+      toast('Utente aggiornato', 'success')
     } catch (err) {
       setError(err.error || 'Errore nell\'aggiornamento utente')
+      toast(err.error || 'Errore nell\'aggiornamento utente', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const removeUser = async (userId) => {
-    if (!confirm('Eliminare questo utente?')) return
+    const ok = await confirm({ title: 'Eliminare utente?', message: 'L\'utente verrà eliminato definitivamente.', confirmLabel: 'Elimina', danger: true })
+    if (!ok) return
 
     try {
       await api.deleteUser(userId)
       await loadData()
+      toast('Utente eliminato', 'success')
     } catch (err) {
-      setError(err.error || 'Errore nell\'eliminazione utente')
+      toast(err.error || 'Errore nell\'eliminazione utente', 'error')
     }
   }
 
@@ -227,8 +235,10 @@ export default function AdminPage() {
       })
       setDeckForm(EMPTY_DECK_FORM)
       await loadData()
+      toast('Mazzo creato', 'success')
     } catch (err) {
       setError(err.error || 'Errore nel salvataggio mazzo')
+      toast(err.error || 'Errore nel salvataggio mazzo', 'error')
     } finally {
       setSaving(false)
     }
@@ -247,21 +257,25 @@ export default function AdminPage() {
       setEditingDeckId(null)
       setEditingDeckForm(EMPTY_DECK_FORM)
       await loadData()
+      toast('Mazzo aggiornato', 'success')
     } catch (err) {
       setError(err.error || 'Errore nell\'aggiornamento mazzo')
+      toast(err.error || 'Errore nell\'aggiornamento mazzo', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const removeDeck = async (deckId) => {
-    if (!confirm('Eliminare questo mazzo?')) return
+    const ok = await confirm({ title: 'Eliminare mazzo?', message: 'Il mazzo verrà eliminato definitivamente.', confirmLabel: 'Elimina', danger: true })
+    if (!ok) return
 
     try {
       await api.deleteDeck(deckId)
       await loadData()
+      toast('Mazzo eliminato', 'success')
     } catch (err) {
-      setError(err.error || 'Errore nell\'eliminazione mazzo')
+      toast(err.error || 'Errore nell\'eliminazione mazzo', 'error')
     }
   }
 
@@ -286,6 +300,7 @@ export default function AdminPage() {
       await api.updateGame(gameForm.id, payload)
       setGameForm(EMPTY_GAME_FORM)
       await loadData()
+      toast('Partita aggiornata', 'success')
     } catch (err) {
       setError(err.error || 'Errore nell\'aggiornamento partita')
     } finally {
@@ -294,7 +309,8 @@ export default function AdminPage() {
   }
 
   const removeGame = async (gameId) => {
-    if (!confirm('Eliminare questa partita?')) return
+    const ok = await confirm({ title: 'Eliminare partita?', message: 'La partita verrà eliminata definitivamente.', confirmLabel: 'Elimina', danger: true })
+    if (!ok) return
 
     try {
       await api.deleteGame(gameId)
@@ -302,8 +318,9 @@ export default function AdminPage() {
         setGameForm(EMPTY_GAME_FORM)
       }
       await loadData()
+      toast('Partita eliminata', 'success')
     } catch (err) {
-      setError(err.error || 'Errore nell\'eliminazione partita')
+      toast(err.error || 'Errore nell\'eliminazione partita', 'error')
     }
   }
 
@@ -524,6 +541,7 @@ export default function AdminPage() {
                           colors: newColors || undefined
                         })
                         await loadData()
+                        toast('Lista salvata', 'success')
                       }}
                     />
                     <button style={buttonSecondary} onClick={() => startDeckEdit(deck)}>Modifica</button>
