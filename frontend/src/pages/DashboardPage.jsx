@@ -250,7 +250,20 @@ export default function DashboardPage() {
     const unluckiest = placeArr.filter(p => p.firstOuts > 0)
       .sort((a, b) => b.firstOuts - a.firstOuts)[0]
 
-    return { longestStreak, kingOfMonth, biggestTable, mostWins, mostGames, bestRate, topDeck, survivalKing, unluckiest }
+    // Kill tracking
+    const killTally = {}, deathTally = {}
+    for (const g of games) {
+      for (const p of g.players) {
+        if (!p.eliminatedById) continue
+        deathTally[p.user.username] = (deathTally[p.user.username] || 0) + 1
+        const killer = g.players.find(x => x.user.id === p.eliminatedById)
+        if (killer) killTally[killer.user.username] = (killTally[killer.user.username] || 0) + 1
+      }
+    }
+    const mostRuthless = Object.entries(killTally).sort((a, b) => b[1] - a[1])[0] || null
+    const biggestTarget = Object.entries(deathTally).sort((a, b) => b[1] - a[1])[0] || null
+
+    return { longestStreak, kingOfMonth, biggestTable, mostWins, mostGames, bestRate, topDeck, survivalKing, unluckiest, mostRuthless, biggestTarget }
   }, [games, playerStats, deckStats])
 
   // Meta colori: win rate per colore (su presenze nei pod)
@@ -802,6 +815,18 @@ export default function DashboardPage() {
                     </div>
                   )
                 })()}
+                {(() => {
+                  const kills = g.players.filter(p => p.eliminatedById)
+                  if (kills.length === 0) return null
+                  return (
+                    <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
+                      {kills.map(p => {
+                        const killer = g.players.find(x => x.user.id === p.eliminatedById)
+                        return <span key={p.id}>⚔️ {killer?.user.username || '?'} → {p.user.username}</span>
+                      })}
+                    </div>
+                  )
+                })()}
                 {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8, fontStyle: 'italic' }}>{g.notes}</div>}
               </div>
             )
@@ -828,6 +853,8 @@ export default function DashboardPage() {
                   { icon: '🪑', label: 'Tavolo più affollato', value: `${records.biggestTable.players.length} giocatori`, sub: new Date(records.biggestTable.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) },
                   { icon: '🛡️', label: 'Re della sopravvivenza', value: records.survivalKing?.username || '—', sub: records.survivalKing ? `piazz. medio ${records.survivalKing.avg.toFixed(1)}° · min 3 partite` : 'serve l\'ordine di uscita' },
                   { icon: '🪦', label: 'Sfortunato', value: records.unluckiest?.username || '—', sub: records.unluckiest ? `${records.unluckiest.firstOuts}× primo eliminato` : 'serve l\'ordine di uscita' },
+                  { icon: '⚔️', label: 'Più spietato', value: records.mostRuthless?.[0] || '—', sub: records.mostRuthless ? `${records.mostRuthless[1]} eliminazioni` : 'serve il kill tracking' },
+                  { icon: '🎯', label: 'Bersaglio', value: records.biggestTarget?.[0] || '—', sub: records.biggestTarget ? `eliminato ${records.biggestTarget[1]}× in totale` : 'serve il kill tracking' },
                 ].map((r, i) => (
                   <div key={i} style={{ ...card, marginBottom: 0, position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />

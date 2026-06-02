@@ -93,9 +93,30 @@ export default function PlayerProfilePage() {
       return Math.round(cw / (i + 1) * 100)
     })
 
+    // Kill tracking
+    let kills = 0, deaths = 0
+    const eliminatorTally = {}, preyTally = {}
+    for (const g of myGames) {
+      for (const p of g.players) {
+        if (p.eliminatedById === pid && p.user.id !== pid) {
+          kills++
+          preyTally[p.user.username] = (preyTally[p.user.username] || 0) + 1
+        }
+      }
+      const me = g.players.find(p => p.user.id === pid)
+      if (me?.eliminatedById) {
+        deaths++
+        const killer = g.players.find(p => p.user.id === me.eliminatedById)
+        if (killer) eliminatorTally[killer.user.username] = (eliminatorTally[killer.user.username] || 0) + 1
+      }
+    }
+    const archNemesis = Object.entries(eliminatorTally).sort((a, b) => b[1] - a[1])[0] || null
+    const favoritePrey = Object.entries(preyTally).sort((a, b) => b[1] - a[1])[0] || null
+    const hasKillData = kills > 0 || deaths > 0
+
     const achievements = getAchievements({ myGames, myDecks, pid })
 
-    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements }
+    return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData }
   }, [games, deckStats, players, pid])
 
   const card = {
@@ -122,7 +143,7 @@ export default function PlayerProfilePage() {
   if (error)   return (<div>{backBtn}<EmptyState icon="⚠️" title="Errore" message={error} /></div>)
   if (!profile.player) return (<div>{backBtn}<EmptyState icon="🔍" title="Giocatore non trovato" message="Questo profilo non esiste o non ha ancora dati." /></div>)
 
-  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements } = profile
+  const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData } = profile
 
   const stat = (label, value, sub) => (
     <div style={{ flex: 1, minWidth: 120 }}>
@@ -164,6 +185,16 @@ export default function PlayerProfilePage() {
         {stat('Piazz. medio', avgPlacement ? avgPlacement.toFixed(1) + '°' : '—', placed.length ? `su ${placed.length} partite` : 'nessun dato')}
         {stat('Primo eliminato', placed.length ? `${firstOuts}×` : '—', placed.length ? 'volte fuori per primo' : 'nessun dato')}
       </div>
+
+      {/* Eliminazioni (kill tracking) */}
+      {hasKillData && (
+        <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          {stat('⚔️ Kill', kills, 'giocatori eliminati')}
+          {stat('💀 Morti', deaths, 'volte eliminato')}
+          {stat('😈 Arcinemico', archNemesis ? archNemesis[0] : '—', archNemesis ? `ti ha eliminato ${archNemesis[1]}×` : 'nessuno')}
+          {stat('🎯 Preda preferita', favoritePrey ? favoritePrey[0] : '—', favoritePrey ? `eliminato ${favoritePrey[1]}×` : 'nessuna')}
+        </div>
+      )}
 
       {/* Trend win rate */}
       {trend.length >= 2 && (

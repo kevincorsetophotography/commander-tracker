@@ -33,11 +33,29 @@ const validateGamePayload = async ({ players, winnerId, winnerDeckId }) => {
     deckId: Number.parseInt(player.deckId, 10),
     placement: player.placement === undefined || player.placement === null || player.placement === ''
       ? null
-      : Number.parseInt(player.placement, 10)
+      : Number.parseInt(player.placement, 10),
+    eliminatedById: player.eliminatedById === undefined || player.eliminatedById === null || player.eliminatedById === ''
+      ? null
+      : Number.parseInt(player.eliminatedById, 10)
   }));
 
   if (normalizedPlayers.some((player) => !player.userId || !player.deckId)) {
     return { error: 'Ogni giocatore deve avere utente e mazzo validi' };
+  }
+
+  // Validazione eliminazioni: il killer deve essere al tavolo e diverso dal giocatore; il vincitore non viene eliminato
+  const playerUserIds = new Set(normalizedPlayers.map((p) => p.userId));
+  for (const p of normalizedPlayers) {
+    if (p.eliminatedById === null || Number.isNaN(p.eliminatedById)) { p.eliminatedById = null; continue; }
+    if (!playerUserIds.has(p.eliminatedById)) {
+      return { error: 'Chi ha eliminato un giocatore deve essere al tavolo' };
+    }
+    if (p.eliminatedById === p.userId) {
+      return { error: 'Un giocatore non può eliminare sé stesso' };
+    }
+    if (p.userId === normalizedWinnerId && p.deckId === normalizedWinnerDeckId) {
+      p.eliminatedById = null; // il vincitore sopravvive
+    }
   }
 
   // Validazione piazzamenti: se ne è presente almeno uno, devono esserci tutti e formare 1..N univoci
@@ -138,6 +156,7 @@ router.post('/', auth, async (req, res) => {
           userId: player.userId,
           deckId: player.deckId,
           placement: player.placement ?? null,
+          eliminatedById: player.eliminatedById ?? null,
           isWinner: player.userId === normalizedWinnerId && player.deckId === normalizedWinnerDeckId
         }))
       }

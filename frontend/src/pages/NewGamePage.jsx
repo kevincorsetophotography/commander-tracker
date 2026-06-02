@@ -17,6 +17,7 @@ export default function NewGamePage() {
   const [notes, setNotes] = useState('')
   const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
   const [elimOrder, setElimOrder] = useState([])  // chiavi "userId-deckId" in ordine di uscita (primo eliminato per primo)
+  const [elimBy, setElimBy] = useState({})        // { "userId-deckId" → userId del killer }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -57,8 +58,8 @@ export default function NewGamePage() {
 
   const filledSlots = slots.filter(s => s.userId && s.deckId)
 
-  // Reset ordine di uscita se cambia il vincitore o il tavolo
-  useEffect(() => { setElimOrder([]) }, [winnerId, slots.length])
+  // Reset ordine di uscita ed eliminazioni se cambia il vincitore o il tavolo
+  useEffect(() => { setElimOrder([]); setElimBy({}) }, [winnerId, slots.length])
 
   const slotKey = (s) => `${parseInt(s.userId)}-${parseInt(s.deckId)}`
 
@@ -101,7 +102,8 @@ export default function NewGamePage() {
         players: filledSlots.map(s => ({
           userId: parseInt(s.userId),
           deckId: parseInt(s.deckId),
-          ...(placements ? { placement: placements[slotKey(s)] } : {})
+          ...(placements ? { placement: placements[slotKey(s)] } : {}),
+          ...(elimBy[slotKey(s)] ? { eliminatedById: parseInt(elimBy[slotKey(s)]) } : {})
         })),
         winnerId: winnerId.userId,
         winnerDeckId: winnerId.deckId,
@@ -259,6 +261,37 @@ export default function NewGamePage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Eliminazioni: chi ha eliminato chi (opzionale) */}
+      {winnerId && losers.length >= 1 && (
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: t.text }}>
+            Eliminazioni <span style={{ fontWeight: 400, color: t.textMuted }}>(opzionale)</span>
+          </div>
+          <div style={{ fontSize: 12, color: t.textSub, marginBottom: 12 }}>
+            Per ogni giocatore eliminato, indica chi l'ha buttato fuori. Sblocca arcinemico, preda preferita e kill count.
+          </div>
+          {losers.map((s, i) => {
+            const key = slotKey(s)
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: t.text, minWidth: 160 }}>{getUserName(s.userId)} · {getDeckName(s.deckId)}</span>
+                <span style={{ fontSize: 12, color: t.textMuted }}>eliminato da</span>
+                <select
+                  value={elimBy[key] || ''}
+                  onChange={e => setElimBy(prev => ({ ...prev, [key]: e.target.value }))}
+                  style={{ ...sel, minWidth: 150 }}
+                >
+                  <option value="">— sconosciuto</option>
+                  {filledSlots.filter(o => slotKey(o) !== key).map((o, oi) => (
+                    <option key={oi} value={parseInt(o.userId)}>{getUserName(o.userId)}</option>
+                  ))}
+                </select>
+              </div>
+            )
+          })}
         </div>
       )}
 

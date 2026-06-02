@@ -21,7 +21,8 @@ const EMPTY_GAME_FORM = {
   winnerDeckId: '',
   notes: '',
   playedAt: '',
-  elimOrder: []
+  elimOrder: [],
+  elimBy: {}
 }
 
 function SectionCard({ children, t }) {
@@ -51,6 +52,10 @@ function formatGameForEdit(game) {
       .sort((a, b) => b.placement - a.placement) // placement più alto = primo eliminato
       .map((p) => `${p.user.id}-${p.deck.id}`)
   }
+  const elimBy = {}
+  game.players.forEach((p) => {
+    if (p.eliminatedById) elimBy[`${p.user.id}-${p.deck.id}`] = String(p.eliminatedById)
+  })
   return {
     id: game.id,
     slots: game.players.map((player) => ({
@@ -61,7 +66,8 @@ function formatGameForEdit(game) {
     winnerDeckId: String(game.players.find((player) => player.isWinner)?.deck.id || ''),
     notes: game.notes || '',
     playedAt: game.playedAt ? new Date(game.playedAt).toISOString().slice(0, 10) : '',
-    elimOrder
+    elimOrder,
+    elimBy
   }
 }
 
@@ -163,7 +169,8 @@ export default function AdminPage() {
         slots: nextSlots,
         winnerId: '',
         winnerDeckId: '',
-        elimOrder: []
+        elimOrder: [],
+        elimBy: {}
       }
     })
   }
@@ -174,7 +181,8 @@ export default function AdminPage() {
       return {
         ...current,
         slots: [...current.slots, { userId: '', deckId: '' }],
-        elimOrder: []
+        elimOrder: [],
+        elimBy: {}
       }
     })
   }
@@ -187,7 +195,8 @@ export default function AdminPage() {
         slots: current.slots.filter((_, currentIndex) => currentIndex !== index),
         winnerId: '',
         winnerDeckId: '',
-        elimOrder: []
+        elimOrder: [],
+        elimBy: {}
       }
     })
   }
@@ -319,7 +328,8 @@ export default function AdminPage() {
         players: filled.map((slot) => ({
           userId: Number.parseInt(slot.userId, 10),
           deckId: Number.parseInt(slot.deckId, 10),
-          ...(placements ? { placement: placements[`${slot.userId}-${slot.deckId}`] } : {})
+          ...(placements ? { placement: placements[`${slot.userId}-${slot.deckId}`] } : {}),
+          ...(gameForm.elimBy[`${slot.userId}-${slot.deckId}`] ? { eliminatedById: Number.parseInt(gameForm.elimBy[`${slot.userId}-${slot.deckId}`], 10) } : {})
         })),
         winnerId: Number.parseInt(gameForm.winnerId, 10),
         winnerDeckId: Number.parseInt(gameForm.winnerDeckId, 10),
@@ -665,7 +675,7 @@ export default function AdminPage() {
                       <button
                         key={`${slot.userId}-${slot.deckId}-${index}`}
                         type="button"
-                        onClick={() => setGameForm((current) => ({ ...current, winnerId: slot.userId, winnerDeckId: slot.deckId, elimOrder: [] }))}
+                        onClick={() => setGameForm((current) => ({ ...current, winnerId: slot.userId, winnerDeckId: slot.deckId, elimOrder: [], elimBy: {} }))}
                         style={{
                           ...buttonSecondary,
                           background: active ? t.winBg : t.bgSurface,
@@ -726,6 +736,39 @@ export default function AdminPage() {
                           <button type="button" onClick={() => setGameForm((c) => ({ ...c, elimOrder: [] }))} style={{ marginLeft: 10, fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}>✕ azzera</button>
                         </div>
                       )}
+                    </div>
+                  )
+                })()}
+
+                {/* Eliminazioni: chi ha eliminato chi (opzionale) */}
+                {gameForm.winnerId && (() => {
+                  const losers = gameCandidates.filter((s) => !(s.userId === gameForm.winnerId && s.deckId === gameForm.winnerDeckId))
+                  if (losers.length < 1) return null
+                  return (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, color: t.textSub, marginBottom: 6 }}>Eliminazioni (opzionale) — chi ha eliminato chi</div>
+                      {losers.map((slot, index) => {
+                        const key = `${slot.userId}-${slot.deckId}`
+                        const user = usersById.get(Number.parseInt(slot.userId, 10))
+                        const deck = decks.find((c) => c.id === Number.parseInt(slot.deckId, 10))
+                        return (
+                          <div key={`${key}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 13, color: t.text, minWidth: 150 }}>{user?.username} · {deck?.name}</span>
+                            <span style={{ fontSize: 12, color: t.textMuted }}>eliminato da</span>
+                            <select
+                              style={{ ...inputStyle, width: 'auto', minWidth: 140 }}
+                              value={gameForm.elimBy[key] || ''}
+                              onChange={(event) => setGameForm((current) => ({ ...current, elimBy: { ...current.elimBy, [key]: event.target.value } }))}
+                            >
+                              <option value="">— sconosciuto</option>
+                              {gameCandidates.filter((o) => `${o.userId}-${o.deckId}` !== key).map((o, oi) => {
+                                const ou = usersById.get(Number.parseInt(o.userId, 10))
+                                return <option key={oi} value={o.userId}>{ou?.username}</option>
+                              })}
+                            </select>
+                          </div>
+                        )
+                      })}
                     </div>
                   )
                 })()}
