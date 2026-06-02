@@ -135,7 +135,7 @@ router.post('/import', auth, async (req, res) => {
       const r = await fetch(`https://api.moxfield.com/v2/decks/all/${m[1]}`, {
         headers: { 'User-Agent': 'CommanderoneTracker/1.0', 'Accept': 'application/json' }
       });
-      if (!r.ok) return res.status(502).json({ error: 'Moxfield ha bloccato la richiesta. Prova a incollare la lista a mano.' });
+      if (!r.ok) return res.status(502).json({ error: 'Moxfield blocca l\'import automatico. Apri il mazzo su Moxfield → More → Export → Text, copia tutto e incollalo qui sotto.' });
       const data = await r.json();
       const commanderName = Object.values(data.commanders || {})[0]?.card?.name || null;
       const lines = Object.values(data.mainboard || {}).map(c => `${c.quantity || 1} ${c.card?.name}`).filter(l => !l.endsWith('undefined'));

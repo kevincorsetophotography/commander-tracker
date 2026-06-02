@@ -72,6 +72,16 @@ export default function DecksPage() {
     } finally { setSaving(false) }
   }
 
+  const updateBracket = async (id, bracket) => {
+    try {
+      await api.updateDeck(id, { bracket: bracket || null })
+      await loadDecks()
+      toast('Livello aggiornato', 'success')
+    } catch (err) {
+      toast(err.error || 'Errore aggiornamento livello', 'error')
+    }
+  }
+
   const deleteDeck = async (id, name) => {
     const ok = await confirm({
       title: 'Eliminare il mazzo?',
@@ -185,6 +195,15 @@ export default function DecksPage() {
           )}
 
           <div style={{ padding: '10px 14px', display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: t.textSub, marginRight: 'auto' }}>Livello</span>
+            <select
+              value={deck.bracket || ''}
+              onChange={e => updateBracket(deck.id, e.target.value)}
+              style={{ padding: '5px 8px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="">— livello</option>
+              {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
+            </select>
             <DeckListPanel
               decklist={deck.decklist}
               commander={deck.commander}
