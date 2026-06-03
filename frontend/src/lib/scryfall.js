@@ -79,8 +79,31 @@ function toCardEntry(card, countByName) {
   return {
     name: card.name,
     count: countByName[card.name] || 1,
-    imageUri: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal
+    imageUri: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
+    typeLine: card.type_line || card.card_faces?.[0]?.type_line || ''
   }
+}
+
+// Categoria in italiano dal type_line di Scryfall
+export function categorizeCard(typeLine) {
+  const t = typeLine || ''
+  if (/Creature/i.test(t))     return 'Creature'
+  if (/Planeswalker/i.test(t)) return 'Planeswalker'
+  if (/Instant/i.test(t))      return 'Istantanei'
+  if (/Sorcery/i.test(t))      return 'Stregonerie'
+  if (/Artifact/i.test(t))     return 'Artefatti'
+  if (/Enchantment/i.test(t))  return 'Incantesimi'
+  if (/Land/i.test(t))         return 'Terre'
+  return 'Altro'
+}
+
+// Carte della lista con tipo e immagine (per il profilo mazzo)
+export async function fetchTypedDecklist(text) {
+  const { entries } = parseDecklist(text)
+  const countByName = {}
+  for (const { count, name } of entries) countByName[name] = (countByName[name] || 0) + count
+  const { cards: rawCards } = await batchFetch(Object.keys(countByName))
+  return rawCards.map(card => toCardEntry(card, countByName))
 }
 
 export async function validateAndFetchDecklist(text) {

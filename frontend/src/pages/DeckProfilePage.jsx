@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { fetchTypedDecklist, categorizeCard } from '../lib/scryfall'
 import { useTheme } from '../hooks/useTheme'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
@@ -9,6 +10,7 @@ import BracketBadge from '../components/BracketBadge'
 
 const COLOR_MAP = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const artUrl = (name) => `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
+const CATEGORY_ORDER = ['Commander', 'Creature', 'Planeswalker', 'Istantanei', 'Stregonerie', 'Artefatti', 'Incantesimi', 'Terre', 'Altro']
 
 function WinBar({ pct, t }) {
   return (
@@ -30,12 +32,50 @@ export default function DeckProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [deckDetail, setDeckDetail] = useState(null)   // mazzo con decklist
+  const [typedCards, setTypedCards] = useState([])     // carte con tipo/immagine
+  const [loadingList, setLoadingList] = useState(false)
+  const [selectedCard, setSelectedCard] = useState(null)
+
   useEffect(() => {
     Promise.all([api.getGames(), api.statsDecks(), api.statsMatchups()])
       .then(([g, d, m]) => { setGames(g); setDeckStats(d); setMatchups(m) })
       .catch(() => setError('Errore nel caricamento del mazzo'))
       .finally(() => setLoading(false))
   }, [])
+
+  // Carica la decklist del mazzo e i tipi delle carte
+  useEffect(() => {
+    let alive = true
+    setDeckDetail(null); setTypedCards([]); setSelectedCard(null)
+    api.getDeck(did).then(async (deck) => {
+      if (!alive) return
+      setDeckDetail(deck)
+      if (deck?.decklist) {
+        setLoadingList(true)
+        try {
+          const cards = await fetchTypedDecklist(deck.decklist)
+          if (alive) setTypedCards(cards)
+        } finally {
+          if (alive) setLoadingList(false)
+        }
+      }
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [did])
+
+  // Raggruppa le carte per categoria (commander a parte)
+  const grouped = useMemo(() => {
+    const commanderName = deckDetail?.commander
+    const groups = {}
+    for (const card of typedCards) {
+      const cat = commanderName && card.name === commanderName ? 'Commander' : categorizeCard(card.typeLine)
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push(card)
+    }
+    for (const k of Object.keys(groups)) groups[k].sort((a, b) => a.name.localeCompare(b.name))
+    return groups
+  }, [typedCards, deckDetail])
 
   const commanderById = useMemo(() => Object.fromEntries(deckStats.map(d => [d.id, d.commander])), [deckStats])
 
@@ -143,6 +183,61 @@ export default function DeckProfilePage() {
               </svg>
             )
           })()}
+        </div>
+      )}
+
+      {/* Lista carte per tipo */}
+      {deckDetail?.decklist && (
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>Lista carte</div>
+          {loadingList ? (
+            <div style={{ fontSize: 13, color: t.textSub }}>Caricamento lista...</div>
+          ) : (
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              {/* Elenco raggruppato */}
+              <div style={{ flex: 1, minWidth: 240 }}>
+                {CATEGORY_ORDER.filter(cat => grouped[cat]?.length).map(cat => {
+                  const cards = grouped[cat]
+                  const tot = cards.reduce((s, c) => s + c.count, 0)
+                  return (
+                    <div key={cat} style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                        {cat} <span style={{ color: t.textMuted, fontWeight: 600 }}>({tot})</span>
+                      </div>
+                      {cards.map((c, i) => {
+                        const active = selectedCard?.name === c.name
+                        return (
+                          <div
+                            key={i}
+                            onMouseEnter={() => c.imageUri && setSelectedCard(c)}
+                            onClick={() => setSelectedCard(active ? null : c)}
+                            style={{
+                              display: 'flex', gap: 8, padding: '4px 8px', borderRadius: 7, cursor: 'pointer',
+                              background: active ? t.primaryBg : 'transparent',
+                              color: active ? t.primary : t.text, fontSize: 13,
+                            }}
+                          >
+                            <span style={{ color: t.textMuted, minWidth: 22, textAlign: 'right' }}>{c.count}×</span>
+                            <span>{c.name}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Anteprima carta */}
+              <div style={{ position: 'sticky', top: 80, width: 240, flexShrink: 0 }}>
+                {selectedCard?.imageUri ? (
+                  <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: 240, borderRadius: 14, display: 'block', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }} />
+                ) : (
+                  <div style={{ width: 240, height: 335, borderRadius: 14, border: `2px dashed ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: t.textMuted, fontSize: 12, padding: 12 }}>
+                    Passa o tocca una carta per vederne l'immagine
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

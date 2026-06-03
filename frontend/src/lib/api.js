@@ -44,6 +44,7 @@ export const api = {
   // decks
   getDecks:    ()     => req('GET',    '/decks'),
   getMyDecks:  ()     => req('GET',    '/decks/mine'),
+  getDeck:     (id)   => req('GET',    `/decks/${id}`),
   createDeck:  (data) => req('POST',   '/decks', data),
   updateDeck:  (id, data) => req('PATCH', `/decks/${id}`, data),
   deleteDeck:  (id)   => req('DELETE', `/decks/${id}`),

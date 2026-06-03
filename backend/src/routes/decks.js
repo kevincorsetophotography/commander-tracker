@@ -28,6 +28,19 @@ router.get('/mine', auth, async (req, res) => {
   res.json(decks);
 });
 
+// GET /api/decks/:id — singolo mazzo con decklist (per il profilo mazzo)
+router.get('/:id', auth, async (req, res) => {
+  const deckId = parseDeckId(req.params.id);
+  if (!deckId) return res.status(400).json({ error: 'ID mazzo non valido' });
+
+  const deck = await prisma.deck.findUnique({
+    where: { id: deckId },
+    include: { user: { select: { id: true, username: true } } }
+  });
+  if (!deck) return res.status(404).json({ error: 'Mazzo non trovato' });
+  res.json(deck);
+});
+
 const parseBracket = (value) => {
   if (value === undefined || value === null || value === '') return null;
   const b = Number.parseInt(value, 10);
