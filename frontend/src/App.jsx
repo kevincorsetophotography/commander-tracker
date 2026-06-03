@@ -136,7 +136,7 @@ function Layout() {
 
         {isMobile ? (
           /* ── HEADER MOBILE (brand grande) ── */
-          <div style={{ ...navBar, padding: '0 1rem' }}>
+          <div style={{ ...navBar, padding: '0 1rem', paddingTop: 'env(safe-area-inset-top)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 58, gap: 8 }}>
               <Brand logoSize={40} titleSize={15} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
