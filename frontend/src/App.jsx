@@ -129,7 +129,7 @@ function Layout() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative', color: t.text }}>
+    <div style={{ minHeight: '100dvh', position: 'relative', color: t.text }}>
       <div className={`ct-aurora ${dark ? 'dark' : 'light'}`} />
 
       <div style={{ position: 'relative', zIndex: 1 }}>

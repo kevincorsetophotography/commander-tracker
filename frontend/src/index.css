@@ -7,6 +7,9 @@
 html, body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Sfondo aurora: blob sfocati che si muovono lentamente */
