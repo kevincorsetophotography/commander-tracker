@@ -16,7 +16,7 @@ Questa guida ti accompagna passo passo: accesso, mazzi, registrazione partite e 
 6. [Il Riepilogo (statistiche)](#6-il-riepilogo-statistiche)
 7. [Profilo giocatore](#7-profilo-giocatore)
 8. [Profilo mazzo](#8-profilo-mazzo)
-9. [Installare l'app sul telefono](#9-installare-lapp-sul-telefono)
+9. [Sul telefono](#9-sul-telefono)
 10. [Per gli amministratori](#10-per-gli-amministratori)
 11. [Domande frequenti](#11-domande-frequenti)
 
@@ -118,6 +118,24 @@ Dal menu in alto vai su **+ Partita**.
 
 La home (**Riepilogo**) raccoglie tutte le statistiche del gruppo, divise in schede.
 
+### Stagione 🏆
+La classifica del **campionato in corso**. Le stagioni durano **4 mesi** e si rinnovano da sole (Gennaio–Aprile, Maggio–Agosto, Settembre–Dicembre): ogni partita finisce nella stagione giusta in base alla sua data.
+
+Il punteggio si assegna **per piazzamento**:
+
+| Posizione | Punti |
+|-----------|-------|
+| 1° (vittoria) | 3 |
+| 2° | 2 |
+| 3° | 1 |
+| 4°/5° | 0 |
+
+In più ogni partita giocata dà **+1 di presenza**: così una vittoria vale 4 punti e anche chi arriva ultimo porta a casa 1 punto — l'importante è **esserci**. I punti si sommano lungo la stagione, quindi chi smette di giocare viene superato da chi continua.
+
+Per essere proclamato **Campione** bisogna aver giocato almeno il **30% delle partite** della stagione (chi è sotto soglia appare comunque in classifica con l'etichetta "non qualif."). In cima trovi la card **"In testa alla stagione"** con il leader. Usa il menu a tendina per rivedere le stagioni passate.
+
+> Nota: i punti di 2° e 3° posto si calcolano se hai registrato l'**ordine di uscita** della partita. Se hai segnato solo il vincitore, i punti vanno al 1° e a tutti gli altri resta il punto presenza.
+
 ### Giocatori
 ![Classifica giocatori](docs/img/dashboard-giocatori.png)
 
@@ -170,16 +188,32 @@ Mostra tutto su un giocatore:
 
 Per ogni mazzo: copertina del commander, livello, win rate, **miglior e peggior matchup**, andamento nel tempo, l'elenco completo dei matchup e lo storico delle sue partite.
 
+**Si apre da ovunque appaia il mazzo**: classifica Mazzi, mazzi nel profilo di un giocatore, avversari nel Matchup, chip nello Storico, la tua pagina "I miei mazzi" e la lista in Admin — basta cliccarlo.
+
+### La lista carte per tipo
+Se il mazzo ha la lista caricata, nel profilo trovi la **decklist completa raggruppata per categoria**: Commander, Creature, Istantanei, Stregonerie, Artefatti, Incantesimi, Planeswalker, Terre, con il conteggio per ogni gruppo. **Passa o tocca una carta** per vederne l'immagine in grande.
+
 ---
 
-## 9. Installare l'app sul telefono
+## 9. Sul telefono
 
 Commanderone è una **PWA**: puoi installarlo come un'app vera.
 
 - **Android (Chrome)**: apri il sito → menu ⋮ → **Installa app** / **Aggiungi a schermata Home**.
 - **iPhone (Safari)**: apri il sito → tasto **Condividi** → **Aggiungi a Home**.
 
-Comparirà l'icona della rana 🐸 e l'app si aprirà a schermo intero — comodissimo per segnare le partite al tavolo.
+Comparirà l'icona 🐸 e l'app si aprirà a schermo intero — comodissimo per segnare le partite al tavolo.
+
+### Navigazione da smartphone
+Su telefono l'interfaccia si adatta: in alto resta il **logo**, e in basso compare una **barra di navigazione** (dock) con i tasti principali, comodi da raggiungere col pollice:
+
+- 🏠 **Home** — il Riepilogo
+- 🎴 **Mazzi**
+- ＋ **Partita** — registra una partita
+- 👤 **Tu** — il tuo profilo
+- ⚙ **Admin** — solo per gli amministratori
+
+Le schede del Riepilogo si scorrono lateralmente con il dito.
 
 ---
 
@@ -214,6 +248,9 @@ Controlla di avere **esattamente 100 carte** (commander incluso) e che i nomi si
 
 **Posso cambiare il livello di un mazzo dopo averlo creato?**
 Sì, dal menu a tendina sulla card del mazzo, in qualsiasi momento.
+
+**Come si vince la stagione?**
+Si accumulano punti per piazzamento (3/2/1) + 1 di presenza a ogni partita. Vince chi ha più punti tra i **qualificati** (almeno il 30% delle partite della stagione). Le stagioni durano 4 mesi e si rinnovano da sole. Per far contare i punti di 2° e 3° posto, ricorda di registrare l'**ordine di uscita** della partita.
 
 ---
 
