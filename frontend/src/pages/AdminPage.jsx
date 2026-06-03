@@ -5,6 +5,7 @@ import DeckListPanel from '../components/DeckListPanel'
 import { useTheme } from '../hooks/useTheme'
 import { fetchCommanderColors } from '../lib/scryfall'
 import { useFeedback } from '../hooks/useFeedback'
+import { useIsMobile } from '../hooks/useIsMobile'
 import CommanderInput from '../components/CommanderInput'
 import BracketBadge from '../components/BracketBadge'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
@@ -76,6 +77,8 @@ export default function AdminPage() {
   const { t } = useTheme()
   const navigate = useNavigate()
   const { toast, confirm } = useFeedback()
+  const isMobile = useIsMobile()
+  const cols = (desktop) => (isMobile ? '1fr' : desktop)
   const [tab, setTab] = useState('utenti')
   const [detectingDeckColors, setDetectingDeckColors]       = useState(false)
   const [detectingEditColors, setDetectingEditColors]       = useState(false)
@@ -480,7 +483,7 @@ export default function AdminPage() {
         <div>
           <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea utente</div>
-            <form onSubmit={submitUser} style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr auto', gap: 8 }}>
+            <form onSubmit={submitUser} style={{ display: 'grid', gridTemplateColumns: cols('2fr 2fr 1fr auto'), gap: 8 }}>
               <input style={inputStyle} placeholder="Username" value={userForm.username} onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))} />
               <input style={inputStyle} type="password" placeholder="Password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} />
               <select style={inputStyle} value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}>
@@ -494,7 +497,7 @@ export default function AdminPage() {
           {users.map((user) => (
             <SectionCard key={user.id} t={t}>
               {editingUserId === user.id ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr auto auto', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: cols('2fr 2fr 1fr auto auto'), gap: 8 }}>
                   <input style={inputStyle} value={editingUserForm.username} onChange={(event) => setEditingUserForm((current) => ({ ...current, username: event.target.value }))} />
                   <input style={inputStyle} type="password" placeholder="Nuova password opzionale" value={editingUserForm.password} onChange={(event) => setEditingUserForm((current) => ({ ...current, password: event.target.value }))} />
                   <select style={inputStyle} value={editingUserForm.role} onChange={(event) => setEditingUserForm((current) => ({ ...current, role: event.target.value }))}>
@@ -527,7 +530,7 @@ export default function AdminPage() {
         <div>
           <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea mazzo</div>
-            <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr 1fr auto', gap: 8 }}>
+            <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr auto'), gap: 8 }}>
               <select style={inputStyle} value={deckForm.userId} onChange={(event) => setDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                 <option value="">Owner</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
@@ -558,7 +561,7 @@ export default function AdminPage() {
           {decks.map((deck) => (
             <SectionCard key={deck.id} t={t}>
               {editingDeckId === deck.id ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr 1fr 1fr auto auto', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr auto auto'), gap: 8 }}>
                   <select style={inputStyle} value={editingDeckForm.userId} onChange={(event) => setEditingDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                     {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
                   </select>
@@ -638,7 +641,7 @@ export default function AdminPage() {
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Modifica partita #{gameForm.id}</div>
               <form onSubmit={submitGameEdit}>
                 {gameForm.slots.map((slot, index) => (
-                  <div key={index} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <div key={index} style={{ display: 'grid', gridTemplateColumns: cols('40px 1fr 1fr auto'), gap: 8, marginBottom: 8, alignItems: 'center' }}>
                     <div style={{ textAlign: 'center', color: t.textSub }}>{index + 1}</div>
                     <select style={inputStyle} value={slot.userId} onChange={(event) => updateGameSlot(index, 'userId', event.target.value)}>
                       <option value="">Giocatore</option>

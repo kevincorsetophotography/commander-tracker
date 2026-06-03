@@ -9,6 +9,7 @@ import DeckThumb from '../components/DeckThumb'
 import BracketBadge from '../components/BracketBadge'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { useCountUp } from '../hooks/useCountUp'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 function WinBar({ pct, t }) {
   return (
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   const { t } = useTheme()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [tab, setTab] = useState('giocatori')
   const [playerStats, setPlayerStats] = useState([])
   const [deckStats, setDeckStats] = useState([])
@@ -350,18 +352,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Tab selector */}
-      <div style={{
-        display: 'inline-flex', gap: 4, marginBottom: '1.25rem', flexWrap: 'wrap',
-        background: t.bgSurface,
-        backdropFilter: 'blur(14px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-        border: `1px solid ${t.border}`,
-        borderRadius: 14,
-        padding: 5,
-        boxShadow: t.shadow,
-      }}>
+      <div
+        className={isMobile ? 'ct-scroll-x' : undefined}
+        style={{
+          display: isMobile ? 'flex' : 'inline-flex',
+          gap: 4, marginBottom: '1.25rem',
+          flexWrap: isMobile ? 'nowrap' : 'wrap',
+          background: t.bgSurface,
+          backdropFilter: 'blur(14px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+          border: `1px solid ${t.border}`,
+          borderRadius: 14,
+          padding: 5,
+          boxShadow: t.shadow,
+          maxWidth: isMobile ? '100%' : undefined,
+        }}
+      >
         {['giocatori', 'mazzi', 'matchup', 'storico', 'primati'].map(t2 => (
-          <button key={t2} style={tabBtn(t2)} onClick={() => setTab(t2)}>
+          <button key={t2} style={{ ...tabBtn(t2), flexShrink: 0 }} onClick={() => setTab(t2)}>
             {t2.charAt(0).toUpperCase() + t2.slice(1)}
           </button>
         ))}

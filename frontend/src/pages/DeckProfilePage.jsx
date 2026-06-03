@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { fetchTypedDecklist, categorizeCard } from '../lib/scryfall'
 import { useTheme } from '../hooks/useTheme'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
@@ -25,6 +26,7 @@ export default function DeckProfilePage() {
   const did = Number.parseInt(id, 10)
   const navigate = useNavigate()
   const { t } = useTheme()
+  const isMobile = useIsMobile()
 
   const [games, setGames] = useState([])
   const [deckStats, setDeckStats] = useState([])
@@ -195,7 +197,7 @@ export default function DeckProfilePage() {
           ) : (
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               {/* Elenco raggruppato */}
-              <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ flex: 1, minWidth: isMobile ? '100%' : 240 }}>
                 {CATEGORY_ORDER.filter(cat => grouped[cat]?.length).map(cat => {
                   const cards = grouped[cat]
                   const tot = cards.reduce((s, c) => s + c.count, 0)
@@ -226,16 +228,28 @@ export default function DeckProfilePage() {
                   )
                 })}
               </div>
-              {/* Anteprima carta */}
-              <div style={{ position: 'sticky', top: 80, width: 240, flexShrink: 0 }}>
-                {selectedCard?.imageUri ? (
-                  <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: 240, borderRadius: 14, display: 'block', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }} />
-                ) : (
-                  <div style={{ width: 240, height: 335, borderRadius: 14, border: `2px dashed ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: t.textMuted, fontSize: 12, padding: 12 }}>
-                    Passa o tocca una carta per vederne l'immagine
-                  </div>
-                )}
-              </div>
+              {/* Anteprima carta — colonna laterale solo su desktop */}
+              {!isMobile && (
+                <div style={{ position: 'sticky', top: 80, width: 240, flexShrink: 0 }}>
+                  {selectedCard?.imageUri ? (
+                    <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: 240, borderRadius: 14, display: 'block', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }} />
+                  ) : (
+                    <div style={{ width: 240, height: 335, borderRadius: 14, border: `2px dashed ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: t.textMuted, fontSize: 12, padding: 12 }}>
+                      Passa o tocca una carta per vederne l'immagine
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Su mobile: anteprima a tutto schermo al tap */}
+          {isMobile && selectedCard?.imageUri && (
+            <div
+              onClick={() => setSelectedCard(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+            >
+              <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: '100%', maxWidth: 320, borderRadius: 16, boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }} />
             </div>
           )}
         </div>
