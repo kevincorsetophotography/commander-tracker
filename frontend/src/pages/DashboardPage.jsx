@@ -10,6 +10,7 @@ import BracketBadge from '../components/BracketBadge'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { useCountUp } from '../hooks/useCountUp'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { listSeasons, computeStandings } from '../lib/seasons'
 
 function WinBar({ pct, t }) {
   return (
@@ -71,6 +72,7 @@ export default function DashboardPage() {
   const [deckSortDir, setDeckSortDir]   = useState('desc')
   const [deckSearch, setDeckSearch]     = useState('')
   const [bracketFilter, setBracketFilter] = useState('')
+  const [seasonKey, setSeasonKey]         = useState(null)
 
   useEffect(() => {
     Promise.all([
@@ -192,6 +194,16 @@ export default function DashboardPage() {
 
   const toggleColor = (c) =>
     setColorFilter(f => f.includes(c) ? f.filter(x => x !== c) : [...f, c])
+
+  // ── STAGIONI ──
+  const seasons = useMemo(() => listSeasons(games), [games])
+  useEffect(() => {
+    if (seasons.length > 0 && !seasonKey) setSeasonKey(seasons[0].key)
+  }, [seasons])
+  const season = useMemo(
+    () => (seasonKey ? computeStandings(games, seasonKey) : null),
+    [games, seasonKey]
+  )
 
   // ── PRIMATI / META / ATTIVITÀ ──
   const records = useMemo(() => {
@@ -368,12 +380,84 @@ export default function DashboardPage() {
           maxWidth: isMobile ? '100%' : undefined,
         }}
       >
-        {['giocatori', 'mazzi', 'matchup', 'storico', 'primati'].map(t2 => (
+        {['stagione', 'giocatori', 'mazzi', 'matchup', 'storico', 'primati'].map(t2 => (
           <button key={t2} style={{ ...tabBtn(t2), flexShrink: 0 }} onClick={() => setTab(t2)}>
             {t2.charAt(0).toUpperCase() + t2.slice(1)}
           </button>
         ))}
       </div>
+
+      {/* STAGIONE */}
+      {tab === 'stagione' && (
+        <div>
+          {seasons.length === 0 || !season ? (
+            <EmptyState icon="🏆" title="Nessuna stagione ancora" message="Registrate qualche partita per far partire la classifica stagionale." />
+          ) : (
+            <>
+              {/* Selettore stagione */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+                <select
+                  value={seasonKey || ''}
+                  onChange={e => setSeasonKey(e.target.value)}
+                  style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                >
+                  {seasons.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+                <span style={{ fontSize: 12, color: t.textMuted }}>{season.total} partite · qualificato da {season.threshold} partite</span>
+              </div>
+
+              {/* Campione / in testa */}
+              {season.champion && (
+                <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, borderColor: t.primaryBorder }}>
+                  <div style={{ fontSize: 34 }}>🏆</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>In testa alla stagione</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: t.text }}>{season.champion.username}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: t.primary, lineHeight: 1 }}>{season.champion.points}</div>
+                    <div style={{ fontSize: 11, color: t.textMuted }}>punti</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Legenda punteggio */}
+              <div style={{ fontSize: 11.5, color: t.textMuted, margin: '4px 4px 10px' }}>
+                Punteggio: 1° = 3 · 2° = 2 · 3° = 1 · +1 presenza a ogni partita
+              </div>
+
+              {/* Classifica */}
+              {season.standings.map((s, i) => (
+                <div
+                  key={s.id}
+                  className="ct-lift"
+                  onClick={() => navigate(`/giocatore/${s.id}`)}
+                  style={{ ...card, cursor: 'pointer', opacity: s.qualified ? 1 : 0.62 }}
+                  title="Apri il profilo del giocatore"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 && s.qualified ? t.primary : t.textMuted, minWidth: 22 }}>{i + 1}°</span>
+                      <Avatar name={s.username} t={t} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {s.username}
+                          {!s.qualified && <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 600, border: `1px solid ${t.border}`, borderRadius: 6, padding: '1px 5px' }}>non qualif.</span>}
+                        </div>
+                        <div style={{ fontSize: 12, color: t.textSub }}>{s.games} partite · {s.wins} vittorie</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>{s.points}</div>
+                      <div style={{ fontSize: 11, color: t.textMuted }}>punti</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
 
       {/* GIOCATORI */}
       {tab === 'giocatori' && (
