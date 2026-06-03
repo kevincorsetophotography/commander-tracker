@@ -91,15 +91,15 @@ function DockItem({ to, end, icon, label }) {
       end={end}
       style={({ isActive }) => ({
         flex: 1, minWidth: 0, textDecoration: 'none',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
-        padding: '7px 2px', borderRadius: 12,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+        minHeight: 56, padding: '8px 2px', borderRadius: 14,
         color: isActive ? t.primary : t.textSub,
         background: isActive ? t.primaryBg : 'transparent',
         transition: 'all 0.15s ease',
       })}
     >
-      <span style={{ fontSize: 20, lineHeight: 1 }}>{icon}</span>
-      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.02em' }}>{label}</span>
+      <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em' }}>{label}</span>
     </NavLink>
   )
 }
@@ -171,7 +171,7 @@ function Layout() {
         )}
 
         {/* Contenuto */}
-        <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? '1rem 0.85rem 96px' : '1.75rem 1rem 3rem' }}>
+        <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? '1rem 0.85rem calc(104px + env(safe-area-inset-bottom))' : '1.75rem 1rem 3rem' }}>
           {routes}
         </div>
       </div>
@@ -184,7 +184,8 @@ function Layout() {
           backdropFilter: 'blur(16px) saturate(160%)',
           WebkitBackdropFilter: 'blur(16px) saturate(160%)',
           borderTop: `1px solid ${t.border}`,
-          display: 'flex', gap: 2, padding: '4px 6px max(4px, env(safe-area-inset-bottom)) 6px',
+          display: 'flex', gap: 4,
+          padding: '6px 8px calc(6px + env(safe-area-inset-bottom)) 8px',
         }}>
           <DockItem to="/" end icon="🏠" label="Home" />
           <DockItem to="/mazzi" icon="🎴" label="Mazzi" />
