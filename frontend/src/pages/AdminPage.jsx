@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import DeckListPanel from '../components/DeckListPanel'
 import { useTheme } from '../hooks/useTheme'
@@ -73,6 +74,7 @@ function formatGameForEdit(game) {
 
 export default function AdminPage() {
   const { t } = useTheme()
+  const navigate = useNavigate()
   const { toast, confirm } = useFeedback()
   const [tab, setTab] = useState('utenti')
   const [detectingDeckColors, setDetectingDeckColors]       = useState(false)
@@ -593,7 +595,7 @@ export default function AdminPage() {
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {deck.name}
+                      <span onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ cursor: 'pointer' }}>{deck.name}</span>
                       <BracketBadge bracket={deck.bracket} />
                     </div>
                     <div style={{ fontSize: 12, color: t.textSub }}>

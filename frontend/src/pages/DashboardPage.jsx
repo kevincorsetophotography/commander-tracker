@@ -415,14 +415,17 @@ export default function DashboardPage() {
                       myDecks.map((deck, di) => (
                         <div
                           key={deck.id}
+                          onClick={() => navigate(`/mazzo/${deck.id}`)}
+                          title="Apri il profilo del mazzo"
                           style={{
                             padding: '8px 0',
-                            borderBottom: di < myDecks.length - 1 ? `0.5px solid ${t.border}` : 'none'
+                            borderBottom: di < myDecks.length - 1 ? `0.5px solid ${t.border}` : 'none',
+                            cursor: 'pointer'
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 2 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                              <DeckThumb commander={deck.commander} w={42} />
+                              <DeckThumb commander={deck.commander} w={42} preview={false} />
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 500, color: t.text }}>{deck.name}</div>
                                 {deck.commander && (
@@ -678,10 +681,10 @@ export default function DashboardPage() {
                     {(matchupOppOwner || matchupOppDeck) && ' (filtrati)'}
                   </div>
                   {filteredMatchups.map((m, i) => (
-                    <div key={i} style={card}>
+                    <div key={i} className="ct-lift" style={{ ...card, cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${m.deckB.id}`)} title="Apri il profilo del mazzo">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                          <DeckThumb commander={commanderById[m.deckB.id]} w={48} />
+                          <DeckThumb commander={commanderById[m.deckB.id]} w={48} preview={false} />
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontWeight: 500, fontSize: 14, color: t.text }}>{m.deckB.name}</div>
                             <div style={{ fontSize: 12, color: t.textSub }}>
@@ -801,13 +804,18 @@ export default function DashboardPage() {
                   return (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {ordered.map(p => (
-                        <span key={p.id} style={{
-                          fontSize: 12, padding: '3px 10px 3px 4px', borderRadius: 20,
-                          background: p.isWinner ? t.winBg : t.bgMuted,
-                          color: p.isWinner ? t.win : t.textSub,
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                        }}>
-                          <DeckThumb commander={p.deck.commander} w={20} round />
+                        <span
+                          key={p.id}
+                          onClick={() => navigate(`/mazzo/${p.deck.id}`)}
+                          title="Apri il profilo del mazzo"
+                          style={{
+                            fontSize: 12, padding: '3px 10px 3px 4px', borderRadius: 20,
+                            background: p.isWinner ? t.winBg : t.bgMuted,
+                            color: p.isWinner ? t.win : t.textSub,
+                            display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                          }}
+                        >
+                          <DeckThumb commander={p.deck.commander} w={20} round preview={false} />
                           {ranked && <span style={{ fontWeight: 800, opacity: 0.8 }}>{p.placement}°</span>}
                           {p.user.username} · {p.deck.name}
                         </span>

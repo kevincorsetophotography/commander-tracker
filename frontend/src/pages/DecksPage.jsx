@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { fetchCommanderColors } from '../lib/scryfall'
@@ -28,6 +29,7 @@ const commanderArtUrl = (name) =>
 
 export default function DecksPage() {
   const { t } = useTheme()
+  const navigate = useNavigate()
   const { toast, confirm } = useFeedback()
   const [decks, setDecks]                     = useState([])
   const [loading, setLoading]                 = useState(true)
@@ -166,7 +168,11 @@ export default function DecksPage() {
       {decks.map(deck => (
         <div key={deck.id} className="ct-lift ct-fade-up" style={deckCard}>
           {deck.commander ? (
-            <div style={{ position: 'relative', height: 96, background: '#1a1640', overflow: 'hidden' }}>
+            <div
+              onClick={() => navigate(`/mazzo/${deck.id}`)}
+              title="Apri il profilo del mazzo"
+              style={{ position: 'relative', height: 96, background: '#1a1640', overflow: 'hidden', cursor: 'pointer' }}
+            >
               <img
                 src={commanderArtUrl(deck.commander)} alt=""
                 onError={e => { e.currentTarget.style.display = 'none' }}
@@ -186,7 +192,7 @@ export default function DecksPage() {
             </div>
           ) : (
             <div style={{ padding: '12px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontWeight: 600, fontSize: 15, color: t.text }}>{deck.name}</div>
+              <div onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ fontWeight: 600, fontSize: 15, color: t.text, cursor: 'pointer' }}>{deck.name}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {deck.bracket && <BracketBadge bracket={deck.bracket} />}
                 {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
