@@ -76,7 +76,38 @@ quando giocare. Si lega bene alle partite (un evento → le partite di quella se
 - Solo lista dei prossimi appuntamenti o anche griglia mensile?
 - RSVP sì/no (e con quali stati)?
 - Eventi ricorrenti (es. "ogni martedì")? — probabilmente in un secondo momento.
-- Promemoria/notifiche? — opzionale, richiede notifiche push (più complesso).
+- Promemoria/notifiche? — vedi feature #10.
+
+### 10. Sistema di notifiche
+Avvisi per i giocatori, ad esempio: **achievement sbloccato**, **nuovo evento**
+inserito a calendario, e in futuro altri trigger (sei stato eliminato, stagione
+conclusa, nuova partita che ti riguarda…).
+
+**Valore:** tiene il gruppo aggiornato e premia il coinvolgimento (lo sblocco di un
+achievement diventa un momento "wow").
+
+**Due livelli possibili (si può partire dal primo):**
+1. **Notifiche in-app** — campanella 🔔 nell'header/dock con pallino "non lette" e
+   un elenco. Funziona quando l'app è aperta. Più semplice.
+2. **Notifiche push (PWA)** — arrivano anche con l'app chiusa. Richiedono Web Push
+   (chiavi VAPID, permesso dell'utente, push nel service worker). Più complesso;
+   da valutare in un secondo momento.
+
+**Note tecniche:**
+- Nuovo modello `Notification` (userId, tipo, messaggio, link, `read`, createdAt).
+- Trigger lato server creano le notifiche:
+  - **Nuovo evento** → notifica a tutti i giocatori (si aggancia alla feature #9).
+  - **Achievement sbloccato** → ⚠️ oggi gli achievement sono calcolati **lato
+    client** e non sono salvati. Per rilevare lo "sblocco" servirà o **persisterli**
+    (tabella achievement per utente, valutati lato server dopo ogni partita) oppure
+    un confronto lato client tra "prima/dopo". Da decidere insieme.
+- UI: campanella con contatore, lista a tendina, segna come letto, link all'oggetto
+  (profilo/evento).
+
+**Da decidere quando lo costruiamo:**
+- Partire da sole notifiche in-app o puntare subito alle push?
+- Come gestire gli achievement (persistenza lato server vs confronto client)?
+- Quali trigger attivare all'inizio (solo achievement + eventi, o anche altro)?
 
 ---
 
