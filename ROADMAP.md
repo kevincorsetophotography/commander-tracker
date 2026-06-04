@@ -52,6 +52,28 @@ archetipo (accanto al livello/bracket). *Richiede un campo su `Deck`
 Strato social sullo storico: commenti e reazioni emoji sotto ogni partita.
 *Il più corposo: nuovi modelli (`Comment`, `Reaction`) + endpoint + UI.*
 
+### 9. Calendario delle attività
+Una sezione dove il gruppo organizza le **serate ed eventi**: data/ora, luogo,
+descrizione (es. "Serata Commander da Kevin", "Torneo cEDH"). I giocatori vedono i
+**prossimi appuntamenti** e possono dire se **partecipano** (RSVP).
+
+**Valore:** coordina il gruppo dentro l'app, niente più chat sparse per decidere
+quando giocare. Si lega bene alle partite (un evento → le partite di quella serata).
+
+**Note tecniche:**
+- Nuovo modello `Event` (titolo, data/ora, luogo, note, `createdByUserId`) + opz.
+  `EventRsvp` (eventId, userId, stato: presente/forse/assente) per le adesioni.
+- Endpoint CRUD eventi (creazione a tutti o solo admin? da decidere) + RSVP.
+- UI: vista **lista "prossimi eventi"** (semplice) e/o vista **calendario mensile**
+  (più ricca). Possibile nuovo tab o voce nel dock mobile.
+
+**Da decidere quando lo costruiamo:**
+- Chi può creare eventi: tutti o solo admin?
+- Solo lista dei prossimi appuntamenti o anche griglia mensile?
+- RSVP sì/no (e con quali stati)?
+- Eventi ricorrenti (es. "ogni martedì")? — probabilmente in un secondo momento.
+- Promemoria/notifiche? — opzionale, richiede notifiche push (più complesso).
+
 ---
 
 ## Valutate e non necessarie (per ora)
