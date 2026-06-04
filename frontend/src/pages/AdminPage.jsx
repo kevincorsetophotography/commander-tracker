@@ -9,8 +9,10 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import CommanderInput from '../components/CommanderInput'
 import BracketBadge from '../components/BracketBadge'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
+import ArchetypeBadge from '../components/ArchetypeBadge'
+import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
 
-const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '', bracket: '' }
+const EMPTY_DECK_FORM = { userId: '', name: '', commander: '', colors: '', bracket: '', archetype: '' }
 const EMPTY_USER_FORM = { username: '', password: '', role: 'PLAYER' }
 const EMPTY_GAME_FORM = {
   id: null,
@@ -151,7 +153,8 @@ export default function AdminPage() {
       name: deck.name,
       commander: deck.commander || '',
       colors: deck.colors || '',
-      bracket: deck.bracket ? String(deck.bracket) : ''
+      bracket: deck.bracket ? String(deck.bracket) : '',
+      archetype: deck.archetype || ''
     })
   }
 
@@ -263,7 +266,8 @@ export default function AdminPage() {
         userId: Number.parseInt(deckForm.userId, 10),
         commander: deckForm.commander.trim() || null,
         colors: deckForm.colors.trim().toUpperCase() || null,
-        bracket: deckForm.bracket || null
+        bracket: deckForm.bracket || null,
+        archetype: deckForm.archetype || null
       })
       setDeckForm(EMPTY_DECK_FORM)
       await loadData()
@@ -285,7 +289,8 @@ export default function AdminPage() {
         userId: Number.parseInt(editingDeckForm.userId, 10),
         commander: editingDeckForm.commander.trim() || null,
         colors: editingDeckForm.colors.trim().toUpperCase() || null,
-        bracket: editingDeckForm.bracket || null
+        bracket: editingDeckForm.bracket || null,
+        archetype: editingDeckForm.archetype || null
       })
       setEditingDeckId(null)
       setEditingDeckForm(EMPTY_DECK_FORM)
@@ -530,7 +535,7 @@ export default function AdminPage() {
         <div>
           <SectionCard t={t}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea mazzo</div>
-            <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr auto'), gap: 8 }}>
+            <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr 1fr auto'), gap: 8 }}>
               <select style={inputStyle} value={deckForm.userId} onChange={(event) => setDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                 <option value="">Owner</option>
                 {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
@@ -554,6 +559,10 @@ export default function AdminPage() {
                 <option value="">Livello</option>
                 {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
               </select>
+              <select style={inputStyle} value={deckForm.archetype} onChange={(event) => setDeckForm((current) => ({ ...current, archetype: event.target.value }))}>
+                <option value="">Archetipo</option>
+                {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
               <button type="submit" style={buttonPrimary} disabled={saving}>Crea</button>
             </form>
           </SectionCard>
@@ -561,7 +570,7 @@ export default function AdminPage() {
           {decks.map((deck) => (
             <SectionCard key={deck.id} t={t}>
               {editingDeckId === deck.id ? (
-                <div style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr auto auto'), gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr 1fr auto auto'), gap: 8 }}>
                   <select style={inputStyle} value={editingDeckForm.userId} onChange={(event) => setEditingDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                     {users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}
                   </select>
@@ -583,6 +592,10 @@ export default function AdminPage() {
                     <option value="">Livello</option>
                     {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b}</option>)}
                   </select>
+                  <select style={inputStyle} value={editingDeckForm.archetype} onChange={(event) => setEditingDeckForm((current) => ({ ...current, archetype: event.target.value }))}>
+                    <option value="">Archetipo</option>
+                    {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
                   <button style={buttonPrimary} onClick={() => saveDeckEdit(deck.id)}>Salva</button>
                   <button style={buttonSecondary} onClick={() => setEditingDeckId(null)}>Annulla</button>
                 </div>
@@ -599,6 +612,7 @@ export default function AdminPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ cursor: 'pointer' }}>{deck.name}</span>
+                      <ArchetypeBadge archetype={deck.archetype} />
                       <BracketBadge bracket={deck.bracket} />
                     </div>
                     <div style={{ fontSize: 12, color: t.textSub }}>

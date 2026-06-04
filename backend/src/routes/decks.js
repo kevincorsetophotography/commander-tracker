@@ -47,9 +47,15 @@ const parseBracket = (value) => {
   return b >= 1 && b <= 4 ? b : null;
 };
 
+const ARCHETYPES = ['Aggro', 'Midrange', 'Control', 'Combo', 'Stax', 'Aristocrats', 'Tokens', 'Voltron', 'Ramp'];
+const parseArchetype = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return ARCHETYPES.includes(value.trim()) ? value.trim() : null;
+};
+
 // POST /api/decks
 router.post('/', auth, async (req, res) => {
-  const { name, commander, colors, userId, bracket } = req.body;
+  const { name, commander, colors, userId, bracket, archetype } = req.body;
   if (!name) return res.status(400).json({ error: 'name richiesto' });
 
   const ownerId = req.user.role === 'ADMIN' && Number.parseInt(userId, 10)
@@ -58,7 +64,7 @@ router.post('/', auth, async (req, res) => {
 
   try {
     const deck = await prisma.deck.create({
-      data: { name, commander, colors, bracket: parseBracket(bracket), userId: ownerId }
+      data: { name, commander, colors, bracket: parseBracket(bracket), archetype: parseArchetype(archetype), userId: ownerId }
     });
     res.json(deck);
   } catch (error) {
@@ -80,7 +86,7 @@ router.patch('/:id', auth, async (req, res) => {
   if (!deck) return res.status(404).json({ error: 'Mazzo non trovato' });
   if (req.user.role !== 'ADMIN' && deck.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const { name, commander, colors, decklist, userId, bracket } = req.body;
+  const { name, commander, colors, decklist, userId, bracket, archetype } = req.body;
   const nextOwnerId = req.user.role === 'ADMIN' && Number.parseInt(userId, 10)
     ? Number.parseInt(userId, 10)
     : deck.userId;
@@ -100,6 +106,7 @@ router.patch('/:id', auth, async (req, res) => {
         name, commander, colors,
         decklist: decklist ?? undefined,
         bracket: bracket === undefined ? undefined : parseBracket(bracket),
+        archetype: archetype === undefined ? undefined : parseArchetype(archetype),
         userId: nextOwnerId
       }
     });

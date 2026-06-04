@@ -10,6 +10,8 @@ import { SkeletonList } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import BracketBadge from '../components/BracketBadge'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
+import ArchetypeBadge from '../components/ArchetypeBadge'
+import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
@@ -34,7 +36,7 @@ export default function DecksPage() {
   const [decks, setDecks]                     = useState([])
   const [loading, setLoading]                 = useState(true)
   const [error, setError]                     = useState('')
-  const [form, setForm]                       = useState({ name: '', commander: '', colors: [], bracket: '' })
+  const [form, setForm]                       = useState({ name: '', commander: '', colors: [], bracket: '', archetype: '' })
   const [saving, setSaving]                   = useState(false)
   const [formError, setFormError]             = useState('')
   const [detectingColors, setDetectingColors] = useState(false)
@@ -65,8 +67,8 @@ export default function DecksPage() {
     if (!form.name.trim()) { setFormError('Il nome è obbligatorio'); return }
     setSaving(true); setFormError('')
     try {
-      await api.createDeck({ name: form.name.trim(), commander: form.commander.trim() || null, colors: form.colors.join('') || null, bracket: form.bracket || null })
-      setForm({ name: '', commander: '', colors: [], bracket: '' })
+      await api.createDeck({ name: form.name.trim(), commander: form.commander.trim() || null, colors: form.colors.join('') || null, bracket: form.bracket || null, archetype: form.archetype || null })
+      setForm({ name: '', commander: '', colors: [], bracket: '', archetype: '' })
       await loadDecks()
       toast('Mazzo aggiunto', 'success')
     } catch (err) {
@@ -81,6 +83,16 @@ export default function DecksPage() {
       toast('Livello aggiornato', 'success')
     } catch (err) {
       toast(err.error || 'Errore aggiornamento livello', 'error')
+    }
+  }
+
+  const updateArchetype = async (id, archetype) => {
+    try {
+      await api.updateDeck(id, { archetype: archetype || null })
+      await loadDecks()
+      toast('Archetipo aggiornato', 'success')
+    } catch (err) {
+      toast(err.error || 'Errore aggiornamento archetipo', 'error')
     }
   }
 
@@ -153,6 +165,15 @@ export default function DecksPage() {
               <option value="">—</option>
               {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
             </select>
+            <span style={{ fontSize: 13, color: t.textSub }}>Archetipo:</span>
+            <select
+              style={{ ...inputSt, width: 'auto', padding: '6px 10px' }}
+              value={form.archetype}
+              onChange={e => setForm(f => ({ ...f, archetype: e.target.value }))}
+            >
+              <option value="">—</option>
+              {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
           </div>
           {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 8 }}>{formError}</div>}
           <button type="submit" style={btnPrimary} disabled={saving}>{saving ? 'Salvataggio...' : '+ Aggiungi mazzo'}</button>
@@ -185,7 +206,10 @@ export default function DecksPage() {
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{deck.commander}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-                  {deck.bracket && <BracketBadge bracket={deck.bracket} />}
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {deck.archetype && <ArchetypeBadge archetype={deck.archetype} />}
+                    {deck.bracket && <BracketBadge bracket={deck.bracket} />}
+                  </div>
                   {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
                 </div>
               </div>
@@ -193,7 +217,8 @@ export default function DecksPage() {
           ) : (
             <div style={{ padding: '12px 14px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ fontWeight: 600, fontSize: 15, color: t.text, cursor: 'pointer' }}>{deck.name}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {deck.archetype && <ArchetypeBadge archetype={deck.archetype} />}
                 {deck.bracket && <BracketBadge bracket={deck.bracket} />}
                 {deck.colors && <div style={{ display: 'flex', gap: 3 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
               </div>
@@ -201,10 +226,19 @@ export default function DecksPage() {
           )}
 
           <div style={{ padding: '10px 14px', display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: t.textSub, marginRight: 'auto' }}>Livello</span>
+            <select
+              value={deck.archetype || ''}
+              onChange={e => updateArchetype(deck.id, e.target.value)}
+              title="Archetipo"
+              style={{ padding: '5px 8px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none', marginRight: 'auto' }}
+            >
+              <option value="">— archetipo</option>
+              {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
             <select
               value={deck.bracket || ''}
               onChange={e => updateBracket(deck.id, e.target.value)}
+              title="Livello"
               style={{ padding: '5px 8px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none' }}
             >
               <option value="">— livello</option>

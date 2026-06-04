@@ -25,6 +25,7 @@ model Deck {
   colors      String?      // es. "WUBRG"
   decklist    String?
   bracket     Int?         // 1=Casual, 2=Bilanciato, 3=Potente, 4=cEDH
+  archetype   String?      // es. Aggro, Control, Combo, Midrange, Stax...
   createdAt   DateTime     @default(now())
   user        User         @relation(fields: [userId], references: [id])
   userId      Int
