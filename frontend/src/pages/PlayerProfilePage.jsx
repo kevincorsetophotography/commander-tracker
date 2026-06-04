@@ -119,6 +119,41 @@ export default function PlayerProfilePage() {
     return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData }
   }, [games, deckStats, players, pid])
 
+  // ── RIVALITÀ (scontri diretti) ──
+  const [rivalId, setRivalId] = useState(null)
+
+  const opponents = useMemo(() => {
+    const seen = new Map()
+    for (const g of profile.myGames) {
+      for (const p of g.players) {
+        if (p.user.id !== pid && !seen.has(p.user.id)) seen.set(p.user.id, p.user.username)
+      }
+    }
+    return [...seen].map(([id, username]) => ({ id, username })).sort((a, b) => a.username.localeCompare(b.username))
+  }, [profile.myGames, pid])
+
+  useEffect(() => { setRivalId(prev => (opponents.some(o => o.id === prev) ? prev : (opponents[0]?.id ?? null))) }, [opponents])
+
+  const h2h = useMemo(() => {
+    if (!rivalId) return null
+    const shared = profile.myGames.filter(g => g.players.some(p => p.user.id === rivalId))
+    let meBetter = 0, oppBetter = 0, undecided = 0, myWins = 0, oppWins = 0, myKills = 0, oppKills = 0
+    for (const g of shared) {
+      const me = g.players.find(p => p.user.id === pid)
+      const opp = g.players.find(p => p.user.id === rivalId)
+      if (me.placement != null && opp.placement != null) {
+        if (me.placement < opp.placement) meBetter++; else oppBetter++
+      } else if (me.isWinner) meBetter++
+      else if (opp.isWinner) oppBetter++
+      else undecided++
+      if (me.isWinner) myWins++
+      if (opp.isWinner) oppWins++
+      if (opp.eliminatedById === pid) myKills++
+      if (me.eliminatedById === rivalId) oppKills++
+    }
+    return { shared, meBetter, oppBetter, undecided, myWins, oppWins, myKills, oppKills, rival: opponents.find(o => o.id === rivalId) }
+  }, [rivalId, profile.myGames, pid, opponents])
+
   const card = {
     background: t.bgSurface,
     backdropFilter: 'blur(14px) saturate(150%)',
@@ -225,6 +260,59 @@ export default function PlayerProfilePage() {
             )
           })()}
         </div>
+      )}
+
+      {/* Rivalità (scontri diretti) */}
+      {opponents.length > 0 && h2h && (
+        <>
+          <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            Rivalità ⚔️
+            <select
+              value={rivalId || ''}
+              onChange={e => setRivalId(Number.parseInt(e.target.value, 10))}
+              style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+            >
+              {opponents.map(o => <option key={o.id} value={o.id}>vs {o.username}</option>)}
+            </select>
+          </div>
+
+          {(() => {
+            const decided = h2h.meBetter + h2h.oppBetter
+            const mePct = decided ? Math.round(h2h.meBetter / decided * 100) : 50
+            const row = (label, a, b) => (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: `0.5px solid ${t.border}` }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: t.text, minWidth: 30, textAlign: 'left' }}>{a}</span>
+                <span style={{ fontSize: 12, color: t.textSub }}>{label}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: t.text, minWidth: 30, textAlign: 'right' }}>{b}</span>
+              </div>
+            )
+            return (
+              <div style={card}>
+                {/* Intestazione nomi */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700, color: t.primary, fontSize: 14 }}>{player.username}</span>
+                  <span style={{ fontSize: 11, color: t.textMuted }}>{h2h.shared.length} partite insieme</span>
+                  <span style={{ fontWeight: 700, color: t.text, fontSize: 14 }}>{h2h.rival?.username}</span>
+                </div>
+                {/* Barra "chi finisce meglio" */}
+                <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', marginBottom: 4 }}>
+                  <div style={{ width: `${mePct}%`, background: t.primary }} />
+                  <div style={{ width: `${100 - mePct}%`, background: t.bgMuted }} />
+                </div>
+                <div style={{ textAlign: 'center', fontSize: 11, color: t.textMuted, marginBottom: 12 }}>chi finisce più in alto</div>
+
+                {row('arrivato più in alto', h2h.meBetter, h2h.oppBetter)}
+                {row('vittorie del pod', h2h.myWins, h2h.oppWins)}
+                {row('eliminazioni inflitte ⚔️', h2h.myKills, h2h.oppKills)}
+                {h2h.undecided > 0 && (
+                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 8 }}>
+                    {h2h.undecided} {h2h.undecided === 1 ? 'partita senza' : 'partite senza'} ordine di uscita (vinte da altri) non assegnate.
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </>
       )}
 
       {/* Achievement */}
