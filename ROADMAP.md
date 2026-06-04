@@ -60,15 +60,19 @@ descrizione (es. "Serata Commander da Kevin", "Torneo cEDH"). I giocatori vedono
 **Valore:** coordina il gruppo dentro l'app, niente più chat sparse per decidere
 quando giocare. Si lega bene alle partite (un evento → le partite di quella serata).
 
+**Decisioni prese:**
+- **Solo l'admin crea/modifica/elimina gli eventi.** Gli altri li vedono soltanto
+  (ed eventualmente confermano la presenza). Creazione nel pannello Admin.
+
 **Note tecniche:**
 - Nuovo modello `Event` (titolo, data/ora, luogo, note, `createdByUserId`) + opz.
   `EventRsvp` (eventId, userId, stato: presente/forse/assente) per le adesioni.
-- Endpoint CRUD eventi (creazione a tutti o solo admin? da decidere) + RSVP.
+- Endpoint: lettura eventi a tutti gli autenticati; creazione/modifica/eliminazione
+  protetta da `requireAdmin`; RSVP scrivibile dal singolo utente.
 - UI: vista **lista "prossimi eventi"** (semplice) e/o vista **calendario mensile**
   (più ricca). Possibile nuovo tab o voce nel dock mobile.
 
 **Da decidere quando lo costruiamo:**
-- Chi può creare eventi: tutti o solo admin?
 - Solo lista dei prossimi appuntamenti o anche griglia mensile?
 - RSVP sì/no (e con quali stati)?
 - Eventi ricorrenti (es. "ogni martedì")? — probabilmente in un secondo momento.
