@@ -38,21 +38,16 @@ Direzioni scelte insieme. Le prime due non richiedono modifiche al database.
 Vista testa a testa tra due giocatori: partite in comune, chi vince di più quando
 sono allo stesso tavolo, scambio di eliminazioni. Tutto dai dati esistenti.
 
-### 6. Turno di vittoria & durata
-Campo opzionale "vinta al turno N" quando si registra una partita. Sblocca record
-**vittoria più veloce**, **partita più lunga** e medie per mazzo/bracket.
-*Richiede un piccolo campo nuovo su `Game` (es. `winTurn Int?`) + migrazione.*
-
-### 7. Archetipi dei mazzi
+### 6. Archetipi dei mazzi
 Tag Aggro / Control / Combo / Midrange / Stax sui mazzi, con filtri e win rate per
 archetipo (accanto al livello/bracket). *Richiede un campo su `Deck`
 (`archetype String?`) + migrazione.*
 
-### 8. Commenti & reazioni sulle partite
+### 7. Commenti & reazioni sulle partite
 Strato social sullo storico: commenti e reazioni emoji sotto ogni partita.
 *Il più corposo: nuovi modelli (`Comment`, `Reaction`) + endpoint + UI.*
 
-### 9. Calendario delle attività
+### 8. Calendario delle attività
 Una sezione dove il gruppo organizza le **serate ed eventi**: data/ora, luogo,
 descrizione (es. "Serata Commander da Kevin", "Torneo cEDH"). I giocatori vedono i
 **prossimi appuntamenti** e possono dire se **partecipano** (RSVP).
@@ -76,9 +71,9 @@ quando giocare. Si lega bene alle partite (un evento → le partite di quella se
 - Solo lista dei prossimi appuntamenti o anche griglia mensile?
 - RSVP sì/no (e con quali stati)?
 - Eventi ricorrenti (es. "ogni martedì")? — probabilmente in un secondo momento.
-- Promemoria/notifiche? — vedi feature #10.
+- Promemoria/notifiche? — vedi feature #9.
 
-### 10. Sistema di notifiche
+### 9. Sistema di notifiche
 Avvisi per i giocatori, ad esempio: **achievement sbloccato**, **nuovo evento**
 inserito a calendario, e in futuro altri trigger (sei stato eliminato, stagione
 conclusa, nuova partita che ti riguarda…).
@@ -96,7 +91,7 @@ achievement diventa un momento "wow").
 **Note tecniche:**
 - Nuovo modello `Notification` (userId, tipo, messaggio, link, `read`, createdAt).
 - Trigger lato server creano le notifiche:
-  - **Nuovo evento** → notifica a tutti i giocatori (si aggancia alla feature #9).
+  - **Nuovo evento** → notifica a tutti i giocatori (si aggancia alla feature #8).
   - **Achievement sbloccato** → ⚠️ oggi gli achievement sono calcolati **lato
     client** e non sono salvati. Per rilevare lo "sblocco" servirà o **persisterli**
     (tabella achievement per utente, valutati lato server dopo ogni partita) oppure
