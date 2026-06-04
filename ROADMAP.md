@@ -28,15 +28,14 @@ Set–Dic). Punteggio per piazzamento: 1°=3, 2°=2, 3°=1, **+1 presenza** a og
 partita. Campione = primo qualificato (≥ 30% delle partite della stagione).
 Tutto calcolato dalle partite, nessuna modifica al DB (`lib/seasons.js`).
 
+### 5. Scontri diretti (1v1)
+Sezione **Rivalità** nel profilo giocatore: scegli un avversario e vedi il testa a
+testa nelle partite in comune — chi finisce più in alto (per piazzamento, fallback
+al vincitore del pod), vittorie di ciascuno e scambio di eliminazioni. Client-side.
+
 ---
 
 ## 🔜 Pianificate (prossime, in ordine)
-
-Direzioni scelte insieme. Le prime due non richiedono modifiche al database.
-
-### 5. Scontri diretti (1v1)
-Vista testa a testa tra due giocatori: partite in comune, chi vince di più quando
-sono allo stesso tavolo, scambio di eliminazioni. Tutto dai dati esistenti.
 
 ### 6. Archetipi dei mazzi
 Tag Aggro / Control / Combo / Midrange / Stax sui mazzi, con filtri e win rate per
