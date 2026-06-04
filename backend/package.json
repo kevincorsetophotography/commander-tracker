@@ -6,11 +6,13 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "nodemon src/index.js",
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "nodemon src/index.js",
     "start": "node src/index.js",
     "start:prod": "prisma db push --skip-generate --accept-data-loss && node src/ensureAdmin.js && node src/index.js",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.mjs",
     "admin:ensure": "node src/ensureAdmin.js"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "prisma": "^5.0.0"
   },
   "devDependencies": {
+    "embedded-postgres": "^18.3.0-beta.17",
     "nodemon": "^3.0.0"
   }
 }

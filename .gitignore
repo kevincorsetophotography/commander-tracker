@@ -18,3 +18,6 @@ backend/prisma/dev.db-journal
 backend/prisma/dev-clean.db-journal
 backend/prisma/*.db-shm
 backend/prisma/*.db-wal
+
+# Database PostgreSQL locale "embedded" (ambiente di sviluppo)
+backend/.devdb/
