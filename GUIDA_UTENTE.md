@@ -16,9 +16,10 @@ Questa guida ti accompagna passo passo: accesso, mazzi, registrazione partite e 
 6. [Il Riepilogo (statistiche)](#6-il-riepilogo-statistiche)
 7. [Profilo giocatore](#7-profilo-giocatore)
 8. [Profilo mazzo](#8-profilo-mazzo)
-9. [Sul telefono](#9-sul-telefono)
-10. [Per gli amministratori](#10-per-gli-amministratori)
-11. [Domande frequenti](#11-domande-frequenti)
+9. [Eventi (il calendario)](#9-eventi-il-calendario)
+10. [Sul telefono](#10-sul-telefono)
+11. [Per gli amministratori](#11-per-gli-amministratori)
+12. [Domande frequenti](#12-domande-frequenti)
 
 ---
 
@@ -182,6 +183,14 @@ Scegli **il tuo mazzo** e vedi come se la cava contro gli altri mazzi del gruppo
 
 L'elenco di tutte le partite, con classifica completa (1°, 2°, 3°…), vincitore e le eliminazioni (`⚔️ chi → chi`). Filtra per **periodo** (ultimi 7 giorni, mese, 3 o 6 mesi) o per **intervallo di date**.
 
+#### Commenti & reazioni
+![Commenti e reazioni su una partita](docs/img/commenti-reazioni.png)
+
+Ogni partita nello Storico ha la sua parte **social**:
+
+- **Reazioni** — tocca un'emoji (👍 🔥 😂 😮 💀 🎉 🐸) per reagire alla partita; ritoccala per toglierla. Vedi il conteggio per ogni emoji e, passandoci sopra, **chi** ha reagito. La tua reazione resta evidenziata.
+- **Commenti** — premi **💬 Commenta** per aprire la discussione e lasciare un commento. I commenti mostrano autore e quando sono stati scritti. Puoi **eliminare i tuoi** con la ✕ (gli amministratori possono eliminare qualsiasi commento).
+
 ### Primati
 ![Primati](docs/img/primati.png)
 
@@ -225,7 +234,23 @@ Se il mazzo ha la lista caricata, nel profilo trovi la **decklist completa raggr
 
 ---
 
-## 9. Sul telefono
+## 9. Eventi (il calendario)
+
+![Calendario eventi](docs/img/eventi.png)
+
+Dal menu **Eventi** (📅 nella barra in basso su telefono) trovi il calendario del gruppo: serate Commander, tornei, ritrovi.
+
+- **Prossimi** in cima, ordinati per data, con un'etichetta tipo *"tra 3 giorni"*, **"Oggi"** o **"Domani"**; gli eventi **passati** restano sotto, in grigio.
+- Ogni evento mostra **data**, eventuale **ora**, 📍 **luogo** e **descrizione**.
+
+### Ci sono! (adesioni)
+Premi **Ci sono** su un evento per segnare che parteciperai: il pulsante si evidenzia e il tuo nome entra nella **lista dei partecipanti** (con il conteggio). Ripremi per toglierti.
+
+> ✋ **Solo gli amministratori** possono creare, modificare o eliminare eventi. Tutti gli altri li vedono e possono mettere la propria adesione.
+
+---
+
+## 10. Sul telefono
 
 Commanderone è una **PWA**: puoi installarlo come un'app vera.
 
@@ -240,6 +265,7 @@ Su telefono l'interfaccia si adatta: in alto resta il **logo**, e in basso compa
 - 🏠 **Home** — il Riepilogo
 - 🎴 **Mazzi**
 - ＋ **Partita** — registra una partita
+- 📅 **Eventi** — il calendario del gruppo
 - 👤 **Tu** — il tuo profilo
 - ⚙ **Admin** — solo per gli amministratori
 
@@ -247,7 +273,7 @@ Le schede del Riepilogo si scorrono lateralmente con il dito.
 
 ---
 
-## 10. Per gli amministratori
+## 11. Per gli amministratori
 
 Chi ha il ruolo **ADMIN** vede in più la scheda **Admin**:
 
@@ -256,13 +282,14 @@ Chi ha il ruolo **ADMIN** vede in più la scheda **Admin**:
 - **Utenti** — crea, modifica (anche la password) ed elimina account.
 - **Mazzi** — gestisce i mazzi di **tutti** i giocatori (nome, commander, colori, livello, archetipo, lista).
 - **Partite** — modifica o elimina qualsiasi partita (giocatori, vincitore, ordine, eliminazioni, data).
+- **Eventi** — solo gli admin possono **creare, modificare ed eliminare** gli eventi del calendario (dalla pagina **Eventi** con **+ Nuovo evento** e i pulsanti Modifica/Elimina su ogni evento).
 - **⬇ Esporta backup (JSON)** — scarica un backup completo di utenti, mazzi e partite.
 
 L'admin non compare nelle classifiche né nei matchup: non è un giocatore.
 
 ---
 
-## 11. Domande frequenti
+## 12. Domande frequenti
 
 **Ho dimenticato la password.**
 Chiedi a un amministratore di reimpostartela dal pannello Utenti.
@@ -284,6 +311,12 @@ Uguale: scegli l'archetipo alla creazione oppure cambialo quando vuoi dal menu a
 
 **Come si vince la stagione?**
 Si accumulano punti per piazzamento (3/2/1) + 1 di presenza a ogni partita. Vince chi ha più punti tra i **qualificati** (almeno il 30% delle partite della stagione). Le stagioni durano 4 mesi e si rinnovano da sole. Per far contare i punti di 2° e 3° posto, ricorda di registrare l'**ordine di uscita** della partita.
+
+**Posso commentare o reagire alle partite?**
+Sì: ogni partita nello Storico ha le **reazioni** (emoji) e i **commenti**. Puoi togliere una tua reazione ritoccandola ed eliminare i tuoi commenti con la ✕.
+
+**Posso creare un evento nel calendario?**
+Solo gli **amministratori** creano e gestiscono gli eventi. Tutti gli altri li vedono e possono segnare la propria adesione con **Ci sono**.
 
 ---
 
