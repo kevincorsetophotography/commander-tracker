@@ -91,7 +91,7 @@ export default function NotificationBell() {
             // su mobile la campanella non è l'elemento più a destra: ancoro il
             // pannello al viewport per non farlo uscire dal bordo sinistro.
             ...(isMobile
-              ? { position: 'fixed', top: 'calc(env(safe-area-inset-top) + 60px)', right: 10, left: 'auto' }
+              ? { position: 'fixed', top: 'calc(env(safe-area-inset-top) + 80px)', right: 10, left: 'auto' }
               : { position: 'absolute', top: 'calc(100% + 8px)', right: 0 }),
             zIndex: 50,
             width: 320, maxWidth: 'calc(100vw - 20px)', maxHeight: '70vh', overflowY: 'auto',

@@ -67,7 +67,7 @@ function IconButton({ onClick, title, children }) {
   )
 }
 
-function Brand({ logoSize = 42, titleSize = 14 }) {
+function Brand({ logoSize = 42, titleSize = 14, compact = false }) {
   const { t, dark } = useTheme()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -77,11 +77,29 @@ function Brand({ logoSize = 42, titleSize = 14 }) {
         onError={e => { e.currentTarget.style.display = 'none' }}
         style={{ height: logoSize, width: logoSize, objectFit: 'contain', filter: dark ? `drop-shadow(0 0 10px ${t.primaryBorder})` : 'none' }}
       />
-      <div style={{ lineHeight: 1.12 }}>
-        <div className={`ct-wordmark ${dark ? 'dark' : 'light'}`} style={{ fontWeight: 900, fontSize: titleSize, letterSpacing: '0.04em' }}>COMMANDERONE</div>
-        <div style={{ fontSize: titleSize * 0.64, color: t.textMuted, letterSpacing: '0.18em', fontWeight: 600 }}>VILLASTELLONE</div>
-      </div>
+      {!compact && (
+        <div style={{ lineHeight: 1.12 }}>
+          <div className={`ct-wordmark ${dark ? 'dark' : 'light'}`} style={{ fontWeight: 900, fontSize: titleSize, letterSpacing: '0.04em' }}>COMMANDERONE</div>
+          <div style={{ fontSize: titleSize * 0.64, color: t.textMuted, letterSpacing: '0.18em', fontWeight: 600 }}>VILLASTELLONE</div>
+        </div>
+      )}
     </div>
+  )
+}
+
+// Avatar (iniziali) + username, riusato in alto a destra.
+function UserChip({ titleSize = 13, avatar = 26 }) {
+  const { t } = useTheme()
+  const { user } = useAuth()
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+      <span style={{ width: avatar, height: avatar, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: avatar * 0.42, fontWeight: 700, border: `1px solid ${t.primaryBorder}`, flexShrink: 0 }}>
+        {user?.username?.substring(0, 2).toUpperCase()}
+      </span>
+      <span style={{ fontSize: titleSize, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {user?.username}
+      </span>
+    </span>
   )
 }
 
@@ -139,13 +157,20 @@ function Layout() {
 
         {isMobile ? (
           /* ── HEADER MOBILE (brand grande) ── */
-          <div style={{ ...navBar, padding: '0 0.7rem', paddingTop: 'env(safe-area-inset-top)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 58, gap: 6 }}>
-              <Brand logoSize={32} titleSize={12} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <NotificationBell />
-                <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
-                <IconButton onClick={logout} title="Esci">Esci</IconButton>
+          <div style={{ ...navBar, padding: '0 0.5rem', paddingTop: 'env(safe-area-inset-top)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 0' }}>
+              {/* su schermi molto stretti è il brand a cedere, non username/azioni */}
+              <div style={{ minWidth: 0, overflow: 'hidden', flexShrink: 1 }}>
+                <Brand logoSize={34} titleSize={13} />
+              </div>
+              {/* A destra: nome utente sopra, azioni sotto */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                <UserChip titleSize={12.5} avatar={22} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <NotificationBell />
+                  <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
+                  <IconButton onClick={logout} title="Esci">Esci</IconButton>
+                </div>
               </div>
             </div>
           </div>
@@ -162,12 +187,7 @@ function Layout() {
                 {user?.role === 'ADMIN' && <NavItem to="/admin">Admin</NavItem>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ width: 26, height: 26, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, border: `1px solid ${t.primaryBorder}` }}>
-                    {user?.username?.substring(0, 2).toUpperCase()}
-                  </span>
-                  {user?.username}
-                </span>
+                <UserChip />
                 <NotificationBell />
                 <IconButton onClick={toggleDark} title={dark ? 'Passa a light mode' : 'Passa a dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
                 <IconButton onClick={logout} title="Esci">Esci</IconButton>
