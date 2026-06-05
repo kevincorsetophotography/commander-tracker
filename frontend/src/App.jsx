@@ -48,6 +48,7 @@ function IconButton({ onClick, title, children }) {
     <button
       onClick={onClick}
       title={title}
+      aria-label={title}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{

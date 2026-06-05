@@ -1,10 +1,9 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
-const { PrismaClient } = require('@prisma/client');
 const auth = require('../middleware/auth');
 const requireAdmin = require('../middleware/requireAdmin');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const parseId = (value) => {
   const id = Number.parseInt(value, 10);

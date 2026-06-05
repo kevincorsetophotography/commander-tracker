@@ -63,6 +63,7 @@ export default function NotificationBell() {
       <button
         onClick={toggle}
         title="Notifiche"
+        aria-label={count > 0 ? `Notifiche, ${count} non lette` : 'Notifiche'}
         style={{
           position: 'relative', padding: '6px 12px', borderRadius: 10, cursor: 'pointer',
           border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.textSub,

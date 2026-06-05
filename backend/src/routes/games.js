@@ -1,7 +1,6 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const parseGameId = (value) => {
   const id = Number.parseInt(value, 10);

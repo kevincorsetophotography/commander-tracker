@@ -1,9 +1,8 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
-const { PrismaClient } = require('@prisma/client');
 const { createNotifications } = require('../lib/notify');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // Data leggibile per il corpo della notifica evento
 const formatEventDate = (d, allDay) => {

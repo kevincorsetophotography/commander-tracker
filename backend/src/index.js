@@ -19,8 +19,22 @@ const gameRoutes  = require('./routes/gamesV2');
 const statsRoutes = require('./routes/stats');
 const eventRoutes = require('./routes/events');
 const notificationRoutes = require('./routes/notifications');
+const { rateLimit } = require('express-rate-limit');
 
 const app = express();
+
+// Dietro il proxy di Railway: necessario perché il rate limiter veda l'IP reale
+// del client (e non quello del proxy, condiviso da tutti).
+app.set('trust proxy', 1);
+
+// Anti brute-force su login/registrazione
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Troppi tentativi, riprova tra qualche minuto.' },
+});
 
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -39,7 +53,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.use('/api/auth',  authRoutes);
+app.use('/api/auth',  authLimiter, authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/decks', deckRoutes);
 app.use('/api/games', gameRoutes);
@@ -56,7 +70,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Commander Tracker API on :${PORT}`));
 
-// Inizializza una sola volta lo snapshot achievement (anti-flood notifiche)
-const { PrismaClient } = require('@prisma/client');
+// Registra in silenzio gli achievement già maturati (anti-flood notifiche)
+const prisma = require('./lib/prisma');
 const { initAchievementSnapshots } = require('./lib/notify');
-initAchievementSnapshots(new PrismaClient());
+initAchievementSnapshots(prisma);
