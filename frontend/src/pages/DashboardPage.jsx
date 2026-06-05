@@ -663,12 +663,12 @@ export default function DashboardPage() {
 
           {visibleDecks.map((d, i) => (
             <div key={d.id} className="ct-lift" style={{ ...card, cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${d.id}`)}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
                   <DeckThumb commander={d.commander} w={56} preview={false} />
-                  <div>
-                    <div style={{ fontWeight: 500, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, color: t.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       {d.name}
                       {d.colors && (
                         <span style={{ display: 'inline-flex', gap: 2 }}>
@@ -686,7 +686,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 20, fontWeight: 600, color: d.winRate >= 50 ? t.win : d.winRate > 0 ? t.primary : t.textMuted }}>
                     {d.games > 0 ? `${d.winRate}%` : 'n/a'}
                   </div>
