@@ -119,7 +119,9 @@ const gameInclude = {
       user: { select: { id: true, username: true } },
       deck: true
     }
-  }
+  },
+  reactions: { select: { emoji: true, userId: true, user: { select: { username: true } } } },
+  _count: { select: { comments: true } }
 };
 
 router.get('/', auth, async (req, res) => {
@@ -234,6 +236,106 @@ router.delete('/:id', auth, async (req, res) => {
 
   await prisma.game.delete({ where: { id: game.id } });
   res.json({ ok: true });
+});
+
+// ─── Commenti & reazioni ───────────────────────────────────────────────
+
+// Emoji consentite per le reazioni (deve combaciare col frontend)
+const REACTION_EMOJI = ['👍', '🔥', '😂', '😮', '💀', '🎉', '🐸'];
+const MAX_COMMENT_LEN = 1000;
+
+// GET /api/games/:id/comments — thread completo (caricato on-demand)
+router.get('/:id/comments', auth, async (req, res) => {
+  const gameId = parseGameId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'ID partita non valido' });
+
+  try {
+    const comments = await prisma.comment.findMany({
+      where: { gameId },
+      orderBy: { createdAt: 'asc' },
+      include: { user: { select: { id: true, username: true } } }
+    });
+    res.json(comments);
+  } catch (error) {
+    console.error('list comments error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento dei commenti' });
+  }
+});
+
+// POST /api/games/:id/comments — aggiungi un commento
+router.post('/:id/comments', auth, async (req, res) => {
+  const gameId = parseGameId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'ID partita non valido' });
+
+  const body = typeof req.body.body === 'string' ? req.body.body.trim() : '';
+  if (!body) return res.status(400).json({ error: 'Il commento è vuoto' });
+  if (body.length > MAX_COMMENT_LEN) return res.status(400).json({ error: `Commento troppo lungo (max ${MAX_COMMENT_LEN} caratteri)` });
+
+  try {
+    const game = await prisma.game.findUnique({ where: { id: gameId }, select: { id: true } });
+    if (!game) return res.status(404).json({ error: 'Partita non trovata' });
+
+    const comment = await prisma.comment.create({
+      data: { gameId, userId: req.user.id, body },
+      include: { user: { select: { id: true, username: true } } }
+    });
+    res.json(comment);
+  } catch (error) {
+    console.error('create comment error', error);
+    res.status(500).json({ error: 'Errore durante l\'invio del commento' });
+  }
+});
+
+// DELETE /api/games/:gameId/comments/:commentId — autore o admin
+router.delete('/:gameId/comments/:commentId', auth, async (req, res) => {
+  const commentId = Number.parseInt(req.params.commentId, 10);
+  if (!Number.isInteger(commentId)) return res.status(400).json({ error: 'ID commento non valido' });
+
+  try {
+    const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { id: true, userId: true } });
+    if (!comment) return res.status(404).json({ error: 'Commento non trovato' });
+    if (req.user.role !== 'ADMIN' && comment.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Puoi eliminare solo i tuoi commenti' });
+    }
+
+    await prisma.comment.delete({ where: { id: commentId } });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('delete comment error', error);
+    res.status(500).json({ error: 'Errore durante l\'eliminazione del commento' });
+  }
+});
+
+// POST /api/games/:id/reactions — toggle di una reazione emoji
+router.post('/:id/reactions', auth, async (req, res) => {
+  const gameId = parseGameId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'ID partita non valido' });
+
+  const emoji = typeof req.body.emoji === 'string' ? req.body.emoji : '';
+  if (!REACTION_EMOJI.includes(emoji)) return res.status(400).json({ error: 'Reazione non valida' });
+
+  try {
+    const game = await prisma.game.findUnique({ where: { id: gameId }, select: { id: true } });
+    if (!game) return res.status(404).json({ error: 'Partita non trovata' });
+
+    const existing = await prisma.reaction.findUnique({
+      where: { gameId_userId_emoji: { gameId, userId: req.user.id, emoji } }
+    });
+    if (existing) {
+      await prisma.reaction.delete({ where: { id: existing.id } });
+    } else {
+      await prisma.reaction.create({ data: { gameId, userId: req.user.id, emoji } });
+    }
+
+    const reactions = await prisma.reaction.findMany({
+      where: { gameId },
+      select: { emoji: true, userId: true, user: { select: { username: true } } }
+    });
+    res.json({ reactions });
+  } catch (error) {
+    console.error('toggle reaction error', error);
+    res.status(500).json({ error: 'Errore durante la reazione' });
+  }
 });
 
 module.exports = router;

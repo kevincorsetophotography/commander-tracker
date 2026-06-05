@@ -16,6 +16,8 @@ model User {
   decks       Deck[]
   gamePlayers GamePlayer[]
   createdGames Game[]      @relation("GameCreator")
+  comments    Comment[]
+  reactions   Reaction[]
 }
 
 model Deck {
@@ -41,6 +43,33 @@ model Game {
   createdByUserId Int?
   createdBy       User?        @relation("GameCreator", fields: [createdByUserId], references: [id])
   players         GamePlayer[]
+  comments        Comment[]
+  reactions       Reaction[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  body      String
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  @@index([gameId])
+}
+
+model Reaction {
+  id        Int      @id @default(autoincrement())
+  emoji     String
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  @@unique([gameId, userId, emoji])
+  @@index([gameId])
 }
 
 model GamePlayer {

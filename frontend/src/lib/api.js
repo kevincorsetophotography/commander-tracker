@@ -56,6 +56,12 @@ export const api = {
   updateGame: (id, data) => req('PATCH', `/games/${id}`, data),
   deleteGame: (id)   => req('DELETE', `/games/${id}`),
 
+  // commenti & reazioni
+  getComments:    (gameId)            => req('GET',    `/games/${gameId}/comments`),
+  addComment:     (gameId, body)      => req('POST',   `/games/${gameId}/comments`, { body }),
+  deleteComment:  (gameId, commentId) => req('DELETE', `/games/${gameId}/comments/${commentId}`),
+  toggleReaction: (gameId, emoji)     => req('POST',   `/games/${gameId}/reactions`, { emoji }),
+
   // stats
   statsPlayers:  () => req('GET', '/stats/players'),
   statsDecks:    () => req('GET', '/stats/decks'),

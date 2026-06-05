@@ -8,6 +8,7 @@ import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
 import BracketBadge from '../components/BracketBadge'
 import ArchetypeBadge from '../components/ArchetypeBadge'
+import GameSocial from '../components/GameSocial'
 import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { useCountUp } from '../hooks/useCountUp'
@@ -947,6 +948,7 @@ export default function DashboardPage() {
                   )
                 })()}
                 {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8, fontStyle: 'italic' }}>{g.notes}</div>}
+                <GameSocial game={g} />
               </div>
             )
           })}

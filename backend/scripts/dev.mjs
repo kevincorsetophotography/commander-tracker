@@ -39,7 +39,27 @@ try {
   }
   console.log(`🐘 Avvio PostgreSQL locale su :${PORT}...`)
   await pg.start()
-  try { await pg.createDatabase(DB_NAME) } catch { /* esiste già */ }
+
+  // Garantisce un database UTF-8: su Windows initdb usa WIN1252 come default,
+  // che non può memorizzare le emoji (commenti & reazioni). Se il DB manca o
+  // non è UTF-8 lo (ri)creiamo da template0 con locale C.
+  const admin = pg.getPgClient()
+  await admin.connect()
+  const { rows } = await admin.query(
+    'SELECT pg_encoding_to_char(encoding) AS enc FROM pg_database WHERE datname = $1',
+    [DB_NAME]
+  )
+  const enc = rows[0]?.enc
+  const createUtf8 = `CREATE DATABASE "${DB_NAME}" WITH ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0`
+  if (!enc) {
+    await admin.query(createUtf8)
+  } else if (enc !== 'UTF8') {
+    console.log(`♻️  Database in ${enc}: lo ricreo in UTF-8...`)
+    await admin.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()', [DB_NAME])
+    await admin.query(`DROP DATABASE "${DB_NAME}"`)
+    await admin.query(createUtf8)
+  }
+  await admin.end()
 
   console.log('📦 Sincronizzo lo schema (prisma db push)...')
   execSync('npx prisma db push --skip-generate', { stdio: 'inherit' })
