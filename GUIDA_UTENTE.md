@@ -17,9 +17,10 @@ Questa guida ti accompagna passo passo: accesso, mazzi, registrazione partite e 
 7. [Profilo giocatore](#7-profilo-giocatore)
 8. [Profilo mazzo](#8-profilo-mazzo)
 9. [Eventi (il calendario)](#9-eventi-il-calendario)
-10. [Sul telefono](#10-sul-telefono)
-11. [Per gli amministratori](#11-per-gli-amministratori)
-12. [Domande frequenti](#12-domande-frequenti)
+10. [Notifiche](#10-notifiche)
+11. [Sul telefono](#11-sul-telefono)
+12. [Per gli amministratori](#12-per-gli-amministratori)
+13. [Domande frequenti](#13-domande-frequenti)
 
 ---
 
@@ -250,7 +251,24 @@ Premi **Ci sono** su un evento per segnare che parteciperai: il pulsante si evid
 
 ---
 
-## 10. Sul telefono
+## 10. Notifiche
+
+![Pannello notifiche](docs/img/notifiche.png)
+
+In alto, accanto al tuo nome, c'è la **campanella 🔔**. Quando hai novità non lette compare un **pallino rosso** con il numero. Cliccala per aprire l'elenco: le notifiche non lette hanno un **puntino verde** e, aprendo il pannello, vengono segnate come lette. **Clicca una notifica** per saltare al contenuto collegato.
+
+Ricevi una notifica quando:
+
+- 📅 **un admin pubblica un nuovo evento** in calendario;
+- 🏆 **sblocchi un achievement** (prima vittoria, streak, arcobaleno…);
+- 💬 **qualcuno commenta una partita** a cui hai partecipato;
+- 🔥 **qualcuno reagisce** a una tua partita.
+
+> Le notifiche si aggiornano da sole ogni minuto: non serve ricaricare la pagina.
+
+---
+
+## 11. Sul telefono
 
 Commanderone è una **PWA**: puoi installarlo come un'app vera.
 
@@ -260,7 +278,7 @@ Commanderone è una **PWA**: puoi installarlo come un'app vera.
 Comparirà l'icona 🐸 e l'app si aprirà a schermo intero — comodissimo per segnare le partite al tavolo.
 
 ### Navigazione da smartphone
-Su telefono l'interfaccia si adatta: in alto resta il **logo**, e in basso compare una **barra di navigazione** (dock) con i tasti principali, comodi da raggiungere col pollice:
+Su telefono l'interfaccia si adatta: in alto restano **logo, il tuo nome e la campanella 🔔** delle notifiche; in basso compare una **barra di navigazione** (dock) con i tasti principali, comodi da raggiungere col pollice:
 
 - 🏠 **Home** — il Riepilogo
 - 🎴 **Mazzi**
@@ -273,7 +291,7 @@ Le schede del Riepilogo si scorrono lateralmente con il dito.
 
 ---
 
-## 11. Per gli amministratori
+## 12. Per gli amministratori
 
 Chi ha il ruolo **ADMIN** vede in più la scheda **Admin**:
 
@@ -289,7 +307,7 @@ L'admin non compare nelle classifiche né nei matchup: non è un giocatore.
 
 ---
 
-## 12. Domande frequenti
+## 13. Domande frequenti
 
 **Ho dimenticato la password.**
 Chiedi a un amministratore di reimpostartela dal pannello Utenti.
@@ -317,6 +335,9 @@ Sì: ogni partita nello Storico ha le **reazioni** (emoji) e i **commenti**. Puo
 
 **Posso creare un evento nel calendario?**
 Solo gli **amministratori** creano e gestiscono gli eventi. Tutti gli altri li vedono e possono segnare la propria adesione con **Ci sono**.
+
+**Come funzionano le notifiche?**
+La **campanella 🔔** in alto mostra un pallino rosso quando hai novità: nuovi eventi, achievement sbloccati, commenti e reazioni sulle tue partite. Si aggiornano da sole ogni minuto e si segnano come lette quando apri il pannello.
 
 ---
 
