@@ -1,4 +1,4 @@
-const { ACHIEVEMENT_META, computeUnlockedIds } = require('./achievements');
+const { ACHIEVEMENT_META, loadData, unlockedForUser } = require('./achievements');
 
 // Crea una notifica uguale per più destinatari (bulk). Ignora lista vuota.
 async function createNotifications(prisma, recipientIds, { type, title, body = null, link = null }) {
@@ -20,9 +20,11 @@ async function gameParticipantIds(prisma, gameId) {
 // creare lo snapshot è l'unico a notificare, anche con chiamate concorrenti.
 async function checkAchievements(prisma, userIds) {
   const unique = [...new Set(userIds)].filter(Boolean);
-  for (const userId of unique) {
-    try {
-      const unlocked = await computeUnlockedIds(prisma, userId);
+  if (unique.length === 0) return;
+  try {
+    const data = await loadData(prisma);
+    for (const userId of unique) {
+      const unlocked = unlockedForUser(data, userId);
       for (const id of unlocked) {
         if (!ACHIEVEMENT_META[id]) continue;
         try {
@@ -40,28 +42,31 @@ async function checkAchievements(prisma, userIds) {
           },
         });
       }
-    } catch (e) {
-      console.error('checkAchievements error', e);
     }
+  } catch (e) {
+    console.error('checkAchievements error', e);
   }
 }
 
-// Inizializza (una sola volta) lo snapshot degli achievement già sbloccati,
-// SENZA creare notifiche: evita il diluvio sui dati preesistenti al rilascio.
+// Registra (in silenzio, senza notifiche) gli achievement già sbloccati che non
+// sono ancora nello snapshot. Idempotente: gira a ogni avvio, così quando si
+// aggiungono nuovi achievement quelli già maturati non generano un diluvio di
+// notifiche al primo trigger.
 async function initAchievementSnapshots(prisma) {
   try {
-    const count = await prisma.achievementUnlock.count();
-    if (count > 0) return;
+    const data = await loadData(prisma);
     const users = await prisma.user.findMany({ select: { id: true } });
+    let added = 0;
     for (const u of users) {
-      const unlocked = await computeUnlockedIds(prisma, u.id);
+      const unlocked = unlockedForUser(data, u.id);
       if (unlocked.length === 0) continue;
-      await prisma.achievementUnlock.createMany({
+      const res = await prisma.achievementUnlock.createMany({
         data: unlocked.map(achievementId => ({ userId: u.id, achievementId })),
         skipDuplicates: true,
       });
+      added += res.count || 0;
     }
-    console.log('Snapshot achievement inizializzato.');
+    if (added > 0) console.log(`Snapshot achievement aggiornato (+${added}).`);
   } catch (e) {
     console.error('initAchievementSnapshots error', e);
   }

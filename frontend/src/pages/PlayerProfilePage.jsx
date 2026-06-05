@@ -114,7 +114,7 @@ export default function PlayerProfilePage() {
     const favoritePrey = Object.entries(preyTally).sort((a, b) => b[1] - a[1])[0] || null
     const hasKillData = kills > 0 || deaths > 0
 
-    const achievements = getAchievements({ myGames, myDecks, pid })
+    const achievements = getAchievements({ myGames, myDecks, pid, allGames: games })
 
     return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData }
   }, [games, deckStats, players, pid])
@@ -316,25 +316,49 @@ export default function PlayerProfilePage() {
       )}
 
       {/* Achievement */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>
-        Achievement <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {achievements.filter(a => a.unlocked).length}/{achievements.length}</span>
-      </div>
-      <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-        {achievements.map(a => (
-          <div key={a.id} title={a.desc} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
-            background: a.unlocked ? t.primaryBg : t.bgMuted,
-            border: `1px solid ${a.unlocked ? t.primaryBorder : t.border}`,
-            opacity: a.unlocked ? 1 : 0.55,
-          }}>
-            <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{a.icon}</span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? t.text : t.textSub }}>{a.title}</div>
-              <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{a.desc}</div>
+      {(() => {
+        const GOLD = '#E8B84B'
+        const secretTotal = achievements.filter(a => a.secret).length
+        const secretDone = achievements.filter(a => a.secret && a.unlocked).length
+        return (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>
+              Achievement <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {achievements.filter(a => a.unlocked).length}/{achievements.length}</span>
+              {secretTotal > 0 && (
+                <span style={{ fontWeight: 600, color: GOLD, fontSize: 12, marginLeft: 8 }}>✨ {secretDone}/{secretTotal} segreti</span>
+              )}
             </div>
-          </div>
-        ))}
-      </div>
+            <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+              {achievements.map(a => {
+                const hidden = a.secret && !a.unlocked            // segreto non ancora scoperto
+                const gold = a.secret && a.unlocked               // segreto sbloccato → oro
+                const icon = hidden ? '🔒' : a.icon
+                const title = hidden ? '???' : a.title
+                const desc = hidden ? 'Achievement segreto' : a.desc
+                const accent = gold ? GOLD : t.primary
+                return (
+                  <div key={a.id} title={desc} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
+                    background: a.unlocked ? (gold ? GOLD + '1f' : t.primaryBg) : t.bgMuted,
+                    border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : (a.secret ? GOLD + '40' : t.border)}`,
+                    borderStyle: hidden ? 'dashed' : 'solid',
+                    opacity: a.unlocked ? 1 : 0.55,
+                    boxShadow: gold ? `0 0 10px ${GOLD}44` : 'none',
+                  }}>
+                    <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{icon}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
+                        {title}{gold && ' ✨'}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{desc}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )
+      })()}
 
       {/* Mazzi del giocatore */}
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Mazzi</div>
