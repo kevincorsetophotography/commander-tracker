@@ -28,6 +28,7 @@ export default function PlayerProfilePage() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [achOpen, setAchOpen] = useState(false)
 
   useEffect(() => {
     Promise.all([api.getGames(), api.statsDecks(), api.statsPlayers()])
@@ -318,45 +319,85 @@ export default function PlayerProfilePage() {
       {/* Achievement */}
       {(() => {
         const GOLD = '#E8B84B'
+        const unlockedCount = achievements.filter(a => a.unlocked).length
         const secretTotal = achievements.filter(a => a.secret).length
         const secretDone = achievements.filter(a => a.secret && a.unlocked).length
+        // preview: prima gli sbloccati (i "record" ottenuti), poi il resto
+        const previewOrder = [...achievements].sort((a, b) => (b.unlocked ? 1 : 0) - (a.unlocked ? 1 : 0))
+
+        // pallina icona per la preview a scomparsa
+        const chip = (a) => {
+          const hidden = a.secret && !a.unlocked
+          const gold = a.secret && a.unlocked
+          return (
+            <span key={a.id} title={hidden ? 'Achievement segreto' : a.title} style={{
+              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+              background: a.unlocked ? (gold ? GOLD + '22' : t.primaryBg) : t.bgMuted,
+              border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : t.border}`,
+              filter: a.unlocked ? 'none' : 'grayscale(1)', opacity: a.unlocked ? 1 : 0.5,
+              boxShadow: gold ? `0 0 8px ${GOLD}55` : 'none',
+            }}>{hidden ? '🔒' : a.icon}</span>
+          )
+        }
+
+        // tessera completa (griglia espansa)
+        const tile = (a) => {
+          const hidden = a.secret && !a.unlocked
+          const gold = a.secret && a.unlocked
+          return (
+            <div key={a.id} title={hidden ? 'Achievement segreto' : a.desc} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
+              background: a.unlocked ? (gold ? GOLD + '1f' : t.primaryBg) : t.bgMuted,
+              border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : (a.secret ? GOLD + '40' : t.border)}`,
+              borderStyle: hidden ? 'dashed' : 'solid',
+              opacity: a.unlocked ? 1 : 0.55,
+              boxShadow: gold ? `0 0 10px ${GOLD}44` : 'none',
+            }}>
+              <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{hidden ? '🔒' : a.icon}</span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
+                  {hidden ? '???' : a.title}{gold && ' ✨'}
+                </div>
+                <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{hidden ? 'Achievement segreto' : a.desc}</div>
+              </div>
+            </div>
+          )
+        }
+
         return (
-          <>
-            <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>
-              Achievement <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {achievements.filter(a => a.unlocked).length}/{achievements.length}</span>
+          <div style={{ ...card, marginTop: 16, cursor: achOpen ? 'default' : 'pointer' }} onClick={() => { if (!achOpen) setAchOpen(true) }}>
+            <div
+              onClick={(e) => { e.stopPropagation(); setAchOpen(o => !o) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
+            >
+              <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Achievement</span>
+              <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {unlockedCount}/{achievements.length}</span>
               {secretTotal > 0 && (
-                <span style={{ fontWeight: 600, color: GOLD, fontSize: 12, marginLeft: 8 }}>✨ {secretDone}/{secretTotal} segreti</span>
+                <span style={{ fontWeight: 600, color: GOLD, fontSize: 12 }}>✨ {secretDone}/{secretTotal} segreti</span>
               )}
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: t.textSub, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {achOpen ? 'nascondi' : 'mostra'}
+                <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: achOpen ? 'rotate(90deg)' : 'none' }}>▸</span>
+              </span>
             </div>
-            <div style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-              {achievements.map(a => {
-                const hidden = a.secret && !a.unlocked            // segreto non ancora scoperto
-                const gold = a.secret && a.unlocked               // segreto sbloccato → oro
-                const icon = hidden ? '🔒' : a.icon
-                const title = hidden ? '???' : a.title
-                const desc = hidden ? 'Achievement segreto' : a.desc
-                const accent = gold ? GOLD : t.primary
-                return (
-                  <div key={a.id} title={desc} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
-                    background: a.unlocked ? (gold ? GOLD + '1f' : t.primaryBg) : t.bgMuted,
-                    border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : (a.secret ? GOLD + '40' : t.border)}`,
-                    borderStyle: hidden ? 'dashed' : 'solid',
-                    opacity: a.unlocked ? 1 : 0.55,
-                    boxShadow: gold ? `0 0 10px ${GOLD}44` : 'none',
-                  }}>
-                    <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{icon}</span>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
-                        {title}{gold && ' ✨'}
-                      </div>
-                      <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{desc}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </>
+
+            {!achOpen && (
+              <div style={{
+                display: 'flex', gap: 6, marginTop: 12, overflow: 'hidden',
+                maskImage: 'linear-gradient(to right, #000 78%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, #000 78%, transparent)',
+              }}>
+                {previewOrder.map(chip)}
+              </div>
+            )}
+
+            {achOpen && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginTop: 12 }}>
+                {achievements.map(tile)}
+              </div>
+            )}
+          </div>
         )
       })()}
 
