@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { PrismaClient } = require('@prisma/client');
 const { validateDecklist } = require('../lib/decklist');
+const { checkAchievements } = require('../lib/notify');
 const prisma = new PrismaClient();
 
 const parseDeckId = (value) => {
@@ -66,6 +67,8 @@ router.post('/', auth, async (req, res) => {
     const deck = await prisma.deck.create({
       data: { name, commander, colors, bracket: parseBracket(bracket), archetype: parseArchetype(archetype), userId: ownerId }
     });
+    // Rileva l'achievement "Collezionista" (3+ mazzi)
+    checkAchievements(prisma, [ownerId]);
     res.json(deck);
   } catch (error) {
     if (error.code === 'P2002') {

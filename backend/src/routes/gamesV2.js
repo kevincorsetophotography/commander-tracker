@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { PrismaClient } = require('@prisma/client');
+const { createNotifications, gameParticipantIds, checkAchievements } = require('../lib/notify');
 
 const prisma = new PrismaClient();
 
@@ -166,6 +167,9 @@ router.post('/', auth, async (req, res) => {
     include: gameInclude
   });
 
+  // Rileva e notifica eventuali achievement sbloccati dai partecipanti
+  checkAchievements(prisma, normalizedPlayers.map(p => p.userId));
+
   res.json(game);
 });
 
@@ -216,6 +220,8 @@ router.patch('/:id', auth, async (req, res) => {
       include: gameInclude
     });
   });
+
+  checkAchievements(prisma, normalizedPlayers.map(p => p.userId));
 
   res.json(updated);
 });
@@ -279,6 +285,16 @@ router.post('/:id/comments', auth, async (req, res) => {
       data: { gameId, userId: req.user.id, body },
       include: { user: { select: { id: true, username: true } } }
     });
+
+    // Notifica gli altri partecipanti alla partita
+    const participants = await gameParticipantIds(prisma, gameId);
+    await createNotifications(prisma, participants.filter(id => id !== req.user.id), {
+      type: 'comment',
+      title: `💬 ${req.user.username} ha commentato una tua partita`,
+      body: body.length > 80 ? body.slice(0, 80) + '…' : body,
+      link: '/?tab=storico',
+    });
+
     res.json(comment);
   } catch (error) {
     console.error('create comment error', error);
@@ -325,6 +341,13 @@ router.post('/:id/reactions', auth, async (req, res) => {
       await prisma.reaction.delete({ where: { id: existing.id } });
     } else {
       await prisma.reaction.create({ data: { gameId, userId: req.user.id, emoji } });
+      // Notifica gli altri partecipanti solo all'aggiunta della reazione
+      const participants = await gameParticipantIds(prisma, gameId);
+      await createNotifications(prisma, participants.filter(id => id !== req.user.id), {
+        type: 'reaction',
+        title: `${emoji} ${req.user.username} ha reagito a una tua partita`,
+        link: '/?tab=storico',
+      });
     }
 
     const reactions = await prisma.reaction.findMany({

@@ -18,6 +18,7 @@ const deckRoutes  = require('./routes/decks');
 const gameRoutes  = require('./routes/gamesV2');
 const statsRoutes = require('./routes/stats');
 const eventRoutes = require('./routes/events');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/decks', deckRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -53,3 +55,8 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Commander Tracker API on :${PORT}`));
+
+// Inizializza una sola volta lo snapshot achievement (anti-flood notifiche)
+const { PrismaClient } = require('@prisma/client');
+const { initAchievementSnapshots } = require('./lib/notify');
+initAchievementSnapshots(new PrismaClient());

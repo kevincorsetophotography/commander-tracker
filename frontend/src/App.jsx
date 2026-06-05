@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
 import DeckProfilePage from './pages/DeckProfilePage'
 import EventsPage from './pages/EventsPage'
+import NotificationBell from './components/NotificationBell'
 
 function NavItem({ to, end, children }) {
   const { t } = useTheme()
@@ -142,6 +143,7 @@ function Layout() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 58, gap: 8 }}>
               <Brand logoSize={40} titleSize={15} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <NotificationBell />
                 <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
                 <IconButton onClick={logout} title="Esci">Esci</IconButton>
               </div>
@@ -166,6 +168,7 @@ function Layout() {
                   </span>
                   {user?.username}
                 </span>
+                <NotificationBell />
                 <IconButton onClick={toggleDark} title={dark ? 'Passa a light mode' : 'Passa a dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
                 <IconButton onClick={logout} title="Esci">Esci</IconButton>
               </div>

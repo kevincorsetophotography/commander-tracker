@@ -62,6 +62,11 @@ export const api = {
   deleteComment:  (gameId, commentId) => req('DELETE', `/games/${gameId}/comments/${commentId}`),
   toggleReaction: (gameId, emoji)     => req('POST',   `/games/${gameId}/reactions`, { emoji }),
 
+  // notifiche
+  getNotifications:      ()  => req('GET',  '/notifications'),
+  getUnreadCount:        ()  => req('GET',  '/notifications/unread-count'),
+  markNotificationsRead: ()  => req('POST', '/notifications/read'),
+
   // eventi (calendario)
   getEvents:    ()         => req('GET',    '/events'),
   createEvent:  (data)     => req('POST',   '/events', data),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -61,7 +61,12 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const [tab, setTab] = useState('giocatori')
+  const [searchParams] = useSearchParams()
+  const VALID_TABS = ['stagione', 'giocatori', 'mazzi', 'matchup', 'storico', 'primati']
+  const [tab, setTab] = useState(() => {
+    const q = searchParams.get('tab')
+    return VALID_TABS.includes(q) ? q : 'giocatori'
+  })
   const [playerStats, setPlayerStats] = useState([])
   const [deckStats, setDeckStats] = useState([])
   const [matchups, setMatchups] = useState([])

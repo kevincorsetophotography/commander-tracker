@@ -1,8 +1,17 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { PrismaClient } = require('@prisma/client');
+const { createNotifications } = require('../lib/notify');
 
 const prisma = new PrismaClient();
+
+// Data leggibile per il corpo della notifica evento
+const formatEventDate = (d, allDay) => {
+  const date = new Date(d).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
+  if (allDay) return date;
+  const time = new Date(d).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+};
 
 const MAX_TITLE = 120;
 const MAX_LOCATION = 160;
@@ -71,6 +80,16 @@ router.post('/', auth, async (req, res) => {
       data: { ...data, createdByUserId: req.user.id },
       include: eventInclude
     });
+
+    // Notifica tutti gli utenti tranne il creatore
+    const users = await prisma.user.findMany({ select: { id: true } });
+    await createNotifications(prisma, users.map(u => u.id).filter(id => id !== req.user.id), {
+      type: 'event',
+      title: `📅 Nuovo evento: ${event.title}`,
+      body: formatEventDate(event.startsAt, event.allDay) + (event.location ? ` · ${event.location}` : ''),
+      link: '/eventi',
+    });
+
     res.json(event);
   } catch (error) {
     console.error('create event error', error);
