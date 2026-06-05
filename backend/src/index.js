@@ -17,6 +17,7 @@ const adminRoutes = require('./routes/admin');
 const deckRoutes  = require('./routes/decks');
 const gameRoutes  = require('./routes/gamesV2');
 const statsRoutes = require('./routes/stats');
+const eventRoutes = require('./routes/events');
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/decks', deckRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/events', eventRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

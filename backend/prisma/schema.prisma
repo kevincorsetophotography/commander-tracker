@@ -18,6 +18,8 @@ model User {
   createdGames Game[]      @relation("GameCreator")
   comments    Comment[]
   reactions   Reaction[]
+  createdEvents Event[]    @relation("EventCreator")
+  eventRsvps  EventRsvp[]
 }
 
 model Deck {
@@ -70,6 +72,33 @@ model Reaction {
 
   @@unique([gameId, userId, emoji])
   @@index([gameId])
+}
+
+model Event {
+  id              Int         @id @default(autoincrement())
+  title           String
+  description     String?
+  startsAt        DateTime
+  allDay          Boolean     @default(false)
+  location        String?
+  createdAt       DateTime    @default(now())
+  createdBy       User?       @relation("EventCreator", fields: [createdByUserId], references: [id])
+  createdByUserId Int?
+  rsvps           EventRsvp[]
+
+  @@index([startsAt])
+}
+
+model EventRsvp {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  @@unique([eventId, userId])
+  @@index([eventId])
 }
 
 model GamePlayer {

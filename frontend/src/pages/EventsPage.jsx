@@ -1,0 +1,249 @@
+import { useState, useEffect, useMemo } from 'react'
+import { api } from '../lib/api'
+import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../hooks/useAuth'
+import { useFeedback } from '../hooks/useFeedback'
+import EmptyState from '../components/EmptyState'
+
+const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+const pad = (n) => String(n).padStart(2, '0')
+
+const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x }
+const dayDiff = (a, b) => Math.round((startOfDay(a) - startOfDay(b)) / 86400000)
+
+function countdown(startsAt) {
+  const d = dayDiff(startsAt, new Date())
+  if (d === 0) return 'Oggi'
+  if (d === 1) return 'Domani'
+  if (d === -1) return 'Ieri'
+  if (d > 1 && d <= 21) return `tra ${d} giorni`
+  if (d < -1 && d >= -21) return `${-d} giorni fa`
+  return null
+}
+
+function isPast(ev) {
+  const now = new Date()
+  if (ev.allDay) { const end = new Date(ev.startsAt); end.setHours(23, 59, 59, 999); return end < now }
+  return new Date(ev.startsAt) < now
+}
+
+const EMPTY = { title: '', date: '', time: '', location: '', description: '' }
+
+export default function EventsPage() {
+  const { t } = useTheme()
+  const { user } = useAuth()
+  const { toast, confirm } = useFeedback()
+  const isAdmin = user?.role === 'ADMIN'
+
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState(EMPTY)
+  const [editingId, setEditingId] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [showForm, setShowForm] = useState(false)
+
+  const load = async () => {
+    try { setEvents(await api.getEvents()) }
+    catch { toast('Errore nel caricamento eventi', 'error') }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [])
+
+  const { upcoming, past } = useMemo(() => {
+    const up = [], pa = []
+    for (const ev of events) (isPast(ev) ? pa : up).push(ev)
+    up.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))
+    pa.sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt))
+    return { upcoming: up, past: pa }
+  }, [events])
+
+  const resetForm = () => { setForm(EMPTY); setEditingId(null); setFormError(''); setShowForm(false) }
+
+  const startCreate = () => { setForm(EMPTY); setEditingId(null); setFormError(''); setShowForm(true) }
+
+  const startEdit = (ev) => {
+    const d = new Date(ev.startsAt)
+    setForm({
+      title: ev.title,
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: ev.allDay ? '' : `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      location: ev.location || '',
+      description: ev.description || '',
+    })
+    setEditingId(ev.id)
+    setFormError('')
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!form.title.trim()) { setFormError('Il titolo è obbligatorio'); return }
+    if (!form.date) { setFormError('La data è obbligatoria'); return }
+    const allDay = !form.time
+    const startsAt = new Date(`${form.date}T${form.time || '00:00'}`).toISOString()
+    const payload = {
+      title: form.title.trim(),
+      startsAt,
+      allDay,
+      location: form.location.trim() || null,
+      description: form.description.trim() || null,
+    }
+    setSaving(true); setFormError('')
+    try {
+      if (editingId) { await api.updateEvent(editingId, payload); toast('Evento aggiornato', 'success') }
+      else { await api.createEvent(payload); toast('Evento creato', 'success') }
+      resetForm()
+      await load()
+    } catch (err) {
+      setFormError(err.error || 'Errore nel salvataggio')
+    } finally { setSaving(false) }
+  }
+
+  const removeEvent = async (ev) => {
+    const ok = await confirm({ title: 'Eliminare l\'evento?', message: `"${ev.title}" verrà rimosso.`, confirmLabel: 'Elimina', danger: true })
+    if (!ok) return
+    try { await api.deleteEvent(ev.id); await load(); toast('Evento eliminato', 'success') }
+    catch (err) { toast(err.error || 'Errore eliminazione', 'error') }
+  }
+
+  const toggleRsvp = async (ev) => {
+    try {
+      const { rsvps } = await api.toggleRsvp(ev.id)
+      setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, rsvps } : e))
+    } catch (err) {
+      toast(err.error || 'Errore adesione', 'error')
+    }
+  }
+
+  // ── stili ──
+  const glass = { background: t.bgSurface, border: `1px solid ${t.border}`, boxShadow: t.shadow }
+  const inputSt = { padding: '9px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }
+  const btnPrimary = { padding: '9px 20px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer' }
+  const btnGhost = { padding: '9px 16px', background: 'transparent', color: t.textSub, border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 14, cursor: 'pointer' }
+  const btnSmall = { padding: '5px 12px', background: t.bgMuted, color: t.textSub, border: `0.5px solid ${t.border}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
+  const btnDanger = { padding: '5px 12px', background: t.dangerBg, color: t.danger, border: `0.5px solid ${t.dangerBorder}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
+
+  const renderEvent = (ev, faded = false) => {
+    const d = new Date(ev.startsAt)
+    const cd = countdown(ev.startsAt)
+    const going = ev.rsvps?.some(r => r.userId === user?.id)
+    const n = ev.rsvps?.length || 0
+    const names = (ev.rsvps || []).map(r => r.user?.username).filter(Boolean)
+    const dateLine = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+    const time = ev.allDay ? null : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+
+    return (
+      <div key={ev.id} style={{ ...glass, borderRadius: 16, padding: '1rem 1.1rem', marginBottom: 12, opacity: faded ? 0.62 : 1 }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          {/* Badge data */}
+          <div style={{ flexShrink: 0, width: 58, textAlign: 'center', background: t.bgMuted, borderRadius: 12, padding: '8px 0', border: `0.5px solid ${t.border}` }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: faded ? t.textSub : t.primary, lineHeight: 1 }}>{d.getDate()}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, textTransform: 'uppercase', marginTop: 2 }}>{MONTHS[d.getMonth()]}</div>
+          </div>
+
+          {/* Corpo */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{ev.title}</span>
+              {cd && !faded && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: t.primary, background: t.primaryBg, border: `1px solid ${t.primaryBorder}`, padding: '2px 8px', borderRadius: 20 }}>{cd}</span>
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: t.textSub, marginTop: 3, textTransform: 'capitalize' }}>
+              {dateLine}{time ? ` · ${time}` : ''}{ev.location ? <span style={{ textTransform: 'none' }}> · 📍 {ev.location}</span> : ''}
+            </div>
+            {ev.description && (
+              <div style={{ fontSize: 13, color: t.textMuted, marginTop: 8, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{ev.description}</div>
+            )}
+
+            {/* Adesioni */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => toggleRsvp(ev)}
+                style={{
+                  padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  border: `1px solid ${going ? t.primary : t.border}`,
+                  background: going ? t.primary : 'transparent',
+                  color: going ? t.primaryFg : t.textSub,
+                }}
+              >
+                {going ? '✓ Ci sono' : 'Ci sono'}
+              </button>
+              <span style={{ fontSize: 12, color: t.textMuted }} title={names.join(', ')}>
+                {n === 0 ? 'Nessun partecipante' : `${n} partecipant${n === 1 ? 'e' : 'i'}${names.length ? ': ' + names.join(', ') : ''}`}
+              </span>
+
+              {isAdmin && (
+                <span style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                  <button style={btnSmall} onClick={() => startEdit(ev)}>Modifica</button>
+                  <button style={btnDanger} onClick={() => removeEvent(ev)}>Elimina</button>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 18, fontWeight: 600, color: t.text }}>📅 Eventi</div>
+        {isAdmin && !showForm && (
+          <button style={btnPrimary} onClick={startCreate}>+ Nuovo evento</button>
+        )}
+      </div>
+
+      {/* Form admin (crea / modifica) */}
+      {isAdmin && showForm && (
+        <div style={{ ...glass, borderRadius: 16, padding: '1.15rem 1.35rem', marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>{editingId ? 'Modifica evento' : 'Nuovo evento'}</div>
+          <form onSubmit={submit}>
+            <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Titolo *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} maxLength={120} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Data *</label>
+                <input type="date" style={inputSt} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Ora (opzionale)</label>
+                <input type="time" style={inputSt} value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+              </div>
+            </div>
+            <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Luogo (opzionale)" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} maxLength={160} />
+            <textarea style={{ ...inputSt, marginBottom: 12, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Descrizione (opzionale)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={2000} />
+            {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 10 }}>{formError}</div>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="submit" style={btnPrimary} disabled={saving}>{editingId ? 'Salva modifiche' : 'Crea evento'}</button>
+              <button type="button" style={btnGhost} onClick={resetForm}>Annulla</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ fontSize: 14, color: t.textSub }}>Caricamento…</div>
+      ) : events.length === 0 ? (
+        <EmptyState icon="📅" title="Nessun evento" message={isAdmin ? 'Crea il primo evento con "+ Nuovo evento".' : 'Gli admin non hanno ancora pubblicato eventi.'} />
+      ) : (
+        <>
+          {upcoming.length > 0 && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '4px 0 10px' }}>Prossimi</div>
+              {upcoming.map(ev => renderEvent(ev, false))}
+            </>
+          )}
+          {past.length > 0 && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '18px 0 10px' }}>Passati</div>
+              {past.map(ev => renderEvent(ev, true))}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

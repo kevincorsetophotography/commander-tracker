@@ -62,6 +62,13 @@ export const api = {
   deleteComment:  (gameId, commentId) => req('DELETE', `/games/${gameId}/comments/${commentId}`),
   toggleReaction: (gameId, emoji)     => req('POST',   `/games/${gameId}/reactions`, { emoji }),
 
+  // eventi (calendario)
+  getEvents:    ()         => req('GET',    '/events'),
+  createEvent:  (data)     => req('POST',   '/events', data),
+  updateEvent:  (id, data) => req('PATCH',  `/events/${id}`, data),
+  deleteEvent:  (id)       => req('DELETE', `/events/${id}`),
+  toggleRsvp:   (id)       => req('POST',   `/events/${id}/rsvp`),
+
   // stats
   statsPlayers:  () => req('GET', '/stats/players'),
   statsDecks:    () => req('GET', '/stats/decks'),
