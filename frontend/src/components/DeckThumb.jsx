@@ -1,17 +1,22 @@
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
+import { useCardArt } from '../lib/cardArt'
 
-const artUrl = (name) =>
+// Fallback: endpoint API fuzzy (usato solo per i pochi nomi che il batch non risolve)
+const fuzzyArt = (name) =>
   `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
-const normalUrl = (name) =>
+const fuzzyNormal = (name) =>
   `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=normal`
 
 /**
  * Miniatura del commander (art_crop di Scryfall) usata ovunque appaia un mazzo.
- * Al passaggio del mouse mostra l'immagine grande della carta (disattivabile con preview={false}).
+ * Gli URL immagine sono risolti una volta e cachati (vedi lib/cardArt), così non
+ * si interroga l'API Scryfall per ogni singola miniatura.
+ * Al passaggio del mouse mostra la carta in grande (disattivabile con preview={false}).
  */
 export default function DeckThumb({ commander, w = 56, radius = 8, round = false, preview = true }) {
   const { t } = useTheme()
+  const { status, art, normal } = useCardArt(commander)
   const [hover, setHover] = useState(false)
   const [pos, setPos] = useState({ x: 0, y: 0 })
 
@@ -23,15 +28,20 @@ export default function DeckThumb({ commander, w = 56, radius = 8, round = false
     objectFit: 'cover', objectPosition: 'center top', display: 'block',
   }
 
-  if (!commander) {
-    return (
-      <div style={{
-        ...base, background: t.bgMuted, border: `1px solid ${t.border}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: Math.max(10, w * 0.4),
-      }}>🎴</div>
-    )
-  }
+  const fallbackBox = (
+    <div style={{
+      ...base, background: t.bgMuted, border: `1px solid ${t.border}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.max(10, w * 0.4),
+    }}>🎴</div>
+  )
+
+  if (!commander) return fallbackBox
+  // In attesa della risoluzione: skeleton (al secondo caricamento è già in cache → niente attesa)
+  if (status === 'loading') return <div className="ct-skeleton" style={{ ...base }} />
+
+  const artSrc = status === 'ready' ? art : fuzzyArt(commander)
+  const normalSrc = status === 'ready' ? normal : fuzzyNormal(commander)
 
   // Anteprima fluttuante posizionata vicino al cursore, contenuta nel viewport
   const PREV_W = 240, PREV_H = 335
@@ -41,7 +51,7 @@ export default function DeckThumb({ commander, w = 56, radius = 8, round = false
   return (
     <>
       <img
-        src={artUrl(commander)}
+        src={artSrc}
         alt=""
         title={commander}
         loading="lazy"
@@ -63,7 +73,7 @@ export default function DeckThumb({ commander, w = 56, radius = 8, round = false
           width: PREV_W, borderRadius: 14, overflow: 'hidden',
           boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
         }}>
-          <img src={normalUrl(commander)} alt={commander} style={{ width: '100%', display: 'block' }} />
+          <img src={normalSrc} alt={commander} style={{ width: '100%', display: 'block' }} />
         </div>
       )}
     </>
