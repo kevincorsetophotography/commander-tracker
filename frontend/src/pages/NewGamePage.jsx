@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useFeedback } from '../hooks/useFeedback'
@@ -11,8 +11,12 @@ export default function NewGamePage() {
   const navigate = useNavigate()
   const { t } = useTheme()
   const { toast } = useFeedback()
+  // Contesto pod torneo: giocatori bloccati + collegamento al tavolo dopo il salvataggio
+  const podCtx = useLocation().state?.podContext || null
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
-  const [slots, setSlots] = useState([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
+  const [slots, setSlots] = useState(() => podCtx
+    ? podCtx.players.map(p => ({ userId: String(p.userId), deckId: '' }))
+    : [{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
   const [notes, setNotes] = useState('')
   const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
@@ -98,7 +102,7 @@ export default function NewGamePage() {
     setError('')
     try {
       const placements = computePlacements()
-      await api.createGame({
+      const game = await api.createGame({
         players: filledSlots.map(s => ({
           userId: parseInt(s.userId),
           deckId: parseInt(s.deckId),
@@ -110,6 +114,14 @@ export default function NewGamePage() {
         notes: notes.trim() || undefined,
         playedAt: playedAt || undefined
       })
+      // Pod torneo: collega la partita al tavolo e torna all'evento
+      if (podCtx) {
+        await api.submitTableResult(podCtx.eventId, podCtx.tableId, { gameId: game.id })
+        fireConfetti()
+        toast('Risultato del pod registrato', 'success')
+        setTimeout(() => navigate(`/evento/${podCtx.eventId}`), 700)
+        return
+      }
       fireConfetti()
       toast('Partita registrata', 'success')
       setTimeout(() => navigate('/'), 700)
@@ -134,7 +146,12 @@ export default function NewGamePage() {
 
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: '1.25rem', color: t.text }}>Nuova partita</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: '1.25rem', color: t.text }}>{podCtx ? 'Risultato del pod' : 'Nuova partita'}</div>
+      {podCtx && (
+        <div style={{ ...card, fontSize: 13, color: t.textSub }}>
+          Giocatori del tavolo bloccati. Scegli il mazzo di ognuno, il vincitore e (se vuoi) ordine di uscita ed eliminazioni. La partita verrà collegata al torneo e conterà nelle statistiche.
+        </div>
+      )}
 
       {allDecks.length === 0 && !error && (
         <div style={{ ...card, color: t.textSub, fontSize: 14 }}>
@@ -164,21 +181,21 @@ export default function NewGamePage() {
               <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
                 {i + 1}
               </div>
-              <select style={{ ...sel, flex: 1, minWidth: 120 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)}>
+              <select style={{ ...sel, flex: 1, minWidth: 120, opacity: podCtx ? 0.7 : 1 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)} disabled={!!podCtx}>
                 <option value="">Giocatore...</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                {(podCtx ? podCtx.players.map(p => ({ id: p.userId, username: p.username })) : users).map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
               </select>
               <select style={{ ...sel, flex: 1, minWidth: 120 }} value={slot.deckId} onChange={e => updateSlot(i, 'deckId', e.target.value)} disabled={!slot.userId}>
                 <option value="">Mazzo...</option>
                 {userDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
-              {i >= 3 && (
+              {i >= 3 && !podCtx && (
                 <button onClick={() => removeSlot(i)} style={{ padding: '6px 11px', border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgMuted, cursor: 'pointer', fontSize: 14, color: t.textSub }}>×</button>
               )}
             </div>
           )
         })}
-        {slots.length < 5 && (
+        {slots.length < 5 && !podCtx && (
           <button onClick={addSlot} style={{ marginTop: 4, padding: '8px 14px', border: `1px solid ${t.border}`, borderRadius: 10, background: t.bgMuted, cursor: 'pointer', fontSize: 13, color: t.textSub, fontWeight: 500 }}>
             + Aggiungi giocatore
           </button>

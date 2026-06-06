@@ -7,30 +7,27 @@ const prisma = require('../lib/prisma');
 
 const MAX_ROUNDS_1V1 = 4;
 
-// Per gli eventi 1v1: allega classifica, stato turno e vincitore al dettaglio.
+// Allega stato del turno e (per 1v1) classifica/vincitore al dettaglio.
 const withStandings = (event) => {
-  if (!event || event.format !== '1v1') return event;
+  if (!event || !event.format) return event;
   const rounds = event.rounds || [];
-  const seated = new Set();
-  for (const r of rounds) for (const t of r.tables) for (const s of t.seats) seated.add(s.userId);
-  const ids = seated.size ? [...seated] : (event.rsvps || []).map(r => r.userId);
-  const nameOf = {};
-  for (const r of rounds) for (const t of r.tables) for (const s of t.seats) nameOf[s.userId] = s.user?.username;
+  const last = rounds[rounds.length - 1] || null;
+  const lastDone = last ? last.tables.every(t => t.done) : false;
+  const base = {
+    ...event,
+    roundDone: lastDone,
+    canNextRound: !!last && lastDone && (event.format !== '1v1' || rounds.length < MAX_ROUNDS_1V1),
+  };
+  if (event.format !== '1v1') return base;
 
+  const seated = new Set();
+  const nameOf = {};
+  for (const r of rounds) for (const t of r.tables) for (const s of t.seats) { seated.add(s.userId); nameOf[s.userId] = s.user?.username; }
+  const ids = seated.size ? [...seated] : (event.rsvps || []).map(r => r.userId);
   const standings = rankStandings(standings1v1(rounds, ids))
     .map(s => ({ ...s, opponents: undefined, username: nameOf[s.userId] || null }));
-
-  const last = rounds[rounds.length - 1];
-  const lastDone = last ? last.tables.every(t => t.done) : false;
   const finished = rounds.length >= MAX_ROUNDS_1V1 && lastDone;
-  return {
-    ...event,
-    standings,
-    roundDone: lastDone,
-    canNextRound: !!last && lastDone && rounds.length < MAX_ROUNDS_1V1,
-    finished,
-    winner: finished && standings.length ? standings[0] : null,
-  };
+  return { ...base, standings, finished, winner: finished && standings.length ? standings[0] : null };
 };
 
 // Data leggibile per il corpo della notifica evento
@@ -67,6 +64,12 @@ const eventDetailInclude = {
           seats: {
             orderBy: { seat: 'asc' },
             include: { user: { select: { id: true, username: true } } },
+          },
+          game: {
+            select: {
+              id: true,
+              players: { where: { isWinner: true }, select: { user: { select: { username: true } }, deck: { select: { name: true } } } },
+            },
           },
         },
       },
@@ -265,9 +268,6 @@ router.post('/:id/rounds', auth, async (req, res) => {
       if (event.format === '1v1' && rounds.length >= MAX_ROUNDS_1V1) {
         return res.status(400).json({ error: `Massimo ${MAX_ROUNDS_1V1} turni` });
       }
-      if (event.format === 'multiplayer') {
-        return res.status(400).json({ error: 'I pod successivi arriveranno con la prossima versione (Fase 2b)' });
-      }
     }
 
     // Giocatori del torneo: i seduti finora, oppure (turno 1) gli iscritti
@@ -328,9 +328,22 @@ router.post('/:eventId/tables/:tableId/result', auth, async (req, res) => {
       return res.status(403).json({ error: 'Solo i giocatori del tavolo o un admin possono inserire il risultato' });
     }
 
-    if (event.format !== '1v1') {
-      return res.status(400).json({ error: 'Per i pod multiplayer il risultato si registra come partita (in arrivo)' });
+    // Multiplayer: il risultato è una partita registrata (conta nelle statistiche)
+    if (event.format === 'multiplayer') {
+      const gameId = Number.parseInt(req.body.gameId, 10);
+      if (!Number.isInteger(gameId)) return res.status(400).json({ error: 'Partita non valida' });
+      const game = await prisma.game.findUnique({ where: { id: gameId }, select: { id: true, players: { select: { userId: true } } } });
+      if (!game) return res.status(404).json({ error: 'Partita non trovata' });
+      const podIds = new Set(table.seats.map(s => s.userId));
+      const gameIds = new Set(game.players.map(p => p.userId));
+      if (podIds.size !== gameIds.size || [...podIds].some(id => !gameIds.has(id))) {
+        return res.status(400).json({ error: 'I giocatori della partita non coincidono col tavolo' });
+      }
+      await prisma.eventTable.update({ where: { id: tableId }, data: { gameId, done: true } });
+      const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventDetailInclude });
+      return res.json(withStandings(full));
     }
+
     if (table.seats.length !== 2) return res.status(400).json({ error: 'Tavolo non valido per 1v1' });
 
     const bestOf = event.bestOf || 1;

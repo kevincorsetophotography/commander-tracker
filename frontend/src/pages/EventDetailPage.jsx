@@ -150,12 +150,29 @@ export default function EventDetailPage() {
             </div>
           )
         })() : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {tbl.seats.map(s => (
-              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: s.user.id === user?.id ? t.text : t.textSub, background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 20, padding: '3px 10px 3px 3px' }}>
-                <Avatar name={s.user.username} t={t} size={22} highlight={s.user.id === user?.id} />{s.user.username}
-              </span>
-            ))}
+          <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {tbl.seats.map(s => (
+                <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: s.user.id === user?.id ? t.text : t.textSub, background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 20, padding: '3px 10px 3px 3px' }}>
+                  <Avatar name={s.user.username} t={t} size={22} highlight={s.user.id === user?.id} />{s.user.username}
+                </span>
+              ))}
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {tbl.done && tbl.game ? (
+                <>
+                  <span style={{ fontSize: 13, color: t.win, fontWeight: 600 }}>🏆 {tbl.game.players[0]?.user.username}{tbl.game.players[0]?.deck?.name ? ` · ${tbl.game.players[0].deck.name}` : ''}</span>
+                  <button onClick={() => navigate(`/partita/${tbl.game.id}`)} style={{ ...btnGhost, padding: '5px 12px', fontSize: 12 }}>Vedi partita ›</button>
+                </>
+              ) : (isAdmin || mine) ? (
+                <button
+                  onClick={() => navigate('/nuova-partita', { state: { podContext: { eventId: eid, tableId: tbl.id, players: tbl.seats.map(s => ({ userId: s.user.id, username: s.user.username })) } } })}
+                  style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: t.primary, color: t.primaryFg, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >Registra partita</button>
+              ) : (
+                <span style={{ fontSize: 12, color: t.textMuted }}>In attesa del risultato</span>
+              )}
+            </div>
           </div>
         )}
       </div>
