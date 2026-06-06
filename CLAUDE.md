@@ -46,7 +46,8 @@ backend/src/
     achievements.js   logica achievement lato server (mirror del frontend) + loadData/unlockedForUser + ACHIEVEMENT_META
     notify.js         createNotifications, checkAchievements, initAchievementSnapshots (backfill silenzioso)
     decklist.js       validazione decklist (100 carte, esistenza su Scryfall)
-  routes/             auth, admin, decks, gamesV2 (partite + commenti/reazioni), stats, events, notifications
+    tournament.js     algoritmi torneo PURI: podSizes (3-5, pref 4), makePods/makePairings, standings1v1, swissPairings (con test)
+  routes/             auth, admin, decks, gamesV2 (partite + commenti/reazioni), stats, events (calendario + tornei), notifications
   ensureAdmin.js                 upsert admin (one-shot, suo PrismaClient)
   migrateNotificationLinks.js    migrazione idempotente: link notifiche vecchie → deep-link
   migrateSeasonAchievements.js   migrazione idempotente: rimuove achievement stagionali assegnati per errore
@@ -60,7 +61,8 @@ frontend/src/
     seasons.js        stagioni 4-mesi, punteggi, classifica, campione
     cardCache.js      cache immagini+tipi carta Scryfall (localStorage, batch /cards/collection)
     scryfall.js       chiamate Scryfall (autocomplete, colori, validazione)
-  pages/              DashboardPage, DecksPage, DeckProfilePage, PlayerProfilePage, GamePage, EventsPage, AdminPage, NewGamePage, Login
+  pages/              DashboardPage, DecksPage, DeckProfilePage, PlayerProfilePage, GamePage (/partita/:id),
+                      EventsPage (/eventi), EventDetailPage (/evento/:id, torneo), AdminPage, NewGamePage, Login
                       (Dashboard.jsx è LEGACY)
   components/         DeckThumb, GameSocial, NotificationBell, BracketBadge, ArchetypeBadge, DeckListPanel, ...
 ```
@@ -69,8 +71,12 @@ frontend/src/
 
 `User`, `Deck` (commander, colors, bracket, archetype, decklist), `Game` (playedAt, notes, createdBy),
 `GamePlayer` (isWinner, **placement**, **eliminatedById**), `Comment`, `Reaction` (`@@unique[gameId,userId,emoji]`),
-`Event` (startsAt, allDay, location), `EventRsvp` (`@@unique[eventId,userId]`),
 `Notification` (type, title, body, link, read), `AchievementUnlock` (`@@unique[userId,achievementId]`).
+
+Eventi/tornei: `Event` (startsAt, allDay, location, **format** 'multiplayer'|'1v1', **bestOf**),
+`EventRsvp` (iscritti, `@@unique[eventId,userId]`), `EventRound` (turno), `EventTable` (pod o pairing;
+**gameId** = partita reale per i pod multiplayer; scoreA/scoreB/winnerUserId/isDraw/done per 1v1),
+`EventSeat` (posto = utente).
 
 ---
 
@@ -86,9 +92,15 @@ frontend/src/
 - **Header mobile** stretto: logo + nome utente + 🔔 + tema + Esci devono stare anche a 320px (il brand cede per primo con `overflow:hidden`).
 - **DB veloce, Scryfall lento**: cache aggressiva sulle carte (immutabili), **niente** cache lato client sulle query DB (rischio dati stantii; sono già millisecondi).
 - **Migrazioni dati una tantum**: scriverle **idempotenti** e agganciarle a `start:prod` (vedi i due `migrate*.js`).
+- **Tornei — classifica 1v1 calcolata SOLO lato server** (`tournament.js` + `withStandings` in `routes/events.js`) e allegata al dettaglio evento: fonte di verità unica, niente mirror sul client (lezione achievement). Svizzera evita i re-match, bye al più basso senza bye, **max 4 turni**.
+- **Tornei — il risultato di un pod multiplayer è una Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext` (giocatori bloccati); al salvataggio crea la Game e la collega a `EventTable.gameId`. Gli iscritti SENZA mazzi (es. admin) non possono entrare in un pod registrato.
+- **Date locali, non UTC**: per pre-compilare/salvare una data usare i componenti **locali** (`getFullYear/Month/Date`), MAI `toISOString().slice(0,10)` (shifta di un giorno col fuso → la partita finirebbe nella stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.
+- **Commit da PowerShell**: gli here-string `@'...'@` si rompono se il messaggio contiene **virgolette doppie** → niente `"` nei messaggi di commit (usa parole o apici).
 
 ## Roadmap completata
 
-Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · Guida Utente (`GUIDA_UTENTE.md`, con screenshot in `docs/img/`).
+Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · **Tornei negli eventi** (formato 1v1 svizzera con classifica/vincitore, o multiplayer a pod con partite reali) · Guida Utente (`GUIDA_UTENTE.md`, con screenshot in `docs/img/`).
 
-Robustezza fatta: PrismaClient singleton, rate-limit login, aria-label, test Vitest sulle logiche pure, cache immagini/liste.
+Robustezza fatta: PrismaClient singleton, rate-limit login, aria-label, test Vitest sulle logiche pure (achievement, stagioni, decklist, **torneo**), cache immagini/liste.
+
+> Nota: la Guida Utente (`GUIDA_UTENTE.md`) **non** copre ancora la sezione **Tornei** — da aggiornare quando si vuole.
