@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
 import DeckProfilePage from './pages/DeckProfilePage'
 import EventsPage from './pages/EventsPage'
+import EventDetailPage from './pages/EventDetailPage'
 import GamePage from './pages/GamePage'
 import NotificationBell from './components/NotificationBell'
 
@@ -139,6 +140,7 @@ function Layout() {
       <Route path="/mazzi"         element={<DecksPage />} />
       <Route path="/partita/:id"   element={<GamePage />} />
       <Route path="/eventi"        element={<EventsPage />} />
+      <Route path="/evento/:id"    element={<EventDetailPage />} />
       <Route path="/nuova-partita" element={<NewGamePage />} />
       <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />
     </Routes>

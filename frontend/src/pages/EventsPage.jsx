@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -28,13 +28,19 @@ function isPast(ev) {
   return new Date(ev.startsAt) < now
 }
 
-const EMPTY = { title: '', date: '', time: '', location: '', description: '' }
+const EMPTY = { title: '', date: '', time: '', location: '', description: '', format: '', bestOf: '1' }
 
 export default function EventsPage() {
   const { t } = useTheme()
   const { user } = useAuth()
   const { toast, confirm } = useFeedback()
+  const navigate = useNavigate()
   const isAdmin = user?.role === 'ADMIN'
+
+  const FORMAT_BADGE = {
+    multiplayer: { label: '🎴 Multiplayer', color: '#5FB87A' },
+    '1v1': { label: '⚔️ 1v1', color: '#E8654F' },
+  }
 
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -87,6 +93,8 @@ export default function EventsPage() {
       time: ev.allDay ? '' : `${pad(d.getHours())}:${pad(d.getMinutes())}`,
       location: ev.location || '',
       description: ev.description || '',
+      format: ev.format || '',
+      bestOf: String(ev.bestOf || 1),
     })
     setEditingId(ev.id)
     setFormError('')
@@ -106,6 +114,8 @@ export default function EventsPage() {
       allDay,
       location: form.location.trim() || null,
       description: form.description.trim() || null,
+      format: form.format || null,
+      bestOf: form.format === '1v1' ? Number(form.bestOf) : null,
     }
     setSaving(true); setFormError('')
     try {
@@ -168,7 +178,18 @@ export default function EventsPage() {
           {/* Corpo */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{ev.title}</span>
+              <span
+                onClick={() => navigate(`/evento/${ev.id}`)}
+                title="Apri l'evento"
+                style={{ fontSize: 16, fontWeight: 700, color: t.text, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+              >
+                {ev.title}<span style={{ color: t.primary }}>›</span>
+              </span>
+              {ev.format && FORMAT_BADGE[ev.format] && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: FORMAT_BADGE[ev.format].color, background: FORMAT_BADGE[ev.format].color + '22', border: `1px solid ${FORMAT_BADGE[ev.format].color}55`, padding: '2px 8px', borderRadius: 20 }}>
+                  {FORMAT_BADGE[ev.format].label}{ev.format === '1v1' && ev.bestOf ? ` · Bo${ev.bestOf}` : ''}
+                </span>
+              )}
               {cd && !faded && (
                 <span style={{ fontSize: 11, fontWeight: 700, color: t.primary, background: t.primaryBg, border: `1px solid ${t.primaryBorder}`, padding: '2px 8px', borderRadius: 20 }}>{cd}</span>
               )}
@@ -236,6 +257,25 @@ export default function EventsPage() {
               </div>
             </div>
             <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Luogo (opzionale)" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} maxLength={160} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Formato torneo</label>
+                <select style={inputSt} value={form.format} onChange={e => setForm(f => ({ ...f, format: e.target.value }))}>
+                  <option value="">— Nessuno (solo evento)</option>
+                  <option value="multiplayer">Multiplayer (pod Commander)</option>
+                  <option value="1v1">1v1 (svizzera)</option>
+                </select>
+              </div>
+              {form.format === '1v1' && (
+                <div>
+                  <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Match</label>
+                  <select style={inputSt} value={form.bestOf} onChange={e => setForm(f => ({ ...f, bestOf: e.target.value }))}>
+                    <option value="1">Best of 1</option>
+                    <option value="3">Best of 3</option>
+                  </select>
+                </div>
+              )}
+            </div>
             <textarea style={{ ...inputSt, marginBottom: 12, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Descrizione (opzionale)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={2000} />
             {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 10 }}>{formError}</div>}
             <div style={{ display: 'flex', gap: 8 }}>

@@ -68,12 +68,15 @@ export const api = {
   getUnreadCount:        ()  => req('GET',  '/notifications/unread-count'),
   markNotificationsRead: ()  => req('POST', '/notifications/read'),
 
-  // eventi (calendario)
+  // eventi (calendario / tornei)
   getEvents:    ()         => req('GET',    '/events'),
+  getEvent:     (id)       => req('GET',    `/events/${id}`),
   createEvent:  (data)     => req('POST',   '/events', data),
   updateEvent:  (id, data) => req('PATCH',  `/events/${id}`, data),
   deleteEvent:  (id)       => req('DELETE', `/events/${id}`),
   toggleRsvp:   (id)       => req('POST',   `/events/${id}/rsvp`),
+  generateRound: (id)            => req('POST',   `/events/${id}/rounds`),
+  deleteRound:   (id, roundId)   => req('DELETE', `/events/${id}/rounds/${roundId}`),
 
   // stats
   statsPlayers:  () => req('GET', '/stats/players'),

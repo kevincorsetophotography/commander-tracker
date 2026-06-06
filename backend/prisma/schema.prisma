@@ -20,6 +20,7 @@ model User {
   reactions   Reaction[]
   createdEvents Event[]    @relation("EventCreator")
   eventRsvps  EventRsvp[]
+  eventSeats  EventSeat[]
   notifications Notification[]
   achievementUnlocks AchievementUnlock[]
 }
@@ -49,6 +50,7 @@ model Game {
   players         GamePlayer[]
   comments        Comment[]
   reactions       Reaction[]
+  eventTable      EventTable?
 }
 
 model Comment {
@@ -83,12 +85,60 @@ model Event {
   startsAt        DateTime
   allDay          Boolean     @default(false)
   location        String?
+  format          String?     // 'multiplayer' (pod Commander) | '1v1'
+  bestOf          Int?        // 1 o 3, solo per 1v1
   createdAt       DateTime    @default(now())
   createdBy       User?       @relation("EventCreator", fields: [createdByUserId], references: [id])
   createdByUserId Int?
   rsvps           EventRsvp[]
+  rounds          EventRound[]
 
   @@index([startsAt])
+}
+
+// Un turno del torneo dentro un evento (pod multiplayer o pairing 1v1).
+model EventRound {
+  id        Int          @id @default(autoincrement())
+  number    Int
+  createdAt DateTime     @default(now())
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   Int
+  tables    EventTable[]
+
+  @@unique([eventId, number])
+}
+
+// Un tavolo: pod (3-5 posti) per multiplayer, pairing (2 posti) per 1v1.
+model EventTable {
+  id           Int         @id @default(autoincrement())
+  number       Int
+  done         Boolean     @default(false)
+  // multiplayer: la partita registrata (conta nelle statistiche)
+  gameId       Int?        @unique
+  game         Game?       @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  // 1v1: punteggio e esito (winnerUserId null + isDraw => pareggio; entrambi null => in attesa)
+  winnerUserId Int?
+  isDraw       Boolean     @default(false)
+  scoreA       Int?        // game vinti dal posto 0
+  scoreB       Int?        // game vinti dal posto 1
+  round        EventRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  roundId      Int
+  seats        EventSeat[]
+
+  @@index([roundId])
+}
+
+// Un posto al tavolo = un iscritto. seat = posizione (0..n; per 1v1 0 e 1).
+model EventSeat {
+  id      Int        @id @default(autoincrement())
+  seat    Int
+  table   EventTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId Int
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  Int
+
+  @@unique([tableId, userId])
+  @@index([tableId])
 }
 
 model EventRsvp {

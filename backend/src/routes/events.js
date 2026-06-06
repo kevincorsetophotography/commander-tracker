@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
+const { makePods, makePairings } = require('../lib/tournament');
 
 const prisma = require('../lib/prisma');
 
@@ -26,6 +27,25 @@ const eventInclude = {
   rsvps: { select: { userId: true, user: { select: { username: true } } } }
 };
 
+// Dettaglio completo: + turni → tavoli → posti (con username)
+const eventDetailInclude = {
+  ...eventInclude,
+  rounds: {
+    orderBy: { number: 'asc' },
+    include: {
+      tables: {
+        orderBy: { number: 'asc' },
+        include: {
+          seats: {
+            orderBy: { seat: 'asc' },
+            include: { user: { select: { id: true, username: true } } },
+          },
+        },
+      },
+    },
+  },
+};
+
 // Normalizza/valida il payload di un evento. Ritorna { error } oppure { data }
 const buildEventData = (body) => {
   const title = typeof body.title === 'string' ? body.title.trim() : '';
@@ -42,13 +62,18 @@ const buildEventData = (body) => {
     ? body.location.trim().slice(0, MAX_LOCATION)
     : null;
 
+  const format = body.format === '1v1' || body.format === 'multiplayer' ? body.format : null;
+  const bestOf = format === '1v1' ? (Number.parseInt(body.bestOf, 10) === 3 ? 3 : 1) : null;
+
   return {
     data: {
       title,
       description,
       location,
       startsAt,
-      allDay: body.allDay === true || body.allDay === 'true'
+      allDay: body.allDay === true || body.allDay === 'true',
+      format,
+      bestOf,
     }
   };
 };
@@ -107,8 +132,13 @@ router.patch('/:id', auth, async (req, res) => {
   if (error) return res.status(400).json({ error });
 
   try {
-    const existing = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+    const existing = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, _count: { select: { rounds: true } } },
+    });
     if (!existing) return res.status(404).json({ error: 'Evento non trovato' });
+    // Formato bloccato una volta che il torneo è iniziato
+    if (existing._count.rounds > 0) { delete data.format; delete data.bestOf; }
 
     const event = await prisma.event.update({
       where: { id: eventId },
@@ -167,6 +197,90 @@ router.post('/:id/rsvp', auth, async (req, res) => {
   } catch (error) {
     console.error('toggle rsvp error', error);
     res.status(500).json({ error: 'Errore durante l\'adesione' });
+  }
+});
+
+// ─── Torneo: turni / tavoli ───────────────────────────────────────────
+
+// GET /api/events/:id — dettaglio evento con turni, tavoli e posti
+router.get('/:id', auth, async (req, res) => {
+  const eventId = parseEventId(req.params.id);
+  if (!eventId) return res.status(400).json({ error: 'ID evento non valido' });
+  try {
+    const event = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
+    if (!event) return res.status(404).json({ error: 'Evento non trovato' });
+    res.json(event);
+  } catch (error) {
+    console.error('get event error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento dell\'evento' });
+  }
+});
+
+// POST /api/events/:id/rounds — genera il turno successivo (solo admin)
+router.post('/:id/rounds', auth, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono generare i turni' });
+  const eventId = parseEventId(req.params.id);
+  if (!eventId) return res.status(400).json({ error: 'ID evento non valido' });
+
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true, format: true,
+        rounds: { select: { number: true, tables: { select: { done: true } } } },
+      },
+    });
+    if (!event) return res.status(404).json({ error: 'Evento non trovato' });
+    if (!event.format) return res.status(400).json({ error: 'Imposta prima il formato dell\'evento' });
+
+    // Per ora (Fase 1) si genera solo il primo turno; i successivi arriveranno coi risultati
+    if (event.rounds.length > 0) {
+      return res.status(400).json({ error: 'Turno già generato. Elimina il turno per rifarlo.' });
+    }
+
+    const rsvps = await prisma.eventRsvp.findMany({ where: { eventId }, select: { userId: true } });
+    const ids = rsvps.map(r => r.userId);
+    const min = event.format === '1v1' ? 2 : 3;
+    if (ids.length < min) return res.status(400).json({ error: `Servono almeno ${min} iscritti` });
+
+    let tables;
+    if (event.format === 'multiplayer') {
+      tables = makePods(ids).map((pod, i) => ({
+        number: i + 1,
+        seats: { create: pod.map((userId, seat) => ({ seat, userId })) },
+      }));
+    } else {
+      const { pairs, bye } = makePairings(ids);
+      tables = pairs.map((pair, i) => ({
+        number: i + 1,
+        seats: { create: pair.map((userId, seat) => ({ seat, userId })) },
+      }));
+      if (bye != null) {
+        // Il bye è un tavolo da 1 già "concluso" (passa il turno)
+        tables.push({ number: pairs.length + 1, done: true, winnerUserId: bye, seats: { create: [{ seat: 0, userId: bye }] } });
+      }
+    }
+
+    await prisma.eventRound.create({ data: { eventId, number: 1, tables: { create: tables } } });
+    const full = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
+    res.json(full);
+  } catch (error) {
+    console.error('generate round error', error);
+    res.status(500).json({ error: 'Errore durante la generazione del turno' });
+  }
+});
+
+// DELETE /api/events/:eventId/rounds/:roundId — elimina un turno (solo admin)
+router.delete('/:eventId/rounds/:roundId', auth, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono eliminare i turni' });
+  const roundId = Number.parseInt(req.params.roundId, 10);
+  if (!Number.isInteger(roundId)) return res.status(400).json({ error: 'ID turno non valido' });
+  try {
+    await prisma.eventRound.delete({ where: { id: roundId } });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('delete round error', error);
+    res.status(500).json({ error: 'Errore durante l\'eliminazione del turno' });
   }
 });
 
