@@ -1,0 +1,94 @@
+# CLAUDE.md — Commanderone · Villastellone
+
+Tracker di partite **Magic: The Gathering / Commander (EDH)** per il gruppo di Villastellone.
+App full-stack deployata: i membri registrano partite, mazzi, statistiche, eventi, e c'è uno strato social (commenti/reazioni), achievement e notifiche.
+
+> Questo file è il contesto che leggo a inizio sessione. Tienilo aggiornato quando l'architettura cambia.
+
+---
+
+## Stack & deploy
+
+- **Frontend**: React 18 + Vite 5, `react-router-dom` 6, **stili inline** (niente CSS framework), tema dark/light (`hooks/useTheme`), PWA. Test: **Vitest 2** (`frontend/ npm test`).
+- **Backend**: Node + Express + **Prisma 5** + **PostgreSQL**. Auth JWT + bcrypt, registrazione protetta da **INVITE_CODE**. Test: Vitest 2 (`backend/ npm test`).
+- **Deploy**: push su `main` →
+  - **Railway** (backend + Postgres): esegue `start:prod` = `prisma db push --accept-data-loss && ensureAdmin && migrateNotificationLinks && migrateSeasonAchievements && index.js`.
+  - **Vercel** (frontend): build statico, SPA rewrites (`vercel.json`).
+- **Node 18** in locale → Vitest e Prisma sono fissati a versioni compatibili (Vitest **2.x**, non 4.x).
+
+## Ambiente di sviluppo locale (isolato, NON tocca produzione)
+
+- `cd backend && npm run dev` → `scripts/dev.mjs`: avvia un **PostgreSQL embedded** (`embedded-postgres`) su **:5433**, fa `db push`, **semina** dati di test se vuoto, poi nodemon su **:3001**.
+  - Il DB locale **deve essere UTF-8** (per le emoji). `dev.mjs` lo (ri)crea UTF-8 se serve: su Windows initdb usa WIN1252 di default, che fa crashare i salvataggi con emoji.
+  - Credenziali seed: `admin/test`; giocatori `Ramuh, Shiva, Ifrit, Bahamut, Leviath, Titan` → password `test`.
+- Frontend: `cd frontend && npx vite --host` (:5173). Punta a `http://localhost:3001/api` di default (`lib/api.js`, niente `.env` frontend in locale).
+- `.env` (backend, **gitignored**): `DATABASE_URL` (locale o Railway), `JWT_SECRET` (≥32 char), `PORT`, `FRONTEND_URL`, `INVITE_CODE`.
+
+### Gotcha Windows + Prisma
+Rigenerare il client mentre il backend gira **blocca la query-engine DLL** (EPERM). Procedura: `db push --skip-generate` è sicuro a caldo; per `prisma generate` **fermare il backend**, generare, riavviare. (Le migrazioni usano `prisma db push`, **niente cartella migrations**.)
+
+## Verifica delle modifiche (come lavoro qui)
+
+- Uso **Playwright** in `~/ct-shots` (FUORI dal repo) per pilotare l'app reale: chromium via `channel:'msedge'` (no download), **webkit** per simulare iOS Safari. Screenshot di debug in `docs/img/_*.png` → **cancellati dopo**.
+- Login programmatico via API, token iniettato in `localStorage` (`ct_token`, `ct_user`, `ct_theme`).
+- Pattern: implemento → verifico in locale (desktop + mobile, spesso anche webkit) → `npm test` + `vite build` → commit. **Push solo quando l'utente lo chiede** (il push fa partire il deploy in produzione).
+- Commit: messaggio in inglese, termina con `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Lavoro su `main`.
+
+---
+
+## Struttura
+
+```
+backend/src/
+  index.js            mount rotte, CORS, rate-limit /auth, trust proxy, init achievement snapshot
+  lib/
+    prisma.js         PrismaClient SINGLETON condiviso (un solo pool)
+    achievements.js   logica achievement lato server (mirror del frontend) + loadData/unlockedForUser + ACHIEVEMENT_META
+    notify.js         createNotifications, checkAchievements, initAchievementSnapshots (backfill silenzioso)
+    decklist.js       validazione decklist (100 carte, esistenza su Scryfall)
+  routes/             auth, admin, decks, gamesV2 (partite + commenti/reazioni), stats, events, notifications
+  ensureAdmin.js                 upsert admin (one-shot, suo PrismaClient)
+  migrateNotificationLinks.js    migrazione idempotente: link notifiche vecchie → deep-link
+  migrateSeasonAchievements.js   migrazione idempotente: rimuove achievement stagionali assegnati per errore
+  (games.js è LEGACY, non montato — si usa gamesV2.js)
+
+frontend/src/
+  App.jsx             rotte + layout (header desktop/mobile, dock mobile, NotificationBell)
+  lib/
+    api.js            client fetch (Authorization Bearer)
+    achievements.js   definizioni + computeUnlocked (mirror backend); getAchievements fa UNIONE snapshot+live
+    seasons.js        stagioni 4-mesi, punteggi, classifica, campione
+    cardCache.js      cache immagini+tipi carta Scryfall (localStorage, batch /cards/collection)
+    scryfall.js       chiamate Scryfall (autocomplete, colori, validazione)
+  pages/              DashboardPage, DecksPage, DeckProfilePage, PlayerProfilePage, GamePage, EventsPage, AdminPage, NewGamePage, Login
+                      (Dashboard.jsx è LEGACY)
+  components/         DeckThumb, GameSocial, NotificationBell, BracketBadge, ArchetypeBadge, DeckListPanel, ...
+```
+
+## Modello dati (Prisma)
+
+`User`, `Deck` (commander, colors, bracket, archetype, decklist), `Game` (playedAt, notes, createdBy),
+`GamePlayer` (isWinner, **placement**, **eliminatedById**), `Comment`, `Reaction` (`@@unique[gameId,userId,emoji]`),
+`Event` (startsAt, allDay, location), `EventRsvp` (`@@unique[eventId,userId]`),
+`Notification` (type, title, body, link, read), `AchievementUnlock` (`@@unique[userId,achievementId]`).
+
+---
+
+## Convenzioni & insidie (le cose che fanno perdere tempo)
+
+- **Achievement: logica DUPLICATA** in `frontend/src/lib/achievements.js` e `backend/src/lib/achievements.js` → vanno tenuti in **parità** (entrambi hanno test). La **fonte di verità per il DISPLAY** è lo **snapshot del server** (`AchievementUnlock`, esposto da `GET /api/stats/achievements/:userId`): `getAchievements` fa **unione snapshot ∪ live**, così gli achievement "non monotoni" (Ammazzagiganti, Dominatore, Sopravvissuto) non spariscono dopo essere stati guadagnati.
+- **Achievement stagionali** (`season_champion`, `season_perfect`): solo per **stagioni concluse**, mai per quella in corso.
+- **Anti-flood notifiche achievement**: `initAchievementSnapshots` gira a ogni avvio e registra in **silenzio** ciò che è già maturato (niente notifiche retroattive). Lo sblocco "vero" usa il vincolo unique come lock atomico → 1 sola notifica.
+- **Notifiche**: create **lato server** come side-effect (mai dal client). **Deep-link** all'oggetto: commento/reazione → `/partita/:id`; evento → `/eventi?focus=:id` (scroll+highlight); achievement → `/giocatore/:id?ach=1` (apre la sezione). Polling ogni 60s (`NotificationBell`).
+- **Scryfall**: MAI una chiamata `cards/named?format=image` per ogni miniatura (rate-limit 429). Usa `cardCache` (batch `/cards/collection` + URL CDN `cards.scryfall.io` in localStorage). Stesso meccanismo per la lista carte per tipo.
+- **Dashboard tab nell'URL** (`?tab=mazzi`): così il "back" del browser/gesture ripristina la scheda. Cambiare tab usa `replace`.
+- **Scroll mobile**: NIENTE `overflow-x: hidden` su `<html>` (su Android Chrome rende `<html>` un contenitore di scroll e blocca lo scroll verticale). Si usa `overflow-x: clip` sul `body`.
+- **Header mobile** stretto: logo + nome utente + 🔔 + tema + Esci devono stare anche a 320px (il brand cede per primo con `overflow:hidden`).
+- **DB veloce, Scryfall lento**: cache aggressiva sulle carte (immutabili), **niente** cache lato client sulle query DB (rischio dati stantii; sono già millisecondi).
+- **Migrazioni dati una tantum**: scriverle **idempotenti** e agganciarle a `start:prod` (vedi i due `migrate*.js`).
+
+## Roadmap completata
+
+Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · Guida Utente (`GUIDA_UTENTE.md`, con screenshot in `docs/img/`).
+
+Robustezza fatta: PrismaClient singleton, rate-limit login, aria-label, test Vitest sulle logiche pure, cache immagini/liste.
