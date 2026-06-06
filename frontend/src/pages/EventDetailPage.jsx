@@ -36,6 +36,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [scores, setScores] = useState({}) // tableId -> { a, b }
 
   const load = () => {
     setLoading(true); setError('')
@@ -74,6 +75,14 @@ export default function EventDetailPage() {
     if (!ok) return
     try { await api.deleteRound(eid, rid); load() } catch (e) { toast(e.error || 'Errore', 'error') }
   }
+  const submitResult = async (tbl) => {
+    const sc = scores[tbl.id] || { a: 0, b: 0 }
+    try {
+      setEvent(await api.submitTableResult(eid, tbl.id, { scoreA: sc.a, scoreB: sc.b }))
+      toast('Risultato salvato', 'success')
+    } catch (e) { toast(e.error || 'Errore', 'error') }
+  }
+  const setScore = (tableId, side, val) => setScores(s => ({ ...s, [tableId]: { ...(s[tableId] || { a: 0, b: 0 }), [side]: val } }))
 
   const dateLine = new Date(event.startsAt).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const time = event.allDay ? null : new Date(event.startsAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
@@ -99,17 +108,48 @@ export default function EventDetailPage() {
             <Avatar name={tbl.seats[0].user.username} t={t} highlight={tbl.seats[0].user.id === user?.id} />
             {tbl.seats[0].user.username} · passa il turno
           </div>
-        ) : is1v1 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: t.text }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <Avatar name={tbl.seats[0].user.username} t={t} highlight={tbl.seats[0].user.id === user?.id} />{tbl.seats[0].user.username}
+        ) : is1v1 ? (() => {
+          const sa = tbl.seats.find(s => s.seat === 0) || tbl.seats[0]
+          const sb = tbl.seats.find(s => s.seat === 1) || tbl.seats[1]
+          const canEnter = (isAdmin || mine) && !tbl.done
+          const sc = scores[tbl.id] || { a: tbl.scoreA ?? 0, b: tbl.scoreB ?? 0 }
+          const winA = tbl.done && tbl.winnerUserId === sa.user.id
+          const winB = tbl.done && tbl.winnerUserId === sb.user.id
+          const stepBtn = { width: 24, height: 24, borderRadius: 6, border: `1px solid ${t.border}`, background: t.bgSurface, color: t.text, cursor: 'pointer', fontSize: 15, lineHeight: 1 }
+          const player = (s, win) => (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontWeight: win ? 800 : 600, color: win ? t.win : (s.user.id === user?.id ? t.text : t.textSub) }}>
+              <Avatar name={s.user.username} t={t} highlight={s.user.id === user?.id} />{s.user.username}{win ? ' 🏆' : ''}
             </span>
-            <span style={{ color: t.textMuted, fontWeight: 700 }}>vs</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <Avatar name={tbl.seats[1].user.username} t={t} highlight={tbl.seats[1].user.id === user?.id} />{tbl.seats[1].user.username}
-            </span>
-          </div>
-        ) : (
+          )
+          return (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 14, flexWrap: 'wrap' }}>
+                {player(sa, winA)}
+                <span style={{ color: t.textMuted, fontWeight: 800, fontSize: 16 }}>
+                  {tbl.done ? `${tbl.scoreA}–${tbl.scoreB}` : 'vs'}
+                </span>
+                {player(sb, winB)}
+              </div>
+              {tbl.done && tbl.isDraw && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 6 }}>Pareggio</div>}
+              {canEnter && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <button style={stepBtn} onClick={() => setScore(tbl.id, 'a', Math.max(0, sc.a - 1))}>−</button>
+                    <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 800 }}>{sc.a}</span>
+                    <button style={stepBtn} onClick={() => setScore(tbl.id, 'a', Math.min(event.bestOf || 1, sc.a + 1))}>+</button>
+                    <span style={{ fontSize: 12, color: t.textMuted, margin: '0 4px' }}>—</span>
+                    <button style={stepBtn} onClick={() => setScore(tbl.id, 'b', Math.max(0, sc.b - 1))}>−</button>
+                    <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 800 }}>{sc.b}</span>
+                    <button style={stepBtn} onClick={() => setScore(tbl.id, 'b', Math.min(event.bestOf || 1, sc.b + 1))}>+</button>
+                  </span>
+                  <button onClick={() => submitResult(tbl)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: t.primary, color: t.primaryFg, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Salva risultato
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })() : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {tbl.seats.map(s => (
               <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: s.user.id === user?.id ? t.text : t.textSub, background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 20, padding: '3px 10px 3px 3px' }}>
@@ -167,33 +207,76 @@ export default function EventDetailPage() {
 
       {/* Torneo */}
       {event.format ? (
-        <div style={card}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {round ? `Turno ${round.number}` : 'Tornei: ancora nessun turno'}
+        <>
+          {/* Vincitore */}
+          {event.finished && event.winner && (
+            <div style={{ ...card, border: `1px solid #E8B84B88`, background: '#E8B84B1f', textAlign: 'center', fontSize: 16, fontWeight: 700, color: '#E8B84B' }}>
+              🏆 Vincitore: {event.winner.username} · {event.winner.points} punti
             </div>
-            {isAdmin && !round && (
-              <button style={{ ...btnPrimary, marginLeft: 'auto' }} onClick={generateRound} disabled={busy}>
-                {event.format === 'multiplayer' ? 'Genera tavoli' : 'Genera abbinamenti'}
-              </button>
-            )}
-            {isAdmin && round && (
-              <button style={{ ...btnGhost, marginLeft: 'auto' }} onClick={() => deleteRound(round.id)}>Rifai turno</button>
+          )}
+
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {event.format === '1v1' ? 'Torneo 1v1 (svizzera)' : 'Torneo a pod'}
+              </div>
+              {isAdmin && event.rounds.length === 0 && (
+                <button style={{ ...btnPrimary, marginLeft: 'auto' }} onClick={generateRound} disabled={busy}>
+                  {event.format === 'multiplayer' ? 'Genera tavoli' : 'Genera abbinamenti'}
+                </button>
+              )}
+              {isAdmin && event.canNextRound && (
+                <button style={{ ...btnPrimary, marginLeft: 'auto' }} onClick={generateRound} disabled={busy}>Genera turno {event.rounds.length + 1}</button>
+              )}
+              {event.finished && <span style={{ marginLeft: 'auto', fontSize: 12, color: t.win, fontWeight: 700 }}>Torneo concluso</span>}
+            </div>
+
+            {event.rounds.length === 0 ? (
+              <div style={{ fontSize: 13, color: t.textMuted }}>
+                {event.format === 'multiplayer'
+                  ? 'Quando tutti sono iscritti, l’admin genera i tavoli (pod da 3 a 5, preferendo 4).'
+                  : 'Quando tutti sono iscritti, l’admin genera gli abbinamenti del primo turno.'}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {event.rounds.map((r, ri) => (
+                  <div key={r.id}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Turno {r.number}</span>
+                      {isAdmin && ri === event.rounds.length - 1 && (
+                        <button style={{ ...btnGhost, marginLeft: 'auto', padding: '4px 10px', fontSize: 12 }} onClick={() => deleteRound(r.id)}>Rifai turno</button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {r.tables.map(renderTable)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {!round ? (
-            <div style={{ fontSize: 13, color: t.textMuted }}>
-              {event.format === 'multiplayer'
-                ? 'Quando tutti sono iscritti, l’admin genera i tavoli (pod da 3 a 5, preferendo 4).'
-                : 'Quando tutti sono iscritti, l’admin genera gli abbinamenti del primo turno.'}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {round.tables.map(renderTable)}
+          {/* Classifica (1v1) */}
+          {event.format === '1v1' && event.standings?.length > 0 && event.rounds.length > 0 && (
+            <div style={card}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>Classifica</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {event.standings.map((s, i) => (
+                  <div key={s.userId} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8,
+                    background: s.userId === user?.id ? (t.primaryBg || t.bgMuted) : 'transparent',
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: i === 0 ? '#E8B84B' : t.textMuted, minWidth: 22 }}>{i + 1}°</span>
+                    <Avatar name={s.username} t={t} size={24} highlight={s.userId === user?.id} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: t.text, flex: 1, minWidth: 0 }}>{s.username}</span>
+                    <span style={{ fontSize: 12, color: t.textMuted }}>{s.wins}V · {s.draws}N · {s.losses}P{s.byes ? ` · ${s.byes} bye` : ''}</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: t.text, minWidth: 28, textAlign: 'right' }}>{s.points}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
+        </>
       ) : (
         <div style={{ ...card, color: t.textMuted, fontSize: 13 }}>Evento semplice (senza torneo). Il formato si imposta alla creazione.</div>
       )}

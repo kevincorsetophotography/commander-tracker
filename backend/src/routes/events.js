@@ -1,9 +1,37 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
-const { makePods, makePairings } = require('../lib/tournament');
+const { makePods, makePairings, standings1v1, rankStandings, swissPairings } = require('../lib/tournament');
 
 const prisma = require('../lib/prisma');
+
+const MAX_ROUNDS_1V1 = 4;
+
+// Per gli eventi 1v1: allega classifica, stato turno e vincitore al dettaglio.
+const withStandings = (event) => {
+  if (!event || event.format !== '1v1') return event;
+  const rounds = event.rounds || [];
+  const seated = new Set();
+  for (const r of rounds) for (const t of r.tables) for (const s of t.seats) seated.add(s.userId);
+  const ids = seated.size ? [...seated] : (event.rsvps || []).map(r => r.userId);
+  const nameOf = {};
+  for (const r of rounds) for (const t of r.tables) for (const s of t.seats) nameOf[s.userId] = s.user?.username;
+
+  const standings = rankStandings(standings1v1(rounds, ids))
+    .map(s => ({ ...s, opponents: undefined, username: nameOf[s.userId] || null }));
+
+  const last = rounds[rounds.length - 1];
+  const lastDone = last ? last.tables.every(t => t.done) : false;
+  const finished = rounds.length >= MAX_ROUNDS_1V1 && lastDone;
+  return {
+    ...event,
+    standings,
+    roundDone: lastDone,
+    canNextRound: !!last && lastDone && rounds.length < MAX_ROUNDS_1V1,
+    finished,
+    winner: finished && standings.length ? standings[0] : null,
+  };
+};
 
 // Data leggibile per il corpo della notifica evento
 const formatEventDate = (d, allDay) => {
@@ -209,7 +237,7 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const event = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
     if (!event) return res.status(404).json({ error: 'Evento non trovato' });
-    res.json(event);
+    res.json(withStandings(event));
   } catch (error) {
     console.error('get event error', error);
     res.status(500).json({ error: 'Errore durante il caricamento dell\'evento' });
@@ -223,23 +251,30 @@ router.post('/:id/rounds', auth, async (req, res) => {
   if (!eventId) return res.status(400).json({ error: 'ID evento non valido' });
 
   try {
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: {
-        id: true, format: true,
-        rounds: { select: { number: true, tables: { select: { done: true } } } },
-      },
-    });
+    const event = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
     if (!event) return res.status(404).json({ error: 'Evento non trovato' });
     if (!event.format) return res.status(400).json({ error: 'Imposta prima il formato dell\'evento' });
 
-    // Per ora (Fase 1) si genera solo il primo turno; i successivi arriveranno coi risultati
-    if (event.rounds.length > 0) {
-      return res.status(400).json({ error: 'Turno già generato. Elimina il turno per rifarlo.' });
+    const rounds = event.rounds;
+    const last = rounds[rounds.length - 1] || null;
+
+    if (last) {
+      if (!last.tables.every(t => t.done)) {
+        return res.status(400).json({ error: 'Completa tutti i risultati del turno prima di generarne uno nuovo' });
+      }
+      if (event.format === '1v1' && rounds.length >= MAX_ROUNDS_1V1) {
+        return res.status(400).json({ error: `Massimo ${MAX_ROUNDS_1V1} turni` });
+      }
+      if (event.format === 'multiplayer') {
+        return res.status(400).json({ error: 'I pod successivi arriveranno con la prossima versione (Fase 2b)' });
+      }
     }
 
-    const rsvps = await prisma.eventRsvp.findMany({ where: { eventId }, select: { userId: true } });
-    const ids = rsvps.map(r => r.userId);
+    // Giocatori del torneo: i seduti finora, oppure (turno 1) gli iscritti
+    const seated = new Set();
+    for (const r of rounds) for (const t of r.tables) for (const s of t.seats) seated.add(s.userId);
+    let ids = seated.size ? [...seated] : (await prisma.eventRsvp.findMany({ where: { eventId }, select: { userId: true } })).map(r => r.userId);
+
     const min = event.format === '1v1' ? 2 : 3;
     if (ids.length < min) return res.status(400).json({ error: `Servono almeno ${min} iscritti` });
 
@@ -250,23 +285,77 @@ router.post('/:id/rounds', auth, async (req, res) => {
         seats: { create: pod.map((userId, seat) => ({ seat, userId })) },
       }));
     } else {
-      const { pairs, bye } = makePairings(ids);
+      const { pairs, bye } = last
+        ? swissPairings(standings1v1(rounds, ids))
+        : makePairings(ids);
       tables = pairs.map((pair, i) => ({
         number: i + 1,
         seats: { create: pair.map((userId, seat) => ({ seat, userId })) },
       }));
       if (bye != null) {
-        // Il bye è un tavolo da 1 già "concluso" (passa il turno)
         tables.push({ number: pairs.length + 1, done: true, winnerUserId: bye, seats: { create: [{ seat: 0, userId: bye }] } });
       }
     }
 
-    await prisma.eventRound.create({ data: { eventId, number: 1, tables: { create: tables } } });
+    const number = last ? last.number + 1 : 1;
+    await prisma.eventRound.create({ data: { eventId, number, tables: { create: tables } } });
     const full = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
-    res.json(full);
+    res.json(withStandings(full));
   } catch (error) {
     console.error('generate round error', error);
     res.status(500).json({ error: 'Errore durante la generazione del turno' });
+  }
+});
+
+// POST /api/events/:eventId/tables/:tableId/result — risultato 1v1 (giocatore o admin)
+router.post('/:eventId/tables/:tableId/result', auth, async (req, res) => {
+  const tableId = Number.parseInt(req.params.tableId, 10);
+  if (!Number.isInteger(tableId)) return res.status(400).json({ error: 'ID tavolo non valido' });
+
+  try {
+    const table = await prisma.eventTable.findUnique({
+      where: { id: tableId },
+      include: {
+        seats: { select: { userId: true, seat: true } },
+        round: { select: { event: { select: { id: true, format: true, bestOf: true } } } },
+      },
+    });
+    if (!table) return res.status(404).json({ error: 'Tavolo non trovato' });
+    const event = table.round.event;
+
+    const isParticipant = table.seats.some(s => s.userId === req.user.id);
+    if (req.user.role !== 'ADMIN' && !isParticipant) {
+      return res.status(403).json({ error: 'Solo i giocatori del tavolo o un admin possono inserire il risultato' });
+    }
+
+    if (event.format !== '1v1') {
+      return res.status(400).json({ error: 'Per i pod multiplayer il risultato si registra come partita (in arrivo)' });
+    }
+    if (table.seats.length !== 2) return res.status(400).json({ error: 'Tavolo non valido per 1v1' });
+
+    const bestOf = event.bestOf || 1;
+    const scoreA = Number.parseInt(req.body.scoreA, 10);
+    const scoreB = Number.parseInt(req.body.scoreB, 10);
+    if (!Number.isInteger(scoreA) || !Number.isInteger(scoreB) || scoreA < 0 || scoreB < 0 || scoreA > bestOf || scoreB > bestOf) {
+      return res.status(400).json({ error: `Punteggio non valido (0–${bestOf})` });
+    }
+    if (scoreA + scoreB < 1) return res.status(400).json({ error: 'Inserisci il risultato' });
+
+    const a = (table.seats.find(s => s.seat === 0) || table.seats[0]).userId;
+    const b = (table.seats.find(s => s.seat === 1) || table.seats[1]).userId;
+    const isDraw = scoreA === scoreB;
+    const winnerUserId = isDraw ? null : (scoreA > scoreB ? a : b);
+
+    await prisma.eventTable.update({
+      where: { id: tableId },
+      data: { scoreA, scoreB, isDraw, winnerUserId, done: true },
+    });
+
+    const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventDetailInclude });
+    res.json(withStandings(full));
+  } catch (error) {
+    console.error('table result error', error);
+    res.status(500).json({ error: 'Errore durante il salvataggio del risultato' });
   }
 });
 

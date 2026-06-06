@@ -77,6 +77,7 @@ export const api = {
   toggleRsvp:   (id)       => req('POST',   `/events/${id}/rsvp`),
   generateRound: (id)            => req('POST',   `/events/${id}/rounds`),
   deleteRound:   (id, roundId)   => req('DELETE', `/events/${id}/rounds/${roundId}`),
+  submitTableResult: (id, tableId, data) => req('POST', `/events/${id}/tables/${tableId}/result`, data),
 
   // stats
   statsPlayers:  () => req('GET', '/stats/players'),
