@@ -9,7 +9,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:server": "nodemon src/index.js",
     "start": "node src/index.js",
-    "start:prod": "prisma db push --skip-generate --accept-data-loss && node src/ensureAdmin.js && node src/index.js",
+    "start:prod": "prisma db push --skip-generate --accept-data-loss && node src/ensureAdmin.js && node src/migrateNotificationLinks.js && node src/index.js",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.mjs",
