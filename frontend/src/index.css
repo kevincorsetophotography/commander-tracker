@@ -7,9 +7,18 @@
 html, body {
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Evita lo scroll orizzontale SENZA rompere quello verticale.
+   `overflow-x: hidden` su <html> (e body) forza `overflow-y` a `auto`,
+   trasformando l'elemento in un contenitore di scroll: su Android Chrome,
+   con header sticky + dock fixed + dvh, questo blocca lo scroll della pagina.
+   `overflow-x: clip` clippa l'orizzontale ma lascia `overflow-y: visible`,
+   quindi a scrollare resta il viewport. */
+body {
+  overflow-x: clip;
 }
 
 /* Sfondo aurora: blob sfocati che si muovono lentamente */
