@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { parseDecklist, validateAndFetchDecklist, fetchDecklistCards, fetchCommanderCard, fetchCommanderColors } from '../lib/scryfall'
+import { parseDecklist, validateAndFetchDecklist, fetchCommanderCard, fetchCommanderColors } from '../lib/scryfall'
+import { resolveDecklistCards } from '../lib/cardCache'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import CommanderInput from './CommanderInput'
@@ -35,7 +36,7 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
     if (decklist) {
       setMode('view')
       setLoadingCards(true)
-      try { setCards(await fetchDecklistCards(decklist)) }
+      try { setCards(await resolveDecklistCards(decklist)) }
       finally { setLoadingCards(false) }
     } else {
       enterEditMode()

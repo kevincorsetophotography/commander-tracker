@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { fetchTypedDecklist, categorizeCard } from '../lib/scryfall'
+import { categorizeCard } from '../lib/scryfall'
+import { resolveDecklistCards } from '../lib/cardCache'
 import { useTheme } from '../hooks/useTheme'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
@@ -56,7 +57,7 @@ export default function DeckProfilePage() {
       if (deck?.decklist) {
         setLoadingList(true)
         try {
-          const cards = await fetchTypedDecklist(deck.decklist)
+          const cards = await resolveDecklistCards(deck.decklist)
           if (alive) setTypedCards(cards)
         } finally {
           if (alive) setLoadingList(false)

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
-import { useCardArt } from '../lib/cardArt'
+import { useCardArt } from '../lib/cardCache'
 
 // Fallback: endpoint API fuzzy (usato solo per i pochi nomi che il batch non risolve)
 const fuzzyArt = (name) =>
