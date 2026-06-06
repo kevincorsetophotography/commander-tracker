@@ -61,12 +61,13 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const [searchParams] = useSearchParams()
+  // La tab vive nell'URL (?tab=...): così il "back" del browser/gesture ripristina
+  // la scheda da cui si era partiti invece di tornare sempre a "Giocatori".
+  const [searchParams, setSearchParams] = useSearchParams()
   const VALID_TABS = ['stagione', 'giocatori', 'mazzi', 'matchup', 'storico', 'primati']
-  const [tab, setTab] = useState(() => {
-    const q = searchParams.get('tab')
-    return VALID_TABS.includes(q) ? q : 'giocatori'
-  })
+  const qTab = searchParams.get('tab')
+  const tab = VALID_TABS.includes(qTab) ? qTab : 'giocatori'
+  const setTab = (next) => setSearchParams(next === 'giocatori' ? {} : { tab: next }, { replace: true })
   const [playerStats, setPlayerStats] = useState([])
   const [deckStats, setDeckStats] = useState([])
   const [matchups, setMatchups] = useState([])
