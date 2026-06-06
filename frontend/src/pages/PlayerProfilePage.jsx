@@ -49,6 +49,14 @@ export default function PlayerProfilePage() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Sblocchi achievement persistiti sul server (fonte di verità per il profilo)
+  const [unlockedIds, setUnlockedIds] = useState([])
+  useEffect(() => {
+    api.playerAchievements(pid)
+      .then(r => setUnlockedIds(r.unlocked || []))
+      .catch(() => setUnlockedIds([]))
+  }, [pid])
+
   const profile = useMemo(() => {
     const player = players.find(p => p.id === pid)
     const myGames = games
@@ -127,10 +135,10 @@ export default function PlayerProfilePage() {
     const favoritePrey = Object.entries(preyTally).sort((a, b) => b[1] - a[1])[0] || null
     const hasKillData = kills > 0 || deaths > 0
 
-    const achievements = getAchievements({ myGames, myDecks, pid, allGames: games })
+    const achievements = getAchievements({ myGames, myDecks, pid, allGames: games, unlockedIds })
 
     return { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData }
-  }, [games, deckStats, players, pid])
+  }, [games, deckStats, players, pid, unlockedIds])
 
   // ── RIVALITÀ (scontri diretti) ──
   const [rivalId, setRivalId] = useState(null)

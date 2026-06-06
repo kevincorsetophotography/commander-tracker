@@ -39,6 +39,13 @@ const seasonKey = (date) => {
   const d = new Date(date);
   return `${d.getFullYear()}-${Math.floor(d.getMonth() / 4)}`;
 };
+// Una stagione è "conclusa" se è precedente a quella corrente (le stagionali
+// si assegnano solo a stagione finita, non al leader di quella in corso).
+const seasonEnded = (key) => {
+  const [y, i] = key.split('-').map(Number);
+  const [cy, ci] = seasonKey(new Date()).split('-').map(Number);
+  return y < cy || (y === cy && i < ci);
+};
 const pointsFor = (player, game) => {
   let pts = 1;
   const hasPlacement = game.players.every(p => p.placement != null);
@@ -124,6 +131,7 @@ function computeUnlocked({ pid, myGames, myDecks, allGames }) {
   if (allGames.length) {
     const keys = [...new Set(allGames.map(g => seasonKey(g.playedAt)))];
     for (const key of keys) {
+      if (!seasonEnded(key)) continue; // solo stagioni concluse
       if (seasonChampionId(allGames, key) === pid) seasonChampion = true;
       const mine = myGames.filter(g => seasonKey(g.playedAt) === key);
       if (mine.length >= 5 && mine.every(g => me(g)?.isWinner)) seasonPerfect = true;

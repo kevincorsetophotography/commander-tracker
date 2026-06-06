@@ -107,10 +107,13 @@ export function computeUnlocked({ myGames = [], myDecks = [], pid, allGames = []
   for (const [id, w] of Object.entries(winTally)) if (w > topWins) { topWins = w; topWinnerId = Number(id) }
   const giantSlayer = topWinnerId != null && topWinnerId !== pid && (victimTally[topWinnerId] || 0) > 0
 
-  // stagionali
+  // stagionali — solo su stagioni CONCLUSE (non il leader di quella in corso)
+  const nowSeason = seasonOf(new Date())
+  const seasonEnded = (s) => s.year < nowSeason.year || (s.year === nowSeason.year && s.idx < nowSeason.idx)
   let seasonChampion = false, seasonPerfect = false
   if (allGames.length) {
     for (const s of listSeasons(allGames)) {
+      if (!seasonEnded(s)) continue
       const { champion } = computeStandings(allGames, s.key)
       if (champion && champion.id === pid) seasonChampion = true
       const mine = myGames.filter(g => seasonOf(g.playedAt).key === s.key)
@@ -149,7 +152,12 @@ export function computeUnlocked({ myGames = [], myDecks = [], pid, allGames = []
 }
 
 // Lista achievement con stato sblocco, per la UI del profilo.
-export function getAchievements({ myGames, myDecks, pid, allGames = [] }) {
-  const u = computeUnlocked({ myGames, myDecks, pid, allGames })
-  return ACHIEVEMENTS.map(a => ({ ...a, unlocked: !!u[a.id] }))
+// `unlockedIds` è lo snapshot del server (fonte di verità): un achievement
+// sbloccato lì resta mostrato anche se il calcolo live ora darebbe falso
+// (es. ammazzagiganti quando cambia il più vincente). Si fa l'unione col live
+// per coprire eventuali sblocchi non ancora persistiti.
+export function getAchievements({ myGames, myDecks, pid, allGames = [], unlockedIds = [] }) {
+  const live = computeUnlocked({ myGames, myDecks, pid, allGames })
+  const persisted = new Set(unlockedIds)
+  return ACHIEVEMENTS.map(a => ({ ...a, unlocked: persisted.has(a.id) || !!live[a.id] }))
 }

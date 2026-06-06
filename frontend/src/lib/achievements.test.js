@@ -128,21 +128,38 @@ describe('pod, piazzamenti, giornata', () => {
   })
 })
 
-describe('stagionali', () => {
-  it('campione di stagione: sei il campione di una stagione', () => {
-    const allGames = Array.from({ length: 5 }, (_, i) =>
-      game([me({ isWinner: true, placement: 1 }), opp(2, { placement: 2 })], dateAt(i)))
-    const myGames = allGames
-    expect(unlocked({ myGames, allGames }).season_champion).toBe(true)
+describe('stagionali (solo stagioni concluse)', () => {
+  // date in una stagione già conclusa (6 mesi fa) e in quella in corso (oggi)
+  const endedDate = (i) => { const d = new Date(); d.setMonth(d.getMonth() - 6); d.setDate(5 + i); return d.toISOString().slice(0, 10) }
+  const today = new Date().toISOString().slice(0, 10)
+  const seasonGames = (dateFn) => Array.from({ length: 5 }, (_, i) =>
+    game([me({ isWinner: true, placement: 1 }), opp(2, { placement: 2 })], typeof dateFn === 'function' ? dateFn(i) : dateFn))
+
+  it('campione: assegnato per una stagione CONCLUSA', () => {
+    const g = seasonGames(endedDate)
+    expect(unlocked({ myGames: g, allGames: g }).season_champion).toBe(true)
   })
 
-  it('stagione perfetta (segreto): vinci tutte le tue ≥5 partite in una stagione', () => {
-    const allGames = Array.from({ length: 5 }, (_, i) =>
-      game([me({ isWinner: true, placement: 1 }), opp(2, { placement: 2 })], dateAt(i)))
-    expect(unlocked({ myGames: allGames, allGames }).season_perfect).toBe(true)
-    // con una sconfitta in mezzo non è perfetta
-    const withLoss = [...allGames.slice(0, 4), lossG('2026-05-20')]
+  it('campione: NON assegnato per la stagione in corso', () => {
+    const g = seasonGames(today)
+    expect(unlocked({ myGames: g, allGames: g }).season_champion).toBe(false)
+  })
+
+  it('stagione perfetta: tutte vinte in una stagione conclusa (non con una sconfitta, non in corso)', () => {
+    const g = seasonGames(endedDate)
+    expect(unlocked({ myGames: g, allGames: g }).season_perfect).toBe(true)
+    const withLoss = [...g.slice(0, 4), lossG(endedDate(4))]
     expect(unlocked({ myGames: withLoss, allGames: withLoss }).season_perfect).toBe(false)
+    expect(unlocked({ myGames: seasonGames(today), allGames: seasonGames(today) }).season_perfect).toBe(false)
+  })
+})
+
+describe('getAchievements: snapshot del server', () => {
+  it('mostra sbloccato ciò che è nello snapshot anche se il live darebbe falso', () => {
+    // nessuna partita -> live tutto falso, ma lo snapshot ha giant_slayer
+    const list = getAchievements({ myGames: [], myDecks: [], pid: PID, allGames: [], unlockedIds: ['giant_slayer'] })
+    expect(list.find(a => a.id === 'giant_slayer').unlocked).toBe(true)
+    expect(list.find(a => a.id === 'first_win').unlocked).toBe(false)
   })
 })
 

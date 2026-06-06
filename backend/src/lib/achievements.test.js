@@ -36,4 +36,13 @@ describe('unlockedForUser (logica achievement lato server)', () => {
     expect(ids.length).toBeGreaterThan(0)
     for (const id of ids) expect(ACHIEVEMENT_META[id]).toBeDefined()
   })
+
+  it('campione di stagione: solo per stagioni concluse, non per quella in corso', () => {
+    const endedDate = (i) => { const d = new Date(); d.setMonth(d.getMonth() - 6); d.setDate(5 + i); return d.toISOString().slice(0, 10) }
+    const today = new Date().toISOString().slice(0, 10)
+    const mk = (dateFn) => Array.from({ length: 5 }, (_, i) =>
+      game([me({ isWinner: true, placement: 1 }), opp(2, { placement: 2 })], typeof dateFn === 'function' ? dateFn(i) : dateFn))
+    expect(unlockedForUser(data(mk(endedDate)), PID)).toContain('season_champion')
+    expect(unlockedForUser(data(mk(today)), PID)).not.toContain('season_champion')
+  })
 })

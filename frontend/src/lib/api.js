@@ -79,4 +79,5 @@ export const api = {
   statsPlayers:  () => req('GET', '/stats/players'),
   statsDecks:    () => req('GET', '/stats/decks'),
   statsMatchups: () => req('GET', '/stats/matchups'),
+  playerAchievements: (userId) => req('GET', `/stats/achievements/${userId}`),
 };

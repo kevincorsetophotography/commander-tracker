@@ -4,6 +4,20 @@ const prisma = require('../lib/prisma');
 
 const PLAYER_ONLY = { role: 'PLAYER' };
 
+// GET /api/stats/achievements/:userId — id degli achievement sbloccati (snapshot
+// del server: fonte di verità, così il profilo non "perde" quelli non monotoni)
+router.get('/achievements/:userId', auth, async (req, res) => {
+  const userId = Number.parseInt(req.params.userId, 10);
+  if (!Number.isInteger(userId)) return res.status(400).json({ error: 'ID non valido' });
+  try {
+    const rows = await prisma.achievementUnlock.findMany({ where: { userId }, select: { achievementId: true } });
+    res.json({ unlocked: rows.map(r => r.achievementId) });
+  } catch (error) {
+    console.error('get achievements error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento degli achievement' });
+  }
+});
+
 // GET /api/stats/players
 router.get('/players', auth, async (req, res) => {
   const players = await prisma.user.findMany({
