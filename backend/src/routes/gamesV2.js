@@ -133,6 +133,20 @@ router.get('/', auth, async (req, res) => {
   res.json(games);
 });
 
+// GET /api/games/:id — singola partita con dettagli (per la pagina partita)
+router.get('/:id', auth, async (req, res) => {
+  const gameId = parseGameId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'ID partita non valido' });
+  try {
+    const game = await prisma.game.findUnique({ where: { id: gameId }, include: gameInclude });
+    if (!game) return res.status(404).json({ error: 'Partita non trovata' });
+    res.json(game);
+  } catch (error) {
+    console.error('get game error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento della partita' });
+  }
+});
+
 router.post('/', auth, async (req, res) => {
   const { players, winnerId, winnerDeckId, notes, playedAt } = req.body;
   const validation = await validateGamePayload({ players, winnerId, winnerDeckId });
@@ -291,7 +305,7 @@ router.post('/:id/comments', auth, async (req, res) => {
       type: 'comment',
       title: `💬 ${req.user.username} ha commentato una tua partita`,
       body: body.length > 80 ? body.slice(0, 80) + '…' : body,
-      link: '/?tab=storico',
+      link: `/partita/${gameId}`,
     });
 
     res.json(comment);
@@ -345,7 +359,7 @@ router.post('/:id/reactions', auth, async (req, res) => {
       await createNotifications(prisma, participants.filter(id => id !== req.user.id), {
         type: 'reaction',
         title: `${emoji} ${req.user.username} ha reagito a una tua partita`,
-        link: '/?tab=storico',
+        link: `/partita/${gameId}`,
       });
     }
 

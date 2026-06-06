@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -33,20 +33,37 @@ function Avatar({ name, t }) {
   )
 }
 
-export default function GameSocial({ game }) {
+export default function GameSocial({ game, defaultOpen = false }) {
   const { t } = useTheme()
   const { user } = useAuth()
   const { toast, confirm } = useFeedback()
 
   const [reactions, setReactions]     = useState(game.reactions || [])
   const [busyEmoji, setBusyEmoji]     = useState(null)
-  const [open, setOpen]               = useState(false)
+  const [open, setOpen]               = useState(defaultOpen)
   const [loaded, setLoaded]           = useState(false)
   const [loading, setLoading]         = useState(false)
   const [comments, setComments]       = useState([])
   const [count, setCount]             = useState(game._count?.comments ?? 0)
   const [text, setText]               = useState('')
   const [sending, setSending]         = useState(false)
+
+  const loadComments = async () => {
+    setLoading(true)
+    try {
+      const list = await api.getComments(game.id)
+      setComments(list)
+      setCount(list.length)
+      setLoaded(true)
+    } catch (err) {
+      toast(err.error || 'Errore caricamento commenti', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Sul dettaglio partita i commenti partono aperti
+  useEffect(() => { if (defaultOpen && !loaded) loadComments() }, [])
 
   const toggleReaction = async (emoji) => {
     if (busyEmoji) return
@@ -64,19 +81,7 @@ export default function GameSocial({ game }) {
   const openThread = async () => {
     const next = !open
     setOpen(next)
-    if (next && !loaded) {
-      setLoading(true)
-      try {
-        const list = await api.getComments(game.id)
-        setComments(list)
-        setCount(list.length)
-        setLoaded(true)
-      } catch (err) {
-        toast(err.error || 'Errore caricamento commenti', 'error')
-      } finally {
-        setLoading(false)
-      }
-    }
+    if (next && !loaded) await loadComments()
   }
 
   const send = async (e) => {

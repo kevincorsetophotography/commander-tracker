@@ -86,7 +86,7 @@ router.post('/', auth, async (req, res) => {
       type: 'event',
       title: `📅 Nuovo evento: ${event.title}`,
       body: formatEventDate(event.startsAt, event.allDay) + (event.location ? ` · ${event.location}` : ''),
-      link: '/eventi',
+      link: `/eventi?focus=${event.id}`,
     });
 
     res.json(event);

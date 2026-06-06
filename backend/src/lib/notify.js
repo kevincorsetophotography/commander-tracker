@@ -38,7 +38,7 @@ async function checkAchievements(prisma, userIds) {
             userId,
             type: 'achievement',
             title: `Achievement sbloccato: ${ACHIEVEMENT_META[id].title} ${ACHIEVEMENT_META[id].icon}`,
-            link: `/giocatore/${userId}`,
+            link: `/giocatore/${userId}?ach=1`,
           },
         });
       }

@@ -909,7 +909,15 @@ export default function DashboardPage() {
             return (
               <div key={g.id} style={card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, color: t.textMuted }}>{date} · {g.players.length} giocatori</div>
+                  <div
+                    onClick={() => navigate(`/partita/${g.id}`)}
+                    title="Apri la partita"
+                    style={{ fontSize: 12, color: t.textMuted, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <span style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 2 }}>{date}</span>
+                    <span>· {g.players.length} giocatori</span>
+                    <span style={{ color: t.primary, fontWeight: 700 }}>›</span>
+                  </div>
                   {winner && (
                     <span style={{ fontSize: 12, background: t.winBg, color: t.win, padding: '3px 10px', borderRadius: 20, fontWeight: 500 }}>
                       {winner.user.username} · {winner.deck.name}

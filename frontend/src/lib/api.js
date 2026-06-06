@@ -52,6 +52,7 @@ export const api = {
 
   // games
   getGames:   ()     => req('GET',    '/games'),
+  getGame:    (id)   => req('GET',    `/games/${id}`),
   createGame: (data) => req('POST',   '/games', data),
   updateGame: (id, data) => req('PATCH', `/games/${id}`, data),
   deleteGame: (id)   => req('DELETE', `/games/${id}`),

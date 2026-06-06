@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -42,6 +43,22 @@ export default function EventsPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const [showForm, setShowForm] = useState(false)
+
+  const [searchParams] = useSearchParams()
+  const focusId = Number(searchParams.get('focus')) || null
+  const [highlightId, setHighlightId] = useState(null)
+
+  // Da notifica evento (?focus=ID): scrolla e evidenzia l'evento
+  useEffect(() => {
+    if (!focusId || loading || events.length === 0) return
+    const el = document.getElementById(`evento-${focusId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightId(focusId)
+      const tm = setTimeout(() => setHighlightId(null), 2600)
+      return () => clearTimeout(tm)
+    }
+  }, [focusId, loading, events])
 
   const load = async () => {
     try { setEvents(await api.getEvents()) }
@@ -135,7 +152,12 @@ export default function EventsPage() {
     const time = ev.allDay ? null : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 
     return (
-      <div key={ev.id} style={{ ...glass, borderRadius: 16, padding: '1rem 1.1rem', marginBottom: 12, opacity: faded ? 0.62 : 1 }}>
+      <div key={ev.id} id={`evento-${ev.id}`} style={{
+        ...glass, borderRadius: 16, padding: '1rem 1.1rem', marginBottom: 12, opacity: faded ? 0.62 : 1,
+        outline: highlightId === ev.id ? `2px solid ${t.primary}` : 'none',
+        boxShadow: highlightId === ev.id ? `0 0 0 4px ${t.primaryBg}` : (glass.boxShadow || 'none'),
+        transition: 'outline 0.3s, box-shadow 0.3s',
+      }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           {/* Badge data */}
           <div style={{ flexShrink: 0, width: 58, textAlign: 'center', background: t.bgMuted, borderRadius: 12, padding: '8px 0', border: `0.5px solid ${t.border}` }}>

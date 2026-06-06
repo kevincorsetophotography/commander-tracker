@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
@@ -29,6 +29,18 @@ export default function PlayerProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [achOpen, setAchOpen] = useState(false)
+
+  // Da notifica achievement (?ach=1): apri la sezione e scrolla
+  const [searchParams] = useSearchParams()
+  const wantAch = searchParams.get('ach') === '1'
+  useEffect(() => {
+    if (!wantAch || loading) return
+    setAchOpen(true)
+    const tm = setTimeout(() => {
+      document.getElementById('achievements')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+    return () => clearTimeout(tm)
+  }, [wantAch, loading])
 
   useEffect(() => {
     Promise.all([api.getGames(), api.statsDecks(), api.statsPlayers()])
@@ -366,7 +378,7 @@ export default function PlayerProfilePage() {
         }
 
         return (
-          <div style={{ ...card, marginTop: 16, cursor: achOpen ? 'default' : 'pointer' }} onClick={() => { if (!achOpen) setAchOpen(true) }}>
+          <div id="achievements" style={{ ...card, marginTop: 16, cursor: achOpen ? 'default' : 'pointer', scrollMarginTop: 70 }} onClick={() => { if (!achOpen) setAchOpen(true) }}>
             <div
               onClick={(e) => { e.stopPropagation(); setAchOpen(o => !o) }}
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
