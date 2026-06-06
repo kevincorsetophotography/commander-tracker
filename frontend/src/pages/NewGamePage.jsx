@@ -7,6 +7,13 @@ import { fireConfetti } from '../lib/confetti'
 
 const EMPTY_SLOT = { userId: '', deckId: '' }
 
+// Data locale YYYY-MM-DD (niente shift di fuso come con toISOString)
+const toLocalDate = (d) => {
+  const x = new Date(d)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`
+}
+
 export default function NewGamePage() {
   const navigate = useNavigate()
   const { t } = useTheme()
@@ -19,7 +26,9 @@ export default function NewGamePage() {
     : [{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
   const [notes, setNotes] = useState('')
-  const [playedAt, setPlayedAt] = useState(() => new Date().toISOString().slice(0, 10))
+  // Per i pod torneo la data è quella dell'EVENTO (non oggi), così la partita
+  // finisce nella stagione/storico giusti.
+  const [playedAt, setPlayedAt] = useState(() => toLocalDate(podCtx?.date || new Date()))
   const [elimOrder, setElimOrder] = useState([])  // chiavi "userId-deckId" in ordine di uscita (primo eliminato per primo)
   const [elimBy, setElimBy] = useState({})        // { "userId-deckId" → userId del killer }
   const [saving, setSaving] = useState(false)
@@ -165,10 +174,11 @@ export default function NewGamePage() {
         <input
           type="date"
           value={playedAt}
-          max={new Date().toISOString().slice(0, 10)}
+          max={podCtx ? undefined : toLocalDate(new Date())}
           onChange={e => setPlayedAt(e.target.value)}
           style={{ ...sel, minWidth: 180 }}
         />
+        {podCtx && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 6 }}>Pre-impostata alla data dell'evento.</div>}
       </div>
 
       {/* Slot giocatori */}

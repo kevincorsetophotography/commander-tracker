@@ -166,7 +166,7 @@ export default function EventDetailPage() {
                 </>
               ) : (isAdmin || mine) ? (
                 <button
-                  onClick={() => navigate('/nuova-partita', { state: { podContext: { eventId: eid, tableId: tbl.id, players: tbl.seats.map(s => ({ userId: s.user.id, username: s.user.username })) } } })}
+                  onClick={() => navigate('/nuova-partita', { state: { podContext: { eventId: eid, tableId: tbl.id, date: event.startsAt, players: tbl.seats.map(s => ({ userId: s.user.id, username: s.user.username })) } } })}
                   style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: t.primary, color: t.primaryFg, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >Registra partita</button>
               ) : (
