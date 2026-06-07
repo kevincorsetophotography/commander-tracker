@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
+
+function RedirectWithSearch({ to }) {
+  const { search } = useLocation()
+  return <Navigate to={to + search} replace />
+}
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider, useTheme } from './hooks/useTheme'
 import { FeedbackProvider } from './hooks/useFeedback'
@@ -15,6 +20,7 @@ import EventsPage from './pages/EventsPage'
 import EventDetailPage from './pages/EventDetailPage'
 import GamePage from './pages/GamePage'
 import JudgePage from './pages/JudgePage'
+import GiocaPage from './pages/GiocaPage'
 import NotificationBell from './components/NotificationBell'
 
 function NavItem({ to, end, children }) {
@@ -135,12 +141,20 @@ function Layout() {
 
   const routes = (
     <Routes>
+      {/* Feed: placeholder → DashboardPage fino a FeedPage (Fase 3) */}
       <Route path="/"              element={<DashboardPage />} />
+      {/* Gruppo: placeholder → DashboardPage fino a GruppoPage (Fase 4) */}
+      <Route path="/gruppo"        element={<DashboardPage />} />
+      {/* Gioca: nuova landing */}
+      <Route path="/gioca"         element={<GiocaPage />} />
+      {/* Tornei: alias di /eventi, sarà rinominato in Fase 6 */}
+      <Route path="/tornei"        element={<EventsPage />} />
+      {/* Redirect /eventi → /tornei preservando querystring (deep-link notifiche) */}
+      <Route path="/eventi"        element={<RedirectWithSearch to="/tornei" />} />
       <Route path="/giocatore/:id" element={<PlayerProfilePage />} />
       <Route path="/mazzo/:id"     element={<DeckProfilePage />} />
       <Route path="/mazzi"         element={<DecksPage />} />
       <Route path="/partita/:id"   element={<GamePage />} />
-      <Route path="/eventi"        element={<EventsPage />} />
       <Route path="/evento/:id"    element={<EventDetailPage />} />
       <Route path="/nuova-partita" element={<NewGamePage />} />
       <Route path="/giudice"       element={<JudgePage />} />
@@ -187,11 +201,11 @@ function Layout() {
             <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 62, padding: '8px 0', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <div style={{ marginRight: 8 }}><Brand /></div>
-                <NavItem to="/" end>Riepilogo</NavItem>
+                <NavItem to="/" end>Feed</NavItem>
+                <NavItem to="/gioca">Gioca</NavItem>
+                <NavItem to="/tornei">Tornei</NavItem>
+                <NavItem to="/gruppo">Gruppo</NavItem>
                 <NavItem to="/mazzi">Mazzi</NavItem>
-                <NavItem to="/eventi">Eventi</NavItem>
-                <NavItem to="/nuova-partita">+ Partita</NavItem>
-                <NavItem to="/giudice">Judge</NavItem>
                 {user?.role === 'ADMIN' && <NavItem to="/admin">Admin</NavItem>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -221,13 +235,11 @@ function Layout() {
           display: 'flex', gap: 4,
           padding: '6px 8px calc(6px + env(safe-area-inset-bottom)) 8px',
         }}>
-          <DockItem to="/" end icon="🏠" label="Home" />
-          <DockItem to="/mazzi" icon="🎴" label="Mazzi" />
-          <DockItem to="/nuova-partita" icon="＋" label="Partita" />
-          <DockItem to="/eventi"   icon="📅" label="Eventi" />
-          <DockItem to="/giudice"  icon="⚖" label="Judge" />
-          <DockItem to={`/giocatore/${user?.id}`} icon="👤" label="Tu" />
-          {user?.role === 'ADMIN' && <DockItem to="/admin" icon="⚙" label="Admin" />}
+          <DockItem to="/" end icon="🏠" label="Feed" />
+          <DockItem to="/gioca"  icon="🎮" label="Gioca" />
+          <DockItem to="/tornei" icon="📅" label="Tornei" />
+          <DockItem to="/gruppo" icon="📊" label="Gruppo" />
+          <DockItem to={`/giocatore/${user?.id}`} icon="👤" label="Io" />
         </div>
       )}
     </div>
