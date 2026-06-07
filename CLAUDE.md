@@ -22,7 +22,7 @@ App full-stack deployata: i membri registrano partite, mazzi, statistiche, event
   - Il DB locale **deve essere UTF-8** (per le emoji). `dev.mjs` lo (ri)crea UTF-8 se serve: su Windows initdb usa WIN1252 di default, che fa crashare i salvataggi con emoji.
   - Credenziali seed: `admin/test`; giocatori `Ramuh, Shiva, Ifrit, Bahamut, Leviath, Titan` → password `test`.
 - Frontend: `cd frontend && npx vite --host` (:5173). Punta a `http://localhost:3001/api` di default (`lib/api.js`, niente `.env` frontend in locale).
-- `.env` (backend, **gitignored**): `DATABASE_URL` (locale o Railway), `JWT_SECRET` (≥32 char), `PORT`, `FRONTEND_URL`, `INVITE_CODE`.
+- `.env` (backend, **gitignored**): `DATABASE_URL` (locale o Railway), `JWT_SECRET` (≥32 char), `PORT`, `FRONTEND_URL`, `INVITE_CODE`, `GROQ_API_KEY` (per il Judge Bot).
 
 ### Gotcha Windows + Prisma
 Rigenerare il client mentre il backend gira **blocca la query-engine DLL** (EPERM). Procedura: `db push --skip-generate` è sicuro a caldo; per `prisma generate` **fermare il backend**, generare, riavviare. (Le migrazioni usano `prisma db push`, **niente cartella migrations**.)
@@ -40,14 +40,15 @@ Rigenerare il client mentre il backend gira **blocca la query-engine DLL** (EPER
 
 ```
 backend/src/
-  index.js            mount rotte, CORS, rate-limit /auth, trust proxy, init achievement snapshot
+  index.js            mount rotte, CORS, rate-limit /auth e /judge, trust proxy, init achievement snapshot, loadComprehensiveRules
   lib/
     prisma.js         PrismaClient SINGLETON condiviso (un solo pool)
     achievements.js   logica achievement lato server (mirror del frontend) + loadData/unlockedForUser + ACHIEVEMENT_META
     notify.js         createNotifications, checkAchievements, initAchievementSnapshots (backfill silenzioso)
     decklist.js       validazione decklist (100 carte, esistenza su Scryfall)
     tournament.js     algoritmi torneo PURI: podSizes (3-5, pref 4), makePods/makePairings, standings1v1, swissPairings (con test)
-  routes/             auth, admin, decks, gamesV2 (partite + commenti/reazioni), stats, events (calendario + tornei), notifications
+    judge.js          Judge Bot: parse/search CR, keyword extraction, card detection Scryfall, chiamata Groq (con test)
+  routes/             auth, admin, decks, gamesV2 (partite + commenti/reazioni), stats, events (calendario + tornei), notifications, judge
   ensureAdmin.js                 upsert admin (one-shot, suo PrismaClient)
   migrateNotificationLinks.js    migrazione idempotente: link notifiche vecchie → deep-link
   migrateSeasonAchievements.js   migrazione idempotente: rimuove achievement stagionali assegnati per errore
@@ -62,7 +63,8 @@ frontend/src/
     cardCache.js      cache immagini+tipi carta Scryfall (localStorage, batch /cards/collection)
     scryfall.js       chiamate Scryfall (autocomplete, colori, validazione)
   pages/              DashboardPage, DecksPage, DeckProfilePage, PlayerProfilePage, GamePage (/partita/:id),
-                      EventsPage (/eventi), EventDetailPage (/evento/:id, torneo), AdminPage, NewGamePage, Login
+                      EventsPage (/eventi), EventDetailPage (/evento/:id, torneo), AdminPage, NewGamePage, Login,
+                      JudgePage (/giudice)
                       (Dashboard.jsx è LEGACY)
   components/         DeckThumb, GameSocial, NotificationBell, BracketBadge, ArchetypeBadge, DeckListPanel, ...
 ```
@@ -78,6 +80,8 @@ Eventi/tornei: `Event` (startsAt, allDay, location, **format** 'multiplayer'|'1v
 **gameId** = partita reale per i pod multiplayer; scoreA/scoreB/winnerUserId/isDraw/done per 1v1),
 `EventSeat` (posto = utente).
 
+Judge Bot: `JudgeQuestion` (userId, question, answer, explanation, confidence, sourcesJson, rulesUsed, createdAt).
+
 ---
 
 ## Convenzioni & insidie (le cose che fanno perdere tempo)
@@ -86,7 +90,8 @@ Eventi/tornei: `Event` (startsAt, allDay, location, **format** 'multiplayer'|'1v
 - **Achievement stagionali** (`season_champion`, `season_perfect`): solo per **stagioni concluse**, mai per quella in corso.
 - **Anti-flood notifiche achievement**: `initAchievementSnapshots` gira a ogni avvio e registra in **silenzio** ciò che è già maturato (niente notifiche retroattive). Lo sblocco "vero" usa il vincolo unique come lock atomico → 1 sola notifica.
 - **Notifiche**: create **lato server** come side-effect (mai dal client). **Deep-link** all'oggetto: commento/reazione → `/partita/:id`; evento → `/eventi?focus=:id` (scroll+highlight); achievement → `/giocatore/:id?ach=1` (apre la sezione). Polling ogni 60s (`NotificationBell`).
-- **Scryfall**: MAI una chiamata `cards/named?format=image` per ogni miniatura (rate-limit 429). Usa `cardCache` (batch `/cards/collection` + URL CDN `cards.scryfall.io` in localStorage). Stesso meccanismo per la lista carte per tipo.
+- **Scryfall**: MAI una chiamata `cards/named?format=image` per ogni miniatura (rate-limit 429). Usa `cardCache` (batch `/cards/collection` + URL CDN `cards.scryfall.io` in localStorage). Stesso meccanismo per la lista carte per tipo. Il batch `/cards/collection` non trova DFC con solo la faccia frontale né nomi alternativi (universe beyond): `batchFetch` ha un fuzzy fallback via `/cards/named?fuzzy=` per i not_found.
+- **Judge Bot**: `lib/judge.js` carica le CR all'avvio in memoria (best-effort, fallback silenzioso). L'URL CR va aggiornato ad ogni set da `https://magic.wizards.com/en/rules`. Rate limit dedicato: 5 req / 5 min per IP. Risponde in JSON strutturato via Groq (`llama-3.3-70b-versatile`). `GROQ_API_KEY` va aggiunta sia in `.env` locale che nelle variabili Railway prima del deploy.
 - **Dashboard tab nell'URL** (`?tab=mazzi`): così il "back" del browser/gesture ripristina la scheda. Cambiare tab usa `replace`.
 - **Scroll mobile**: NIENTE `overflow-x: hidden` su `<html>` (su Android Chrome rende `<html>` un contenitore di scroll e blocca lo scroll verticale). Si usa `overflow-x: clip` sul `body`.
 - **Header mobile** stretto: logo + nome utente + 🔔 + tema + Esci devono stare anche a 320px (il brand cede per primo con `overflow:hidden`).
@@ -99,8 +104,8 @@ Eventi/tornei: `Event` (startsAt, allDay, location, **format** 'multiplayer'|'1v
 
 ## Roadmap completata
 
-Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · **Tornei negli eventi** (formato 1v1 svizzera con classifica/vincitore, o multiplayer a pod con partite reali) · Guida Utente (`GUIDA_UTENTE.md`, con screenshot in `docs/img/`).
+Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · **Tornei negli eventi** (formato 1v1 svizzera con classifica/vincitore, o multiplayer a pod con partite reali) · **Judge Bot** (`/giudice`: Q&A ruling Commander via Groq + Scryfall + CR) · Guida Utente (`GUIDA_UTENTE.md`, con screenshot in `docs/img/`).
 
-Robustezza fatta: PrismaClient singleton, rate-limit login, aria-label, test Vitest sulle logiche pure (achievement, stagioni, decklist, **torneo**), cache immagini/liste.
+Robustezza fatta: PrismaClient singleton, rate-limit login + judge, aria-label, test Vitest sulle logiche pure (achievement, stagioni, decklist, **torneo**, **judge**), cache immagini/liste.
 
 > Nota: la Guida Utente (`GUIDA_UTENTE.md`) **non** copre ancora la sezione **Tornei** — da aggiornare quando si vuole.
