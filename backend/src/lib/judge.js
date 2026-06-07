@@ -112,7 +112,7 @@ async function fetchCardContext(cardName) {
 
 // ── Groq ─────────────────────────────────────────────────────────────────────
 
-async function groqChat({ model, messages, maxTokens = 1024, temperature = 0.1 }) {
+async function groqChat({ model, messages, maxTokens = 1024, temperature = 0.1, _retry = 0 }) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY non configurata');
 
@@ -131,7 +131,17 @@ async function groqChat({ model, messages, maxTokens = 1024, temperature = 0.1 }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Groq HTTP ${res.status}`);
+    const msg = err.error?.message || `Groq HTTP ${res.status}`;
+
+    // TPM / RPM rate limit: riprova dopo il delay suggerito (max 3 tentativi)
+    if (res.status === 429 && _retry < 3) {
+      const match = msg.match(/try again in (\d+(?:\.\d+)?)s/i);
+      const wait = match ? Math.ceil(parseFloat(match[1]) * 1000) + 1000 : 10000 * (_retry + 1);
+      await new Promise(r => setTimeout(r, wait));
+      return groqChat({ model, messages, maxTokens, temperature, _retry: _retry + 1 });
+    }
+
+    throw new Error(msg);
   }
 
   const data = await res.json();
