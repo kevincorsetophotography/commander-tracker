@@ -10,11 +10,13 @@ let _crSections = []; // { id, text }[] — cache in memoria
 
 function parseComprehensiveRules(text) {
   const sections = [];
-  const pattern = /^(\d+(?:\.\d+[a-z]*)?)\.\s+(.+)/;
+  // Lettered sub-rules (e.g. 608.2b) omit the trailing dot; make it optional.
+  const pattern = /^(\d+(?:\.\d+[a-z]*)?)\.?\s+(.+)/;
   for (const line of String(text).split('\n')) {
     const trimmed = line.trim();
     const m = trimmed.match(pattern);
-    if (m) sections.push({ id: m[1], text: trimmed });
+    // Require at least one dot in the id to avoid matching bare paragraph numbers
+    if (m && m[1].includes('.')) sections.push({ id: m[1], text: trimmed });
   }
   return sections;
 }
@@ -142,19 +144,32 @@ async function normalizeQuestion(question) {
   try {
     const raw = await groqChat({
       model: 'llama-3.1-8b-instant',
-      maxTokens: 200,
+      maxTokens: 300,
       temperature: 0,
       messages: [
         {
           role: 'system',
-          content: `Sei un esperto di Magic: The Gathering. Data una domanda sulle regole, estrai:
-1. I nomi esatti delle carte Magic (risolvi abbreviazioni: PoE=Path to Exile, GoF=Gift of Fangs, ecc.)
-2. I concetti di gioco chiave in inglese (es: target, exile, new object, triggered ability, blink, stack)
-Rispondi solo con JSON valido.`
+          content: `You are a Magic: The Gathering rules expert. Given a rules question (possibly in Italian or with abbreviations), extract:
+
+1. "cardNames": exact English Magic card names. Resolve abbreviations and Italian names:
+   PoE/path/percorso = "Path to Exile", StoP/swords/spade = "Swords to Plowshares",
+   Sol Ring, CoP = "Circle of Protection", blinka/blink = look for card context,
+   rimbalza/rimbalzo = bounce, palla di fuoco = "Fireball", etc.
+
+2. "concepts": English CR search keywords for this specific interaction. Choose from:
+   - Targeting: "target", "illegal target", "target becomes illegal", "counter on resolution", "608.2"
+   - Zone change / blink / bounce: "new object", "zone change", "leaves battlefield", "400.7", "exile and return"
+   - Stack: "stack", "respond", "response", "resolve"
+   - Combat: "combat damage", "declare attackers", "declare blockers"
+   - Replacement effects: "replacement effect", "instead"
+   - Copy / token: "copy", "token", "create"
+   Include "illegal target" and "new object" whenever the question involves targeting + zone change (blink/bounce/exile-return).
+
+Respond only with valid JSON, no other text.`
         },
         {
           role: 'user',
-          content: `Domanda: "${question}"\n\nRispondi con: {"cardNames":["..."],"concepts":["..."]}`
+          content: `Question: "${question}"\n\nRespond with: {"cardNames":["..."],"concepts":["..."]}`
         }
       ]
     });
@@ -225,7 +240,14 @@ async function askJudge(question) {
 Rispondi ESCLUSIVAMENTE in base ai testi forniti nel contesto (oracle text, ruling Scryfall, Comprehensive Rules).
 Se il contesto non è sufficiente, indica confidence bassa e spiega cosa manca.
 Non inventare numeri di regole: cita solo regole presenti nel contesto.
-Rispondi sempre in italiano. Rispondi SOLO con JSON valido.`
+Rispondi sempre in italiano. Rispondi SOLO con JSON valido.
+
+PRINCIPI FONDAMENTALI DI RAGIONAMENTO:
+- "Blinkare" una creatura significa esiliarla dal campo di battaglia e farla tornare: sono DUE cambiamenti di zona.
+- Ogni cambiamento di zona crea un NUOVO oggetto senza memoria del precedente (regola 400.7).
+- Se il bersaglio di uno spell cambia zona dopo essere stato scelto come bersaglio, non è più lo stesso oggetto → il bersaglio è diventato illegale.
+- Se TUTTI i bersagli di uno spell diventano illegali, lo spell viene contrastato in risoluzione (regola 608.2b). Non produce alcun effetto.
+- Questo vale per QUALSIASI spell con un solo bersaglio (Path to Exile, Swords to Plowshares, Lightning Bolt, ecc.): se il bersaglio viene blinkato/bounced/esiliato in risposta, lo spell non risolve.`
       },
       {
         role: 'user',
