@@ -65,9 +65,11 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
       const others = lines.filter(line => {
         if (removed) return true
         const m = line.match(/^\d+x?\s+(.+)$/)
-        if (m && commander && m[1].toLowerCase() === commander.toLowerCase()) {
-          removed = true
-          return false
+        if (m && commander) {
+          const entered = m[1].toLowerCase()
+          const stored = commander.toLowerCase()
+          const isDfc = entered.startsWith(stored + ' //') || stored.startsWith(entered + ' //')
+          if (entered === stored || isDfc) { removed = true; return false }
         }
         return true
       })

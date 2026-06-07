@@ -72,13 +72,31 @@ async function batchFetch(names) {
     if (data.not_found) notFound.push(...data.not_found.map(c => c.name))
     if (data.data) cards.push(...data.data)
   }
-  return { cards, notFound }
+
+  // Fuzzy fallback: handles DFC front-face-only names and alternate/universe-beyond names
+  const reallyNotFound = []
+  for (const originalName of notFound) {
+    try {
+      const res = await fetch(`${BASE}/cards/named?fuzzy=${encodeURIComponent(originalName)}`)
+      if (res.ok) {
+        const card = await res.json()
+        cards.push({ ...card, _queryName: originalName })
+      } else {
+        reallyNotFound.push(originalName)
+      }
+    } catch {
+      reallyNotFound.push(originalName)
+    }
+  }
+
+  return { cards, notFound: reallyNotFound }
 }
 
 function toCardEntry(card, countByName) {
+  const lookupName = card._queryName || card.name
   return {
     name: card.name,
-    count: countByName[card.name] || 1,
+    count: countByName[lookupName] || countByName[card.name] || 1,
     imageUri: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
     typeLine: card.type_line || card.card_faces?.[0]?.type_line || ''
   }

@@ -37,7 +37,19 @@ async function findMissingCards(names) {
       missing.push(...data.not_found.map((c) => c.name).filter(Boolean));
     }
   }
-  return missing;
+
+  // Fuzzy fallback: handles DFC front-face-only names and alternate/universe-beyond names
+  const reallyMissing = [];
+  for (const name of missing) {
+    try {
+      const res = await fetch(`${SCRYFALL}/cards/named?fuzzy=${encodeURIComponent(name)}`);
+      if (!res.ok) reallyMissing.push(name);
+    } catch {
+      reallyMissing.push(name);
+    }
+  }
+
+  return reallyMissing;
 }
 
 /**
