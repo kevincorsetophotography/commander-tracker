@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 
@@ -31,6 +31,58 @@ function Tag({ children, color }) {
   )
 }
 
+function HistoryItem({ item, t }) {
+  const [open, setOpen] = useState(false)
+  const date = new Date(item.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
+  const pct = Math.round(item.confidence * 100)
+  const confColor = item.confidence >= 0.85 ? '#4caf50' : item.confidence >= 0.6 ? '#ff9800' : '#f44336'
+
+  return (
+    <div style={{
+      background: t.bgSurface,
+      border: `1px solid ${t.border}`,
+      borderRadius: 12,
+      overflow: 'hidden',
+      transition: 'border-color 0.15s',
+    }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', textAlign: 'left', background: 'none', border: 'none',
+          padding: '0.85rem 1rem', cursor: 'pointer',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 3, lineHeight: 1.4 }}>
+            ⚖ {item.question}
+          </div>
+          <div style={{ fontSize: 11, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>{item.user.username}</span>
+            <span>·</span>
+            <span>{date}</span>
+            <span>·</span>
+            <span style={{ color: confColor, fontWeight: 600 }}>{pct}%</span>
+          </div>
+        </div>
+        <span style={{
+          fontSize: 11, color: t.textMuted, flexShrink: 0, marginTop: 2,
+          transition: 'transform 0.2s', display: 'inline-block',
+          transform: open ? 'rotate(90deg)' : 'rotate(0deg)'
+        }}>▶</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 1rem 1rem', borderTop: `1px solid ${t.border}` }}>
+          <div style={{ fontSize: 14, color: t.text, lineHeight: 1.65, paddingTop: '0.75rem' }}>
+            {item.answer}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function JudgePage() {
   const { t } = useTheme()
   const [question, setQuestion]   = useState('')
@@ -38,6 +90,13 @@ export default function JudgePage() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [showSources, setShowSources] = useState(false)
+  const [history, setHistory]     = useState([])
+
+  useEffect(() => {
+    api.getJudgeHistory()
+      .then(setHistory)
+      .catch(() => {})
+  }, [])
 
   const ask = async () => {
     const q = question.trim()
@@ -46,6 +105,12 @@ export default function JudgePage() {
     try {
       const data = await api.askJudge(q)
       setResult(data)
+      // aggiorna storico aggiungendo la nuova domanda in cima (ottimistico)
+      setHistory(prev => [{
+        id: Date.now(), question: q, answer: data.answer,
+        confidence: data.confidence, createdAt: new Date().toISOString(),
+        user: { username: 'Tu' }
+      }, ...prev.slice(0, 29)])
     } catch (err) {
       setError(err.error || 'Errore durante la consulenza. Riprova.')
     } finally {
@@ -125,11 +190,10 @@ export default function JudgePage() {
         </div>
       </div>
 
-      {/* Risposta */}
+      {/* Risposta corrente */}
       {result && (
         <div className="ct-fade-up">
 
-          {/* Risposta principale */}
           <div style={{ ...glass, marginBottom: 12, borderLeft: `3px solid ${t.primary}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: t.primary }}>Ruling</span>
@@ -140,17 +204,13 @@ export default function JudgePage() {
             </div>
           </div>
 
-          {/* Spiegazione */}
           {result.explanation && (
             <div style={{ ...glass, marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t.textSub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Spiegazione</div>
-              <div style={{ fontSize: 14, color: t.text, lineHeight: 1.7 }}>
-                {result.explanation}
-              </div>
+              <div style={{ fontSize: 14, color: t.text, lineHeight: 1.7 }}>{result.explanation}</div>
             </div>
           )}
 
-          {/* Carte e regole rilevate */}
           {(result.cardsDetected?.length > 0 || result.rulesUsed?.length > 0) && (
             <div style={{ ...glass, marginBottom: 12 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
@@ -174,9 +234,8 @@ export default function JudgePage() {
             </div>
           )}
 
-          {/* Fonti CR */}
           {result.sources?.length > 0 && (
-            <div style={{ ...glass }}>
+            <div style={{ ...glass, marginBottom: 12 }}>
               <button
                 onClick={() => setShowSources(v => !v)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, color: t.textSub, fontSize: 13, fontWeight: 600 }}
@@ -197,9 +256,22 @@ export default function JudgePage() {
             </div>
           )}
 
-          {/* Disclaimer */}
-          <div style={{ marginTop: 12, fontSize: 12, color: t.textMuted, textAlign: 'center' }}>
+          <div style={{ marginTop: 12, marginBottom: 24, fontSize: 12, color: t.textMuted, textAlign: 'center' }}>
             Le risposte del judge bot sono orientative. Per decisioni ufficiali consulta sempre un judge certificato.
+          </div>
+        </div>
+      )}
+
+      {/* Storico domande del gruppo */}
+      {history.length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 10, marginTop: result ? 0 : 8 }}>
+            Domande recenti del gruppo
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {history.map(item => (
+              <HistoryItem key={item.id} item={item} t={t} />
+            ))}
           </div>
         </div>
       )}

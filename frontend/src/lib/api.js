@@ -81,6 +81,7 @@ export const api = {
 
   // judge bot
   askJudge: (question) => req('POST', '/judge', { question }),
+  getJudgeHistory: () => req('GET', '/judge'),
 
   // stats
   statsPlayers:  () => req('GET', '/stats/players'),

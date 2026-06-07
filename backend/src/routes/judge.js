@@ -38,4 +38,22 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// GET /api/judge — storico domande del gruppo (ultime 30, ordine cronologico inverso)
+router.get('/', auth, async (req, res) => {
+  try {
+    const questions = await prisma.judgeQuestion.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: {
+        id: true, question: true, answer: true, confidence: true, createdAt: true,
+        user: { select: { username: true } }
+      }
+    });
+    res.json(questions);
+  } catch (err) {
+    console.error('judge history error:', err.message);
+    res.status(500).json({ error: 'Errore nel caricamento dello storico' });
+  }
+});
+
 module.exports = router;
