@@ -4,6 +4,7 @@ Tracker di partite **Magic: The Gathering / Commander (EDH)** per il gruppo di V
 App full-stack deployata: i membri registrano partite, mazzi, statistiche, eventi, e c'è uno strato social (commenti/reazioni), achievement e notifiche.
 
 > Questo file è il contesto che leggo a inizio sessione. Tienilo aggiornato quando l'architettura cambia.
+> **Regola pratica**: prima di dire "manca X", cerca nel codice. Il progetto è più completo di quanto sembri.
 
 ---
 
@@ -45,70 +46,268 @@ backend/src/
     prisma.js         PrismaClient SINGLETON condiviso (un solo pool)
     achievements.js   logica achievement lato server (mirror del frontend) + loadData/unlockedForUser + ACHIEVEMENT_META
     notify.js         createNotifications, checkAchievements, initAchievementSnapshots (backfill silenzioso)
-    decklist.js       validazione decklist (100 carte, esistenza su Scryfall)
-    tournament.js     algoritmi torneo PURI: podSizes (3-5, pref 4), makePods/makePairings, standings1v1, swissPairings (con test)
-    judge.js          Judge Bot: parse/search CR, keyword extraction, card detection Scryfall, chiamata Groq (con test)
-  routes/             auth, admin, decks, gamesV2 (partite + commenti/reazioni), stats, events (calendario + tornei), notifications, judge
+    decklist.js       parseDecklist, findMissingCards, validateDecklist (100 carte, esistenza su Scryfall)
+    tournament.js     algoritmi torneo PURI: podSizes, makePods, makePairings, standings1v1, swissPairings (con test)
+    judge.js          Judge Bot: parseComprehensiveRules, searchInSections, detectCardNames, fetchCardContext, normalizeQuestion, askJudge
+  routes/
+    auth.js           POST /register, POST /login
+    admin.js          CRUD users + export JSON (richiede ADMIN)
+    decks.js          CRUD mazzi + POST /import (Archidekt/Moxfield)
+    gamesV2.js        CRUD partite + commenti + reazioni (MONTATO; games.js è LEGACY)
+    stats.js          GET players, decks, matchups, achievements/:userId
+    events.js         CRUD eventi + RSVP + turni + risultati tavoli
+    notifications.js  GET lista, GET unread-count, POST read
+    judge.js          POST / (domanda → askJudge + salva JudgeQuestion)
   ensureAdmin.js                 upsert admin (one-shot, suo PrismaClient)
   migrateNotificationLinks.js    migrazione idempotente: link notifiche vecchie → deep-link
   migrateSeasonAchievements.js   migrazione idempotente: rimuove achievement stagionali assegnati per errore
-  (games.js è LEGACY, non montato — si usa gamesV2.js)
+  (games.js è LEGACY, non montato)
 
 frontend/src/
-  App.jsx             rotte + layout (header desktop/mobile, dock mobile, NotificationBell)
+  App.jsx             rotte React + layout (header desktop/mobile, dock mobile, NotificationBell)
   lib/
-    api.js            client fetch (Authorization Bearer)
-    achievements.js   definizioni + computeUnlocked (mirror backend); getAchievements fa UNIONE snapshot+live
-    seasons.js        stagioni 4-mesi, punteggi, classifica, campione
-    cardCache.js      cache immagini+tipi carta Scryfall (localStorage, batch /cards/collection)
-    scryfall.js       chiamate Scryfall (autocomplete, colori, validazione)
-  pages/              DashboardPage, DecksPage, DeckProfilePage, PlayerProfilePage, GamePage (/partita/:id),
-                      EventsPage (/eventi), EventDetailPage (/evento/:id, torneo), AdminPage, NewGamePage, Login,
-                      JudgePage (/giudice)
-                      (Dashboard.jsx è LEGACY)
-  components/         DeckThumb, GameSocial, NotificationBell, BracketBadge, ArchetypeBadge, DeckListPanel, ...
+    api.js            client fetch (Authorization Bearer) — espone tutti i metodi API
+    achievements.js   26 achievement: definizioni + computeUnlocked (mirror backend)
+    seasons.js        stagioni 4-mesi, seasonOf, listSeasons, computeStandings
+    cardCache.js      cache immagini+tipi carta Scryfall (localStorage, batch /cards/collection + fuzzy fallback)
+    scryfall.js       chiamate Scryfall (autocomplete, colori, validazione, categorizeCard)
+    brackets.js       BRACKETS {1:Casual, 2:Bilanciato, 3:Potente, 4:cEDH}, BRACKET_OPTIONS
+    archetypes.js     ARCHETYPE_OPTIONS [Aggro, Midrange, Control, Combo, Stax, Aristocrats, Tokens, Voltron, Ramp]
+    confetti.js       fireConfetti() — celebrazione visiva a schermo
+    theme.js          token colore dark/light (bgSurface, border, primary, text, textSub, danger, win, winBg, gradient, glow, shadow…)
+  hooks/
+    useAuth.js        {user, login, register, logout} — JWT in localStorage
+    useTheme.js       {t, dark, toggleDark} — tema colori dinamico
+    useIsMobile.js    boolean (≤768px)
+    useCountUp.js     animazione numerica (MetricCard in Dashboard)
+  pages/
+    Login.jsx             /login — form login/register con inviteCode
+    DashboardPage.jsx     / — 6 tab statistiche gruppo
+    DecksPage.jsx         /mazzi — lista mazzi + form creazione
+    DeckProfilePage.jsx   /mazzo/:id — profilo mazzo
+    PlayerProfilePage.jsx /giocatore/:id — profilo giocatore
+    GamePage.jsx          /partita/:id — dettaglio partita + social
+    NewGamePage.jsx       /nuova-partita — form registrazione partita
+    EventsPage.jsx        /eventi — calendario eventi + RSVP
+    EventDetailPage.jsx   /evento/:id — dettaglio torneo (turni, tavoli, standings)
+    AdminPage.jsx         /admin — gestione utenti/mazzi/partite (solo ADMIN)
+    JudgePage.jsx         /giudice — Q&A ruling Commander
+    Dashboard.jsx         LEGACY — non usata
+  components/
+    DeckThumb.jsx         thumbnail commander (art piccola o avatar con iniziali)
+    DeckListPanel.jsx     modal/panel edit decklist + import da URL (Archidekt/Moxfield)
+    GameSocial.jsx        commenti + reazioni emoji per partita
+    NotificationBell.jsx  bell icon con badge unread, polling 60s, dropdown
+    BracketBadge.jsx      badge colorato power level (Casual/Bilanciato/Potente/cEDH)
+    ArchetypeBadge.jsx    badge archetipo mazzo
+    CommanderInput.jsx    input con autocomplete Scryfall (debounced)
+    Skeleton.jsx          loading placeholder (Skeleton + SkeletonList)
+    EmptyState.jsx        stato vuoto con icona + messaggio
 ```
 
-## Modello dati (Prisma)
+---
 
-`User`, `Deck` (commander, colors, bracket, archetype, decklist), `Game` (playedAt, notes, createdBy),
-`GamePlayer` (isWinner, **placement**, **eliminatedById**), `Comment`, `Reaction` (`@@unique[gameId,userId,emoji]`),
-`Notification` (type, title, body, link, read), `AchievementUnlock` (`@@unique[userId,achievementId]`).
+## Modello dati (Prisma — tutti i campi)
 
-Eventi/tornei: `Event` (startsAt, allDay, location, **format** 'multiplayer'|'1v1', **bestOf**),
-`EventRsvp` (iscritti, `@@unique[eventId,userId]`), `EventRound` (turno), `EventTable` (pod o pairing;
-**gameId** = partita reale per i pod multiplayer; scoreA/scoreB/winnerUserId/isDraw/done per 1v1),
-`EventSeat` (posto = utente).
+**User**: id, username (unique), password (bcrypt), role (PLAYER|ADMIN)
 
-Judge Bot: `JudgeQuestion` (userId, question, answer, explanation, confidence, sourcesJson, rulesUsed, createdAt).
+**Deck**: id, name, commander, colors (es. "WUBRG"), decklist (testo libero), bracket (1-4), archetype, userId
+- Unique: (userId, name)
+
+**Game**: id, playedAt, notes, createdByUserId
+
+**GamePlayer**: id, gameId, userId, deckId, isWinner, placement (Int?), eliminatedById (userId di chi ha eliminato, nullable)
+
+**Comment**: id, body, createdAt, gameId, userId
+
+**Reaction**: id, emoji, createdAt, gameId, userId
+- Unique: (gameId, userId, emoji)
+- Emoji disponibili: 👍 🔥 😂 😮 💀 🎉 🐸
+
+**Notification**: id, type (event|achievement|comment|reaction), title, body, link, read, createdAt, userId
+
+**AchievementUnlock**: id, achievementId, createdAt, userId
+- Unique: (userId, achievementId)
+
+**JudgeQuestion**: id, question, answer, explanation, confidence (Float), sourcesJson (JSON), rulesUsed (JSON), createdAt, userId
+
+**Event**: id, title, description, startsAt, allDay, location, format ('multiplayer'|'1v1'), bestOf (Int, 1 o 3 per 1v1), createdByUserId
+
+**EventRsvp**: id, createdAt, eventId, userId — Unique: (eventId, userId)
+
+**EventRound**: id, number, eventId — Unique: (eventId, number)
+
+**EventTable**: id, number, done, roundId, gameId (partita reale per pod multiplayer), winnerUserId, isDraw, scoreA, scoreB (game won per 1v1)
+
+**EventSeat**: id, seat, tableId, userId — Unique: (tableId, userId)
+
+---
+
+## API backend — tutti gli endpoint
+
+```
+// AUTH
+POST /api/auth/register       {username, password, inviteCode}
+POST /api/auth/login          {username, password} → {token, user}
+
+// DECKS
+GET  /api/decks               lista tutti i mazzi PLAYER (per comporre tavolo)
+GET  /api/decks/mine          mazzi dell'utente corrente
+GET  /api/decks/:id           singolo mazzo con decklist
+POST /api/decks               crea mazzo {name, commander, colors, bracket, archetype, decklist}
+PATCH /api/decks/:id          modifica mazzo
+DELETE /api/decks/:id         elimina mazzo (solo se non usato in partite)
+POST /api/decks/import        {url} → {decklist} — Archidekt (API) o Moxfield (spesso bloccato → guida export)
+
+// GAMES (gamesV2)
+GET  /api/games               lista partite con reactions + comment count
+GET  /api/games/:id           dettaglio partita
+POST /api/games               crea partita {players:[{userId,deckId,isWinner,placement,eliminatedById}], playedAt, notes}
+PATCH /api/games/:id          modifica partita (admin o creatore)
+DELETE /api/games/:id         elimina partita
+GET  /api/games/:id/comments  lista commenti
+POST /api/games/:id/comments  {body} → crea commento + notifica altri partecipanti
+DELETE /api/games/:gameId/comments/:commentId
+POST /api/games/:id/reactions {emoji} → toggle reazione
+
+// STATS
+GET  /api/stats/players       [{id, username, games, wins, winRate}] ordinato per winRate DESC
+GET  /api/stats/decks         [{id, name, commander, colors, bracket, archetype, owner, ownerId, games, wins, winRate}]
+GET  /api/stats/matchups      [{deckA:{id,name,owner}, deckB:{...}, games, wins, winRate}]
+GET  /api/stats/achievements/:userId  {unlocked: [achievementId, ...]}
+
+// NOTIFICATIONS
+GET  /api/notifications       ultime 40 notifiche dell'utente
+GET  /api/notifications/unread-count   {count}
+POST /api/notifications/read  segna tutte come lette
+
+// EVENTS
+GET  /api/events              lista eventi ordinata per data ASC
+POST /api/events              crea evento (admin) {title, description, startsAt, allDay, location, format, bestOf}
+PATCH /api/events/:id         modifica evento (admin)
+DELETE /api/events/:id        elimina evento (admin)
+POST /api/events/:id/rsvp     toggle iscrizione utente
+GET  /api/events/:id          dettaglio evento con rounds, tables, seats, standings (1v1)
+POST /api/events/:id/rounds   genera turno successivo (admin): pod-based o swiss
+DELETE /api/events/:eventId/rounds/:roundId   elimina turno (admin)
+POST /api/events/:eventId/tables/:tableId/result   registra risultato tavolo {winnerUserId|isDraw, scoreA, scoreB}
+
+// ADMIN (ruolo ADMIN)
+GET  /api/admin/export        backup JSON completo (users, decks, games)
+GET  /api/admin/users         lista utenti con conteggi
+POST /api/admin/users         {username, password}
+PATCH /api/admin/users/:id    {username?, password?, role?}
+DELETE /api/admin/users/:id   (solo se no mazzi/partite)
+
+// JUDGE
+POST /api/judge               {question} → {answer, explanation, confidence, rulesUsed, cardsDetected, sources}
+                              NON esiste GET /api/judge (storico non esposto)
+```
+
+---
+
+## Achievement (26 totali)
+
+**Pubblici** (visibili prima dello sblocco):
+`rookie` · `first_win` · `streak3` · `streak5` · `streak7` · `wins10` · `wins25` · `collector` · `rainbow` · `fivecolor_deck` · `monocolor_win` · `survivor` · `fullpod_win` · `hunter` · `executioner` · `veteran` · `games50` · `games100` · `dominator` · `season_champion` (solo stagioni concluse)
+
+**Segreti** (nascosti fino allo sblocco):
+`last_one_standing` · `nemesis5` · `triple_day` · `wooden_spoon` · `giant_slayer` · `season_perfect` (solo stagioni concluse)
+
+Logica **DUPLICATA** in `frontend/src/lib/achievements.js` e `backend/src/lib/achievements.js` → vanno tenuti in **parità** (entrambi hanno test).
+
+---
+
+## Stagioni
+
+3 blocchi da 4 mesi: **Gen–Apr** (Q=0), **Mag–Ago** (Q=1), **Set–Dic** (Q=2).
+Chiave: `"YYYY-Q"` (es. `"2025-1"`). Qualificazione: ≥30% delle partite della stagione.
+Punteggio: 1°=3, 2°=2, 3°=1, +1 per ogni partenza. Achievement stagionali solo per stagioni concluse.
+
+---
+
+## Pagine — cosa c'è già (non rileggere il codice)
+
+### DashboardPage (`/`)
+6 tab nell'URL (`?tab=…`): `stagione | giocatori | mazzi | matchup | storico | primati`
+
+- **stagione**: classifica con selector stagione, badge campione, punti, qualificazione
+- **giocatori**: ranking win rate, espandibile → mazzi del giocatore + link profilo
+- **mazzi**: filtri (colore WUBRG, giocatore, bracket, archetipo, ricerca testo), ordinamento win rate asc/desc
+- **matchup**: seleziona MIO mazzo → lista avversari con win rate; filtri per giocatore/mazzo avversario; ordinamento
+- **storico**: partite con filtri periodo (7d/30d/90d/180d/tutto + range date custom); mostra kill tracking e `GameSocial`
+- **primati**: 11 record globali (re del mese, streak, più vittorie, miglior win rate, mazzo più forte, più presenze, tavolo più affollato, sopravvissuto, sfortunato, spietato, bersaglio) + meta colori (win rate per colore) + istogramma attività mensile
+
+### PlayerProfilePage (`/giocatore/:id`)
+- Header: avatar, username, win rate globale
+- Stats chiave: vittorie/sconfitte, streak attuale, nemesi (chi vince più spesso quando perdo), mazzo preferito, piazzamento medio, volte primo eliminato
+- Kill tracking (solo se ci sono dati): kills totali, deaths totali, arcinemico (chi mi elimina di più), preda preferita
+- Trend win rate: SVG cumulativo cronologico
+- **Rivalità (h2h)**: select avversario → partite condivise, meBetter/oppBetter (placement se presente, altrimenti vittoria), myKills/oppKills — calcolato client-side dai dati già caricati
+- Achievement: sezione collassabile; `?ach=1` nell'URL la apre e scrolla automaticamente
+- Miei mazzi: lista con win rate, link a DeckProfilePage
+
+### DeckProfilePage (`/mazzo/:id`)
+- Banner: art_crop commander (via `cards/named?fuzzy=&format=image&version=art_crop`), nome, bracket badge, colori, win rate
+- Stats: partite, vittorie, miglior matchup, peggior matchup
+- Trend win rate SVG cumulativo
+- **Lista carte per tipo**: da `decklist`, caricata con `resolveDecklistCards` (batch Scryfall). Gruppi: Commander, Creature, Planeswalker, Istantanei, Stregonerie, Artefatti, Incantesimi, Terre, Altro. Desktop: anteprima carta sticky al hover; Mobile: modal fullscreen al tap
+- **Matchup**: tutti i matchup di questo mazzo vs altri del gruppo
+- Storico partite del mazzo
+
+### NewGamePage (`/nuova-partita`)
+- Slot giocatori 3–5: select user + select mazzo (grouped per user)
+- Vincitore: select dal tavolo
+- Ordine uscita: toggle giocatori eliminati in sequenza (primo eliminato → ultimo); piazzamenti calcolati automaticamente (vincitore=1°, usciti in ordine inverso)
+- Chi ha eliminato: select per ogni eliminato
+- Data: default oggi (locale, non UTC), override custom
+- `podContext` da `location.state`: pre-popola giocatori quando arriva da EventDetailPage
+
+### AdminPage (`/admin`)
+3 tab: **Users** (CRUD utenti, cambio ruolo), **Decks** (CRUD mazzi per conto di qualsiasi utente), **Games** (CRUD partite con form completo)
+
+### DeckListPanel (componente)
+- Textarea decklist libera
+- **Import da URL**: `POST /api/decks/import` → Archidekt (funziona), Moxfield (spesso blocca → messaggio guida export manuale)
+
+### JudgePage (`/giudice`)
+- Textarea domanda + "Chiedi al Judge" (Ctrl+Invio per inviare)
+- Risposta: ruling + badge confidenza, spiegazione, carte rilevate, regole CR citate (collassabili)
+- **NON ha storico**: ogni sessione riparte da zero. `JudgeQuestion` salvata in DB ma nessun `GET /api/judge` esposto
 
 ---
 
 ## Convenzioni & insidie (le cose che fanno perdere tempo)
 
-- **Achievement: logica DUPLICATA** in `frontend/src/lib/achievements.js` e `backend/src/lib/achievements.js` → vanno tenuti in **parità** (entrambi hanno test). La **fonte di verità per il DISPLAY** è lo **snapshot del server** (`AchievementUnlock`, esposto da `GET /api/stats/achievements/:userId`): `getAchievements` fa **unione snapshot ∪ live**, così gli achievement "non monotoni" (Ammazzagiganti, Dominatore, Sopravvissuto) non spariscono dopo essere stati guadagnati.
+- **Achievement: logica DUPLICATA** → vanno tenuti in **parità** (entrambi hanno test). La **fonte di verità per il DISPLAY** è lo **snapshot del server** (`AchievementUnlock`, esposto da `GET /api/stats/achievements/:userId`): `getAchievements` fa **unione snapshot ∪ live**, così gli achievement "non monotoni" (Ammazzagiganti, Dominatore, Sopravvissuto) non spariscono.
 - **Achievement stagionali** (`season_champion`, `season_perfect`): solo per **stagioni concluse**, mai per quella in corso.
 - **Anti-flood notifiche achievement**: `initAchievementSnapshots` gira a ogni avvio e registra in **silenzio** ciò che è già maturato (niente notifiche retroattive). Lo sblocco "vero" usa il vincolo unique come lock atomico → 1 sola notifica.
-- **Notifiche**: create **lato server** come side-effect (mai dal client). **Deep-link** all'oggetto: commento/reazione → `/partita/:id`; evento → `/eventi?focus=:id` (scroll+highlight); achievement → `/giocatore/:id?ach=1` (apre la sezione). Polling ogni 60s (`NotificationBell`).
-- **Scryfall**: MAI una chiamata `cards/named?format=image` per ogni miniatura (rate-limit 429). Usa `cardCache` (batch `/cards/collection` + URL CDN `cards.scryfall.io` in localStorage). Stesso meccanismo per la lista carte per tipo. Il batch `/cards/collection` non trova DFC con solo la faccia frontale né nomi alternativi (universe beyond): `batchFetch` ha un fuzzy fallback via `/cards/named?fuzzy=` per i not_found.
-- **Judge Bot**: `lib/judge.js` carica le CR all'avvio in memoria (best-effort, fallback silenzioso). L'URL CR va aggiornato ad ogni set da `https://magic.wizards.com/en/rules`. Rate limit dedicato: 5 req / 5 min per IP. `GROQ_API_KEY` va aggiunta sia in `.env` locale che nelle variabili Railway prima del deploy.
-  - **Pipeline a due step**: (1) `llama-3.1-8b-instant` (`normalizeQuestion`) risolve abbreviazioni (PoE→Path to Exile, StP→Swords to Plowshares) e slang italiano (blinka→blink) estraendo nomi carta e concetti-chiave inglesi per la ricerca CR; (2) `llama-3.3-70b-versatile` risponde con il contesto arricchito (oracle text + ruling Scryfall + regole CR trovate).
-  - **Parser CR**: le sotto-regole con lettera (es. `608.2b`) nel file CR non hanno il punto dopo la lettera — il pattern regex usa `\.?` (opzionale). Senza questo fix vengono parsate ~1537 regole invece di ~3138 e regole critiche come 608.2b (bersaglio illegale) e 115.9b vengono ignorate.
-  - **System prompt finale** include principi espliciti su: (a) stack LIFO — "in risposta" significa che il tuo spell risolve PRIMA, quindi un permanente entrato in risposta è già in gioco quando lo spell originale risolve; (b) blink = zone change = nuovo oggetto = bersaglio illegale. Questi principi garantiscono ruling corretti su qualsiasi spell con target e sulle interazioni triggered-ability + stack.
-- **Dashboard tab nell'URL** (`?tab=mazzi`): così il "back" del browser/gesture ripristina la scheda. Cambiare tab usa `replace`.
-- **Scroll mobile**: NIENTE `overflow-x: hidden` su `<html>` (su Android Chrome rende `<html>` un contenitore di scroll e blocca lo scroll verticale). Si usa `overflow-x: clip` sul `body`.
-- **Header mobile** stretto: logo + nome utente + 🔔 + tema + Esci devono stare anche a 320px (il brand cede per primo con `overflow:hidden`).
-- **DB veloce, Scryfall lento**: cache aggressiva sulle carte (immutabili), **niente** cache lato client sulle query DB (rischio dati stantii; sono già millisecondi).
-- **Migrazioni dati una tantum**: scriverle **idempotenti** e agganciarle a `start:prod` (vedi i due `migrate*.js`).
-- **Tornei — classifica 1v1 calcolata SOLO lato server** (`tournament.js` + `withStandings` in `routes/events.js`) e allegata al dettaglio evento: fonte di verità unica, niente mirror sul client (lezione achievement). Svizzera evita i re-match, bye al più basso senza bye, **max 4 turni**.
-- **Tornei — il risultato di un pod multiplayer è una Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext` (giocatori bloccati); al salvataggio crea la Game e la collega a `EventTable.gameId`. Gli iscritti SENZA mazzi (es. admin) non possono entrare in un pod registrato.
-- **Date locali, non UTC**: per pre-compilare/salvare una data usare i componenti **locali** (`getFullYear/Month/Date`), MAI `toISOString().slice(0,10)` (shifta di un giorno col fuso → la partita finirebbe nella stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.
-- **Commit da PowerShell**: gli here-string `@'...'@` si rompono se il messaggio contiene **virgolette doppie** → niente `"` nei messaggi di commit (usa parole o apici).
+- **Notifiche**: create **lato server** come side-effect (mai dal client). **Deep-link**: commento/reazione → `/partita/:id`; evento → `/eventi?focus=:id` (scroll+highlight); achievement → `/giocatore/:id?ach=1`. Polling ogni 60s (`NotificationBell`).
+- **Scryfall**: MAI una chiamata `cards/named?format=image` per ogni miniatura (rate-limit 429). Usa `cardCache` (batch `/cards/collection` + URL CDN `cards.scryfall.io` in localStorage). Il batch non trova DFC con solo la faccia frontale né nomi alternativi (universe beyond): `batchFetch` ha un fuzzy fallback via `/cards/named?fuzzy=` per i not_found.
+- **Judge Bot**: `lib/judge.js` carica le CR all'avvio in memoria (best-effort, fallback silenzioso). L'URL CR va aggiornato ad ogni set da `https://magic.wizards.com/en/rules`. Rate limit dedicato: 5 req / 5 min per IP. `GROQ_API_KEY` richiesta sia in `.env` locale che in Railway.
+  - **Pipeline a due step**: (1) `llama-3.1-8b-instant` (`normalizeQuestion`) risolve abbreviazioni e slang italiano; (2) `llama-3.3-70b-versatile` risponde con oracle text + rulings Scryfall + regole CR.
+  - **Parser CR**: le sotto-regole con lettera (es. `608.2b`) nel file CR non hanno il punto dopo la lettera — il pattern regex usa `\.?` (opzionale). Senza questo fix vengono parsate ~1537 regole invece di ~3138.
+  - **System prompt**: include principi su stack LIFO e blink=zone change=nuovo oggetto=bersaglio illegale.
+- **Dashboard tab nell'URL** (`?tab=mazzi`): il "back" del browser ripristina la scheda. Cambiare tab usa `replace`.
+- **Scroll mobile**: NIENTE `overflow-x: hidden` su `<html>` (blocca scroll verticale su Android Chrome). Si usa `overflow-x: clip` sul `body`.
+- **Header mobile** stretto: tutto deve stare a 320px (il brand cede per primo con `overflow:hidden`).
+- **DB veloce, Scryfall lento**: cache aggressiva sulle carte (immutabili), **niente** cache lato client sulle query DB (rischio dati stantii).
+- **Migrazioni dati una tantum**: scriverle **idempotenti** e agganciarle a `start:prod`.
+- **Tornei — classifica 1v1 calcolata SOLO lato server** (`tournament.js` + `withStandings` in `routes/events.js`): fonte di verità unica. Svizzera evita re-match, bye al più basso senza bye, **max 4 turni**.
+- **Tornei — pod multiplayer = Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext`. Gli iscritti SENZA mazzi non possono entrare in un pod.
+- **Date locali, non UTC**: usare `getFullYear/Month/Date`, MAI `toISOString().slice(0,10)` (shifta col fuso → stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.
+- **Commit da PowerShell**: gli here-string `@'...'@` si rompono con **virgolette doppie** → niente `"` nei messaggi di commit.
+
+---
 
 ## Roadmap completata
 
-Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · **Tornei negli eventi** (formato 1v1 svizzera con classifica/vincitore, o multiplayer a pod con partite reali) · **Judge Bot** (`/giudice`: Q&A ruling Commander via Groq + Scryfall + CR) · Guida Utente (`GUIDA_UTENTE.md`, con screenshot in `docs/img/`).
+Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement 26 (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · **Tornei negli eventi** (1v1 svizzera + multiplayer pod con partite reali) · **Judge Bot** (`/giudice`: Groq + Scryfall + CR) · Guida Utente (`GUIDA_UTENTE.md`) · **Dashboard 6 tab** (stagione, giocatori, mazzi, matchup, storico, primati) · **Rivalità h2h** in PlayerProfilePage · **Kill tracking** completo (arcinemico, preda preferita, primati) · **Import decklist da URL** (Archidekt/Moxfield via DeckListPanel) · **Lista carte per tipo** in DeckProfilePage con anteprima hover/modal · **Meta colori** e **attività mensile** nei Primati.
 
-Robustezza fatta: PrismaClient singleton, rate-limit login + judge, aria-label, test Vitest sulle logiche pure (achievement, stagioni, decklist, **torneo**, **judge**), cache immagini/liste.
+Robustezza: PrismaClient singleton, rate-limit login + judge, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
 
-> Nota: la Guida Utente (`GUIDA_UTENTE.md`) **non** copre ancora la sezione **Tornei** — da aggiornare quando si vuole.
+## Cosa manca (verificato — non è in nessun file)
+
+- **Storico Judge Bot**: `JudgeQuestion` è scritta in DB ad ogni domanda ma non c'è `GET /api/judge` né UI. Da aggiungere: route paginata in `routes/judge.js` + sezione "domande recenti" in `JudgePage.jsx`.
+- **Stima prezzo mazzo**: `resolveDecklistCards` in `DeckProfilePage` già fetcha le carte Scryfall (incluse `prices.eur`). Basta sommarle e mostrare il totale — nessuna nuova API necessaria.
+- **Guida Utente — sezione Tornei**: `GUIDA_UTENTE.md` non copre i tornei.
