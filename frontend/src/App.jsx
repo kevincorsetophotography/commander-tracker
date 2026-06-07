@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import DecksPage from './pages/DecksPage'
 import NewGamePage from './pages/NewGamePage'
 import DashboardPage from './pages/DashboardPage'
+import FeedPage from './pages/FeedPage'
 import AdminPage from './pages/AdminPage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
 import DeckProfilePage from './pages/DeckProfilePage'
@@ -141,8 +142,7 @@ function Layout() {
 
   const routes = (
     <Routes>
-      {/* Feed: placeholder → DashboardPage fino a FeedPage (Fase 3) */}
-      <Route path="/"              element={<DashboardPage />} />
+      <Route path="/"              element={<FeedPage />} />
       {/* Gruppo: placeholder → DashboardPage fino a GruppoPage (Fase 4) */}
       <Route path="/gruppo"        element={<DashboardPage />} />
       {/* Gioca: nuova landing */}
