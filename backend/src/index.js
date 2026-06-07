@@ -12,14 +12,16 @@ if (!process.env.JWT_SECRET || WEAK_SECRETS.has(process.env.JWT_SECRET) || proce
   process.exit(1);
 }
 
-const authRoutes  = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
-const deckRoutes  = require('./routes/decks');
-const gameRoutes  = require('./routes/gamesV2');
-const statsRoutes = require('./routes/stats');
-const eventRoutes = require('./routes/events');
+const authRoutes         = require('./routes/auth');
+const adminRoutes        = require('./routes/admin');
+const deckRoutes         = require('./routes/decks');
+const gameRoutes         = require('./routes/gamesV2');
+const statsRoutes        = require('./routes/stats');
+const eventRoutes        = require('./routes/events');
 const notificationRoutes = require('./routes/notifications');
+const judgeRoutes        = require('./routes/judge');
 const { rateLimit } = require('express-rate-limit');
+const { loadComprehensiveRules } = require('./lib/judge');
 
 const app = express();
 
@@ -34,6 +36,15 @@ const authLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Troppi tentativi, riprova tra qualche minuto.' },
+});
+
+// Anti-spam judge: 5 domande ogni 5 minuti per IP (ogni chiamata costa token Groq)
+const judgeLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Troppe domande al judge, riprova tra qualche minuto.' },
 });
 
 const allowedOrigins = new Set([
@@ -60,6 +71,7 @@ app.use('/api/games', gameRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/judge', judgeLimiter, judgeRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -74,3 +86,6 @@ app.listen(PORT, () => console.log(`Commander Tracker API on :${PORT}`));
 const prisma = require('./lib/prisma');
 const { initAchievementSnapshots } = require('./lib/notify');
 initAchievementSnapshots(prisma);
+
+// Carica le Comprehensive Rules in memoria (best-effort, fallback silenzioso)
+loadComprehensiveRules();

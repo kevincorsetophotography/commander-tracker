@@ -23,6 +23,7 @@ model User {
   eventSeats  EventSeat[]
   notifications Notification[]
   achievementUnlocks AchievementUnlock[]
+  judgeQuestions JudgeQuestion[]
 }
 
 model Deck {
@@ -176,6 +177,21 @@ model AchievementUnlock {
   userId        Int
 
   @@unique([userId, achievementId])
+}
+
+model JudgeQuestion {
+  id          Int      @id @default(autoincrement())
+  question    String
+  answer      String
+  explanation String?
+  confidence  Float
+  sourcesJson String   // JSON array di { type, id, text }
+  rulesUsed   String   // JSON array di rule IDs
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+
+  @@index([userId])
 }
 
 model GamePlayer {

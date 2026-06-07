@@ -14,6 +14,7 @@ import DeckProfilePage from './pages/DeckProfilePage'
 import EventsPage from './pages/EventsPage'
 import EventDetailPage from './pages/EventDetailPage'
 import GamePage from './pages/GamePage'
+import JudgePage from './pages/JudgePage'
 import NotificationBell from './components/NotificationBell'
 
 function NavItem({ to, end, children }) {
@@ -142,6 +143,7 @@ function Layout() {
       <Route path="/eventi"        element={<EventsPage />} />
       <Route path="/evento/:id"    element={<EventDetailPage />} />
       <Route path="/nuova-partita" element={<NewGamePage />} />
+      <Route path="/giudice"       element={<JudgePage />} />
       <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />
     </Routes>
   )
@@ -189,6 +191,7 @@ function Layout() {
                 <NavItem to="/mazzi">Mazzi</NavItem>
                 <NavItem to="/eventi">Eventi</NavItem>
                 <NavItem to="/nuova-partita">+ Partita</NavItem>
+                <NavItem to="/giudice">Judge</NavItem>
                 {user?.role === 'ADMIN' && <NavItem to="/admin">Admin</NavItem>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -221,7 +224,8 @@ function Layout() {
           <DockItem to="/" end icon="🏠" label="Home" />
           <DockItem to="/mazzi" icon="🎴" label="Mazzi" />
           <DockItem to="/nuova-partita" icon="＋" label="Partita" />
-          <DockItem to="/eventi" icon="📅" label="Eventi" />
+          <DockItem to="/eventi"   icon="📅" label="Eventi" />
+          <DockItem to="/giudice"  icon="⚖" label="Judge" />
           <DockItem to={`/giocatore/${user?.id}`} icon="👤" label="Tu" />
           {user?.role === 'ADMIN' && <DockItem to="/admin" icon="⚙" label="Admin" />}
         </div>

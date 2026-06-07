@@ -79,6 +79,9 @@ export const api = {
   deleteRound:   (id, roundId)   => req('DELETE', `/events/${id}/rounds/${roundId}`),
   submitTableResult: (id, tableId, data) => req('POST', `/events/${id}/tables/${tableId}/result`, data),
 
+  // judge bot
+  askJudge: (question) => req('POST', '/judge', { question }),
+
   // stats
   statsPlayers:  () => req('GET', '/stats/players'),
   statsDecks:    () => req('GET', '/stats/decks'),
