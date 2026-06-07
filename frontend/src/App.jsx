@@ -14,6 +14,7 @@ import DecksPage from './pages/DecksPage'
 import NewGamePage from './pages/NewGamePage'
 import DashboardPage from './pages/DashboardPage'
 import FeedPage from './pages/FeedPage'
+import GruppoPage from './pages/GruppoPage'
 import AdminPage from './pages/AdminPage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
 import DeckProfilePage from './pages/DeckProfilePage'
@@ -143,8 +144,7 @@ function Layout() {
   const routes = (
     <Routes>
       <Route path="/"              element={<FeedPage />} />
-      {/* Gruppo: placeholder → DashboardPage fino a GruppoPage (Fase 4) */}
-      <Route path="/gruppo"        element={<DashboardPage />} />
+      <Route path="/gruppo"        element={<GruppoPage />} />
       {/* Gioca: nuova landing */}
       <Route path="/gioca"         element={<GiocaPage />} />
       {/* Tornei: alias di /eventi, sarà rinominato in Fase 6 */}
