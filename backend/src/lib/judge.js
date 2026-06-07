@@ -110,25 +110,19 @@ async function fetchCardContext(cardName) {
 
 // ── Groq ─────────────────────────────────────────────────────────────────────
 
-async function callGroq(systemPrompt, userPrompt) {
+async function groqChat({ model, messages, maxTokens = 1024, temperature = 0.1 }) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY non configurata');
 
   const res = await fetch(`${GROQ_BASE}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.1,
-      max_tokens: 1024,
+      model,
+      temperature,
+      max_tokens: maxTokens,
       response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: userPrompt }
-      ]
+      messages
     }),
     signal: AbortSignal.timeout(30000)
   });
@@ -142,20 +136,71 @@ async function callGroq(systemPrompt, userPrompt) {
   return data.choices?.[0]?.message?.content || '{}';
 }
 
+// Mini-call veloce (llama 8B) per normalizzare nomi carta e concetti chiave.
+// Risolve abbreviazioni (PoE, AoE, CoP...) e slang italiano (blinka, castare...).
+async function normalizeQuestion(question) {
+  try {
+    const raw = await groqChat({
+      model: 'llama-3.1-8b-instant',
+      maxTokens: 200,
+      temperature: 0,
+      messages: [
+        {
+          role: 'system',
+          content: `Sei un esperto di Magic: The Gathering. Data una domanda sulle regole, estrai:
+1. I nomi esatti delle carte Magic (risolvi abbreviazioni: PoE=Path to Exile, GoF=Gift of Fangs, ecc.)
+2. I concetti di gioco chiave in inglese (es: target, exile, new object, triggered ability, blink, stack)
+Rispondi solo con JSON valido.`
+        },
+        {
+          role: 'user',
+          content: `Domanda: "${question}"\n\nRispondi con: {"cardNames":["..."],"concepts":["..."]}`
+        }
+      ]
+    });
+    const parsed = JSON.parse(raw);
+    return {
+      cardNames: Array.isArray(parsed.cardNames) ? parsed.cardNames.slice(0, 4) : [],
+      concepts:  Array.isArray(parsed.concepts)  ? parsed.concepts.slice(0, 8)  : []
+    };
+  } catch {
+    return { cardNames: [], concepts: [] };
+  }
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 async function askJudge(question) {
-  const keywords = extractKeywords(question);
+  const questionKeywords = extractKeywords(question);
 
-  // Fetch parallelo: nomi carta + ricerca CR
-  const [cardNames, crMatches] = await Promise.all([
-    detectCardNames(question),
-    Promise.resolve(searchInSections(_crSections, keywords, 8))
+  // Step 1 — in parallelo: normalizza nomi/concetti (LLM veloce) + prima CR search
+  const [normalized, initialCrMatches] = await Promise.all([
+    normalizeQuestion(question),
+    Promise.resolve(searchInSections(_crSections, questionKeywords, 5))
   ]);
 
-  // Fetch contesto carte
-  const cardContexts = (await Promise.all(cardNames.map(fetchCardContext))).filter(Boolean);
+  // Step 2 — fetcha oracle text + rulings per le carte rilevate
+  const cardNamesToFetch = normalized.cardNames.length > 0
+    ? normalized.cardNames
+    : await detectCardNames(question); // fallback: autocomplete Scryfall
 
+  const cardContexts = (
+    await Promise.all(cardNamesToFetch.slice(0, 3).map(fetchCardContext))
+  ).filter(Boolean);
+
+  // Step 3 — arricchisci la ricerca CR con keyword inglesi da oracle text + concetti LLM
+  const oracleKeywords = cardContexts.flatMap(c => extractKeywords(c.oracleText));
+  const allKeywords = [...new Set([...questionKeywords, ...oracleKeywords, ...normalized.concepts])];
+  const crMatches = searchInSections(_crSections, allKeywords, 10);
+
+  // Unisci CR: quelli ricchi + quelli iniziali (che potrebbero non essere nell'unione)
+  const crSeen = new Set(crMatches.map(r => r.id));
+  const finalCr = [
+    ...crMatches,
+    ...initialCrMatches.filter(r => !crSeen.has(r.id))
+  ].slice(0, 10);
+
+  // Step 4 — costruisci il contesto per la risposta finale
   const cardSection = cardContexts.length > 0
     ? cardContexts.map(c =>
         `### ${c.name} (${c.typeLine})\n${c.oracleText}` +
@@ -165,26 +210,34 @@ async function askJudge(question) {
       ).join('\n\n')
     : '(nessuna carta rilevata nella domanda)';
 
-  const crSection = crMatches.length > 0
-    ? crMatches.map(r => `${r.id}: ${r.text}`).join('\n')
-    : '(nessuna sezione CR pertinente trovata — rispondere solo con le conoscenze generali di MTG)';
+  const crSection = finalCr.length > 0
+    ? finalCr.map(r => `${r.id}: ${r.text}`).join('\n')
+    : '(nessuna sezione CR trovata)';
 
-  const systemPrompt =
-    `Sei un judge certificato Level 3 di Magic: The Gathering, specializzato in Commander/EDH.
+  // Step 5 — risposta finale (LLM potente)
+  const raw = await groqChat({
+    model: 'llama-3.3-70b-versatile',
+    maxTokens: 1024,
+    messages: [
+      {
+        role: 'system',
+        content: `Sei un judge certificato Level 3 di Magic: The Gathering, specializzato in Commander/EDH.
 Rispondi ESCLUSIVAMENTE in base ai testi forniti nel contesto (oracle text, ruling Scryfall, Comprehensive Rules).
-Se il contesto non è sufficiente per una risposta certa, indica confidence bassa e spiega cosa manca.
+Se il contesto non è sufficiente, indica confidence bassa e spiega cosa manca.
 Non inventare numeri di regole: cita solo regole presenti nel contesto.
-Rispondi sempre in italiano.
-Rispondi SOLO con JSON valido, nessun altro testo.`;
-
-  const userPrompt =
-    `CARTE RILEVATE:\n${cardSection}\n\n` +
-    `COMPREHENSIVE RULES PERTINENTI:\n${crSection}\n\n` +
-    `DOMANDA: ${question}\n\n` +
-    `Rispondi con esattamente questo JSON (nessun testo aggiuntivo):\n` +
-    `{"answer":"...","explanation":"...","confidence":0.0,"rulesUsed":["706.1"],"cardsDetected":["Nome"]}`;
-
-  const raw = await callGroq(systemPrompt, userPrompt);
+Rispondi sempre in italiano. Rispondi SOLO con JSON valido.`
+      },
+      {
+        role: 'user',
+        content:
+          `CARTE RILEVATE:\n${cardSection}\n\n` +
+          `COMPREHENSIVE RULES PERTINENTI:\n${crSection}\n\n` +
+          `DOMANDA: ${question}\n\n` +
+          `Rispondi con esattamente questo JSON:\n` +
+          `{"answer":"...","explanation":"...","confidence":0.0,"rulesUsed":["706.1"],"cardsDetected":["Nome"]}`
+      }
+    ]
+  });
 
   let parsed;
   try { parsed = JSON.parse(raw); }
@@ -196,7 +249,7 @@ Rispondi SOLO con JSON valido, nessun altro testo.`;
     confidence:    Math.min(1, Math.max(0, Number(parsed.confidence) || 0)),
     rulesUsed:     Array.isArray(parsed.rulesUsed)     ? parsed.rulesUsed     : [],
     cardsDetected: Array.isArray(parsed.cardsDetected) ? parsed.cardsDetected : [],
-    sources:       crMatches.map(r => ({ type: 'rule', id: r.id, text: r.text }))
+    sources:       finalCr.map(r => ({ type: 'rule', id: r.id, text: r.text }))
   };
 }
 
