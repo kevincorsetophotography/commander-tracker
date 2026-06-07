@@ -1,6 +1,6 @@
 // Judge Bot — logica pura: Comprehensive Rules, Scryfall, Groq.
 // CR URL: aggiornare ad ogni nuovo set da https://magic.wizards.com/en/rules
-const CR_URL = 'https://media.wizards.com/downloads/MagicCompRules.txt';
+const CR_URL = 'https://media.wizards.com/2026/downloads/MagicCompRules%2020260417.txt';
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const SCRYFALL = 'https://api.scryfall.com';
 
