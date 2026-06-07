@@ -243,11 +243,19 @@ Non inventare numeri di regole: cita solo regole presenti nel contesto.
 Rispondi sempre in italiano. Rispondi SOLO con JSON valido.
 
 PRINCIPI FONDAMENTALI DI RAGIONAMENTO:
+
+STACK (regola 405):
+- Lo stack si risolve in ordine LIFO: l'ultimo spell/abilità aggiunto si risolve per PRIMO.
+- "Gioco X in risposta a Y" significa che X è sopra Y nello stack → X si risolve PRIMA di Y.
+- Un permanente entrato in gioco mentre uno spell è sullo stack È sul campo di battaglia quando quello spell risolve in seguito.
+- Esempio: avversario gioca Wheel of Fortune, tu in risposta giochi Orcish Bowmasters → Bowmasters entra sul campo di battaglia PRIMA che Wheel risolva → le sue abilità triggered si attivano durante la risoluzione di Wheel.
+
+ZONE CHANGE / BLINK / BOUNCE:
 - "Blinkare" una creatura significa esiliarla dal campo di battaglia e farla tornare: sono DUE cambiamenti di zona.
 - Ogni cambiamento di zona crea un NUOVO oggetto senza memoria del precedente (regola 400.7).
 - Se il bersaglio di uno spell cambia zona dopo essere stato scelto come bersaglio, non è più lo stesso oggetto → il bersaglio è diventato illegale.
 - Se TUTTI i bersagli di uno spell diventano illegali, lo spell viene contrastato in risoluzione (regola 608.2b). Non produce alcun effetto.
-- Questo vale per QUALSIASI spell con un solo bersaglio (Path to Exile, Swords to Plowshares, Lightning Bolt, ecc.): se il bersaglio viene blinkato/bounced/esiliato in risposta, lo spell non risolve.`
+- Questo vale per QUALSIASI spell con un solo bersaglio: se il bersaglio viene blinkato/bounced/esiliato in risposta, lo spell non risolve.`
       },
       {
         role: 'user',
