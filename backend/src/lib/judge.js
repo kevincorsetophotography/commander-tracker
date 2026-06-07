@@ -265,7 +265,12 @@ ZONE CHANGE / BLINK / BOUNCE:
 - Ogni cambiamento di zona crea un NUOVO oggetto senza memoria del precedente (regola 400.7).
 - Se il bersaglio di uno spell cambia zona dopo essere stato scelto come bersaglio, non è più lo stesso oggetto → il bersaglio è diventato illegale.
 - Se TUTTI i bersagli di uno spell diventano illegali, lo spell viene contrastato in risoluzione (regola 608.2b). Non produce alcun effetto.
-- Questo vale per QUALSIASI spell con un solo bersaglio: se il bersaglio viene blinkato/bounced/esiliato in risposta, lo spell non risolve.`
+- Questo vale per QUALSIASI spell con un solo bersaglio: se il bersaglio viene blinkato/bounced/esiliato in risposta, lo spell non risolve.
+
+UNDYING / PERSIST / COUNTER CONDITIONS:
+- Undying: la creatura torna SOLO SE non aveva segnalini +1/+1 quando è morta. Con un +1/+1 sopra → NON torna.
+- Persist: la creatura torna SOLO SE non aveva segnalini -1/-1 quando è morta. Con un -1/-1 sopra → NON torna.
+- Questi sono replacement effect condizionali: la condizione va verificata al momento della morte, non al momento in cui si risolve.`
       },
       {
         role: 'user',
