@@ -39,14 +39,18 @@ function SnapshotCard({ snapshot, t, user, navigate }) {
   const winPct = total ? Math.round(wins / total * 100) : 0
 
   return (
-    <div style={{
-      background: t.bgSurface,
-      border: `1px solid ${t.border}`,
-      borderRadius: 18,
-      padding: '1.25rem 1.4rem',
-      boxShadow: t.shadow,
-      marginBottom: 16,
-    }}>
+    <div
+      onClick={() => navigate('/gruppo')}
+      style={{
+        background: t.bgSurface,
+        border: `1px solid ${t.border}`,
+        borderRadius: 18,
+        padding: '1.25rem 1.4rem',
+        boxShadow: t.shadow,
+        marginBottom: 16,
+        cursor: 'pointer',
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 800, color: t.text }}>Ciao, {user?.username}</div>
@@ -54,7 +58,7 @@ function SnapshotCard({ snapshot, t, user, navigate }) {
         </div>
         {myRank && (
           <button
-            onClick={() => navigate(`/giocatore/${user?.id}`)}
+            onClick={e => { e.stopPropagation(); navigate(`/giocatore/${user?.id}`) }}
             style={{
               background: t.primaryBg, border: `1px solid ${t.primaryBorder}`,
               borderRadius: 12, padding: '6px 14px', cursor: 'pointer',
