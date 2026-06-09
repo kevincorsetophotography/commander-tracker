@@ -35,10 +35,12 @@ export default function DeckProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [deckDetail, setDeckDetail] = useState(null)   // mazzo con decklist
-  const [typedCards, setTypedCards] = useState([])     // carte con tipo/immagine
-  const [loadingList, setLoadingList] = useState(false)
+  const [deckDetail, setDeckDetail]     = useState(null)
+  const [typedCards, setTypedCards]     = useState([])
+  const [loadingList, setLoadingList]   = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
+  const [tab, setTab]                   = useState('perf')
+  const [showTrend, setShowTrend]       = useState(false)
 
   useEffect(() => {
     Promise.all([api.getGames(), api.statsDecks(), api.statsMatchups()])
@@ -103,6 +105,15 @@ export default function DeckProfilePage() {
     return { deck, myGames, trend, matchups: mine, best, worst }
   }, [games, deckStats, matchups, did])
 
+  const totalEur = useMemo(() => {
+    let sum = 0
+    for (const c of typedCards) {
+      const price = parseFloat(c.prices?.eur)
+      if (!isNaN(price)) sum += price * c.count
+    }
+    return sum > 0 ? sum.toFixed(2) : null
+  }, [typedCards])
+
   const card = {
     background: t.bgSurface, backdropFilter: 'blur(14px) saturate(150%)', WebkitBackdropFilter: 'blur(14px) saturate(150%)',
     border: `1px solid ${t.border}`, borderRadius: 16, padding: '1.15rem 1.35rem', marginBottom: 12, boxShadow: t.shadow,
@@ -124,6 +135,13 @@ export default function DeckProfilePage() {
       {sub && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>{sub}</div>}
     </div>
   )
+
+  const tabBtn = (key, label) => ({
+    padding: '8px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    background: tab === key ? t.primary : 'transparent',
+    color: tab === key ? t.primaryFg : t.textSub,
+    borderRadius: 10, transition: 'all 0.15s',
+  })
 
   return (
     <div>
@@ -157,145 +175,168 @@ export default function DeckProfilePage() {
         </div>
       </div>
 
-      {/* Statistiche */}
-      <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {stat('Partite', deck.games)}
-        {stat('Vittorie', deck.wins, `${deck.games - deck.wins} sconfitte`)}
-        {stat('Miglior matchup', best ? `${best.winRate}%` : '—', best ? `vs ${best.deckB.name}` : 'nessun dato')}
-        {stat('Peggior matchup', worst ? `${worst.winRate}%` : '—', worst ? `vs ${worst.deckB.name}` : 'nessun dato')}
+      {/* Tab switcher */}
+      <div style={{ display: 'inline-flex', gap: 4, marginBottom: 16, background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 5, boxShadow: t.shadow }}>
+        <button style={tabBtn('perf', 'Performance')} onClick={() => setTab('perf')}>Performance</button>
+        <button style={tabBtn('lista', 'Lista carte')} onClick={() => setTab('lista')}>Lista carte</button>
       </div>
 
-      {/* Trend */}
-      {trend.length >= 2 && (
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 4 }}>Andamento win rate</div>
-          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>nel corso delle {trend.length} partite</div>
-          {(() => {
-            const W = 600, H = 120, pad = 6, n = trend.length
-            const x = (i) => pad + (i / (n - 1)) * (W - pad * 2)
-            const y = (v) => pad + (1 - v / 100) * (H - pad * 2)
-            const line = trend.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
-            const area = `${line} L ${x(n - 1).toFixed(1)} ${H - pad} L ${x(0).toFixed(1)} ${H - pad} Z`
-            return (
-              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }} preserveAspectRatio="none">
-                <line x1={pad} y1={y(50)} x2={W - pad} y2={y(50)} stroke={t.border} strokeWidth="1" strokeDasharray="4 4" />
-                <defs><linearGradient id="ct-dtrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={t.primary} stopOpacity="0.30" /><stop offset="100%" stopColor={t.primary} stopOpacity="0" /></linearGradient></defs>
-                <path d={area} fill="url(#ct-dtrend)" />
-                <path d={line} fill="none" stroke={t.primary} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-                <circle cx={x(n - 1)} cy={y(trend[n - 1])} r="4" fill={t.primary} />
-              </svg>
-            )
-          })()}
-        </div>
-      )}
+      {/* ── TAB: PERFORMANCE ── */}
+      {tab === 'perf' && (
+        <>
+          {/* Statistiche chiave */}
+          <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {stat('Partite', deck.games)}
+            {stat('Vittorie', deck.wins, `${deck.games - deck.wins} sconfitte`)}
+            {stat('Miglior matchup', best ? `${best.winRate}%` : '—', best ? `vs ${best.deckB.name}` : 'nessun dato')}
+            {stat('Peggior matchup', worst ? `${worst.winRate}%` : '—', worst ? `vs ${worst.deckB.name}` : 'nessun dato')}
+          </div>
 
-      {/* Lista carte per tipo */}
-      {deckDetail?.decklist && (
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>Lista carte</div>
-          {loadingList ? (
-            <div style={{ fontSize: 13, color: t.textSub }}>Caricamento lista...</div>
-          ) : (
-            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              {/* Elenco raggruppato */}
-              <div style={{ flex: 1, minWidth: isMobile ? '100%' : 240 }}>
-                {CATEGORY_ORDER.filter(cat => grouped[cat]?.length).map(cat => {
-                  const cards = grouped[cat]
-                  const tot = cards.reduce((s, c) => s + c.count, 0)
-                  return (
-                    <div key={cat} style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                        {cat} <span style={{ color: t.textMuted, fontWeight: 600 }}>({tot})</span>
-                      </div>
-                      {cards.map((c, i) => {
-                        const active = selectedCard?.name === c.name
-                        return (
-                          <div
-                            key={i}
-                            onMouseEnter={() => c.imageUri && setSelectedCard(c)}
-                            onClick={() => setSelectedCard(active ? null : c)}
-                            style={{
-                              display: 'flex', gap: 8, padding: '4px 8px', borderRadius: 7, cursor: 'pointer',
-                              background: active ? t.primaryBg : 'transparent',
-                              color: active ? t.primary : t.text, fontSize: 13,
-                            }}
-                          >
-                            <span style={{ color: t.textMuted, minWidth: 22, textAlign: 'right' }}>{c.count}×</span>
-                            <span>{c.name}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })}
+          {/* Stima prezzo */}
+          {totalEur && (
+            <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 22 }}>💶</span>
+              <div>
+                <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>Valore stimato</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: t.text }}>~€ {totalEur}</div>
+                <div style={{ fontSize: 11, color: t.textMuted }}>prezzi Scryfall · carta singola</div>
               </div>
-              {/* Anteprima carta — colonna laterale solo su desktop */}
-              {!isMobile && (
-                <div style={{ position: 'sticky', top: 80, width: 240, flexShrink: 0 }}>
-                  {selectedCard?.imageUri ? (
-                    <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: 240, borderRadius: 14, display: 'block', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }} />
-                  ) : (
-                    <div style={{ width: 240, height: 335, borderRadius: 14, border: `2px dashed ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: t.textMuted, fontSize: 12, padding: 12 }}>
-                      Passa o tocca una carta per vederne l'immagine
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Su mobile: anteprima a tutto schermo al tap */}
+          {/* Matchup */}
+          {mine.length > 0 && (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Matchup</div>
+              {mine.map((m, i) => (
+                <div key={i} style={{ ...card, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <DeckThumb commander={commanderById[m.deckB.id]} w={48} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, color: t.text }}>{m.deckB.name}</div>
+                    <div style={{ fontSize: 12, color: t.textSub }}>di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'}</div>
+                    <WinBar pct={m.winRate} t={t} />
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: m.winRate >= 50 ? t.win : m.winRate > 0 ? t.primary : t.textMuted }}>{m.winRate}%</div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Trend (collassabile) */}
+          {trend.length >= 2 && (
+            <div style={card}>
+              <div onClick={() => setShowTrend(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Andamento win rate</span>
+                <span style={{ fontSize: 12, color: t.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {trend.length} partite
+                  <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showTrend ? 'rotate(90deg)' : 'none' }}>▸</span>
+                </span>
+              </div>
+              {showTrend && (() => {
+                const W = 600, H = 120, pad = 6, n = trend.length
+                const x = (i) => pad + (i / (n - 1)) * (W - pad * 2)
+                const y = (v) => pad + (1 - v / 100) * (H - pad * 2)
+                const line = trend.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
+                const area = `${line} L ${x(n - 1).toFixed(1)} ${H - pad} L ${x(0).toFixed(1)} ${H - pad} Z`
+                return (
+                  <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', marginTop: 16 }} preserveAspectRatio="none">
+                    <line x1={pad} y1={y(50)} x2={W - pad} y2={y(50)} stroke={t.border} strokeWidth="1" strokeDasharray="4 4" />
+                    <defs><linearGradient id="ct-dtrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={t.primary} stopOpacity="0.30" /><stop offset="100%" stopColor={t.primary} stopOpacity="0" /></linearGradient></defs>
+                    <path d={area} fill="url(#ct-dtrend)" />
+                    <path d={line} fill="none" stroke={t.primary} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                    <circle cx={x(n - 1)} cy={y(trend[n - 1])} r="4" fill={t.primary} />
+                  </svg>
+                )
+              })()}
+            </div>
+          )}
+
+          {/* Storico */}
+          <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Storico partite</div>
+          {myGames.length === 0 ? (
+            <EmptyState icon="🃏" title="Nessuna partita" message="Questo mazzo non ha ancora giocato." />
+          ) : myGames.map(g => {
+            const me  = g.players.find(p => p.deck.id === did)
+            const won = me?.isWinner
+            const winner = g.players.find(p => p.isWinner)
+            const date = new Date(g.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
+            return (
+              <div key={g.id} style={{ ...card, marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: t.textMuted }}>{date} · {g.players.length} giocatori · {me?.user.username}</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20, background: won ? t.winBg : t.bgMuted, color: won ? t.win : t.textSub }}>
+                    {won ? 'Vittoria' : 'Sconfitta'}{me?.placement ? ` · ${me.placement}°` : ''}
+                  </span>
+                </div>
+                {!won && winner && <div style={{ fontSize: 13, color: t.textSub }}>Ha vinto {winner.user.username} ({winner.deck.name})</div>}
+                {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4, fontStyle: 'italic' }}>{g.notes}</div>}
+              </div>
+            )
+          })}
+        </>
+      )}
+
+      {/* ── TAB: LISTA CARTE ── */}
+      {tab === 'lista' && (
+        <div style={card}>
+          {!deckDetail?.decklist ? (
+            <EmptyState icon="🃏" title="Nessuna decklist" message="Aggiungi una decklist dal profilo del mazzo per vederla qui." />
+          ) : loadingList ? (
+            <div style={{ fontSize: 13, color: t.textSub }}>Caricamento lista...</div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                {/* Elenco raggruppato */}
+                <div style={{ flex: 1, minWidth: isMobile ? '100%' : 240 }}>
+                  {CATEGORY_ORDER.filter(cat => grouped[cat]?.length).map(cat => {
+                    const cards = grouped[cat]
+                    const tot = cards.reduce((s, c) => s + c.count, 0)
+                    return (
+                      <div key={cat} style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                          {cat} <span style={{ color: t.textMuted, fontWeight: 600 }}>({tot})</span>
+                        </div>
+                        {cards.map((c, i) => {
+                          const active = selectedCard?.name === c.name
+                          return (
+                            <div key={i} onMouseEnter={() => c.imageUri && setSelectedCard(c)} onClick={() => setSelectedCard(active ? null : c)} style={{ display: 'flex', gap: 8, padding: '4px 8px', borderRadius: 7, cursor: 'pointer', background: active ? t.primaryBg : 'transparent', color: active ? t.primary : t.text, fontSize: 13 }}>
+                              <span style={{ color: t.textMuted, minWidth: 22, textAlign: 'right' }}>{c.count}×</span>
+                              <span>{c.name}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* Anteprima — sticky desktop */}
+                {!isMobile && (
+                  <div style={{ position: 'sticky', top: 80, width: 240, flexShrink: 0 }}>
+                    {selectedCard?.imageUri ? (
+                      <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: 240, borderRadius: 14, display: 'block', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }} />
+                    ) : (
+                      <div style={{ width: 240, height: 335, borderRadius: 14, border: `2px dashed ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: t.textMuted, fontSize: 12, padding: 12 }}>
+                        Passa su una carta per vederne l'immagine
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {totalEur && (
+                <div style={{ marginTop: 16, paddingTop: 12, borderTop: `0.5px solid ${t.border}`, fontSize: 13, color: t.textSub }}>
+                  Valore stimato: <strong style={{ color: t.text }}>~€ {totalEur}</strong> <span style={{ fontSize: 11 }}>(Scryfall)</span>
+                </div>
+              )}
+            </>
+          )}
+          {/* Anteprima mobile — fullscreen al tap */}
           {isMobile && selectedCard?.imageUri && (
-            <div
-              onClick={() => setSelectedCard(null)}
-              style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-            >
+            <div onClick={() => setSelectedCard(null)} style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
               <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: '100%', maxWidth: 320, borderRadius: 16, boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }} />
             </div>
           )}
         </div>
       )}
-
-      {/* Matchup */}
-      {mine.length > 0 && (
-        <>
-          <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Matchup</div>
-          {mine.map((m, i) => (
-            <div key={i} style={{ ...card, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <DeckThumb commander={commanderById[m.deckB.id]} w={48} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 500, color: t.text }}>{m.deckB.name}</div>
-                <div style={{ fontSize: 12, color: t.textSub }}>di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'}</div>
-                <WinBar pct={m.winRate} t={t} />
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: m.winRate >= 50 ? t.win : m.winRate > 0 ? t.primary : t.textMuted }}>{m.winRate}%</div>
-            </div>
-          ))}
-        </>
-      )}
-
-      {/* Storico */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Storico partite</div>
-      {myGames.length === 0 ? (
-        <EmptyState icon="🃏" title="Nessuna partita" message="Questo mazzo non ha ancora giocato." />
-      ) : myGames.map(g => {
-        const me = g.players.find(p => p.deck.id === did)
-        const won = me?.isWinner
-        const winner = g.players.find(p => p.isWinner)
-        const date = new Date(g.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
-        return (
-          <div key={g.id} style={{ ...card, marginBottom: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <div style={{ fontSize: 12, color: t.textMuted }}>{date} · {g.players.length} giocatori · {me?.user.username}</div>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20, background: won ? t.winBg : t.bgMuted, color: won ? t.win : t.textSub }}>
-                {won ? 'Vittoria' : 'Sconfitta'}{me?.placement ? ` · ${me.placement}°` : ''}
-              </span>
-            </div>
-            {!won && winner && <div style={{ fontSize: 13, color: t.textSub }}>Ha vinto {winner.user.username} ({winner.deck.name})</div>}
-            {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4, fontStyle: 'italic' }}>{g.notes}</div>}
-          </div>
-        )
-      })}
     </div>
   )
 }

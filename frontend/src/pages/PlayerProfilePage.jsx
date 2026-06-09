@@ -28,7 +28,9 @@ export default function PlayerProfilePage() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [achOpen, setAchOpen] = useState(false)
+  const [achOpen, setAchOpen]         = useState(false)
+  const [showRivalita, setShowRivalita] = useState(false)
+  const [showStats, setShowStats]       = useState(false)
 
   // Da notifica achievement (?ach=1): apri la sezione e scrolla
   const [searchParams] = useSearchParams()
@@ -209,11 +211,57 @@ export default function PlayerProfilePage() {
     </div>
   )
 
+  // ── blocco achievement (riusato in due posti) ──
+  const GOLD = '#E8B84B'
+  const unlockedCount = achievements.filter(a => a.unlocked).length
+  const secretTotal   = achievements.filter(a => a.secret).length
+  const secretDone    = achievements.filter(a => a.secret && a.unlocked).length
+  const nextAch       = achievements.find(a => !a.unlocked && !a.secret) || null
+  const previewOrder  = [...achievements].sort((a, b) => (b.unlocked ? 1 : 0) - (a.unlocked ? 1 : 0))
+
+  const achChip = (a) => {
+    const hidden = a.secret && !a.unlocked
+    const gold   = a.secret && a.unlocked
+    return (
+      <span key={a.id} title={hidden ? 'Achievement segreto' : a.title} style={{
+        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+        background: a.unlocked ? (gold ? GOLD + '22' : t.primaryBg) : t.bgMuted,
+        border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : t.border}`,
+        filter: a.unlocked ? 'none' : 'grayscale(1)', opacity: a.unlocked ? 1 : 0.5,
+        boxShadow: gold ? `0 0 8px ${GOLD}55` : 'none',
+      }}>{hidden ? '🔒' : a.icon}</span>
+    )
+  }
+
+  const achTile = (a) => {
+    const hidden = a.secret && !a.unlocked
+    const gold   = a.secret && a.unlocked
+    return (
+      <div key={a.id} title={hidden ? 'Achievement segreto' : a.desc} style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
+        background: a.unlocked ? (gold ? GOLD + '1f' : t.primaryBg) : t.bgMuted,
+        border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : (a.secret ? GOLD + '40' : t.border)}`,
+        borderStyle: hidden ? 'dashed' : 'solid',
+        opacity: a.unlocked ? 1 : 0.55,
+        boxShadow: gold ? `0 0 10px ${GOLD}44` : 'none',
+      }}>
+        <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{hidden ? '🔒' : a.icon}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
+            {hidden ? '???' : a.title}{gold && ' ✨'}
+          </div>
+          <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{hidden ? 'Achievement segreto' : a.desc}</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       {backBtn}
 
-      {/* Header profilo */}
+      {/* 1. Header profilo */}
       <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{
           width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
@@ -226,202 +274,47 @@ export default function PlayerProfilePage() {
         <div style={{ flex: 1, minWidth: 160 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>{player.username}</div>
           <div style={{ fontSize: 13, color: t.textSub }}>{total} partite giocate</div>
+          {streak >= 2 && <div style={{ fontSize: 12, color: t.primary, fontWeight: 700, marginTop: 2 }}>Streak attiva: {streak} vittorie di fila</div>}
         </div>
         <div style={{ fontSize: 38, fontWeight: 900, color: winRate >= 50 ? t.win : t.primary }}>
           {winRate}%
         </div>
       </div>
 
-      {/* Statistiche chiave */}
-      <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {stat('Vittorie', wins, `${total - wins} sconfitte`)}
-        {stat('Streak', streak > 0 ? `${streak} 🔥` : '—', streak > 0 ? 'vittorie di fila' : 'nessuna serie attiva')}
-        {stat('Nemesi', nemesis ? nemesis[0] : '—', nemesis ? `ti ha battuto ${nemesis[1]} volte` : 'nessuna')}
-        {stat('Mazzo preferito', favDeck ? favDeck[0] : '—', favDeck ? `${favDeck[1]} partite` : '')}
-        {stat('Piazz. medio', avgPlacement ? avgPlacement.toFixed(1) + '°' : '—', placed.length ? `su ${placed.length} partite` : 'nessun dato')}
-        {stat('Primo eliminato', placed.length ? `${firstOuts}×` : '—', placed.length ? 'volte fuori per primo' : 'nessun dato')}
+      {/* 2. Achievement (posizione 2 — massima visibilità) */}
+      <div id="achievements" style={{ ...card, cursor: achOpen ? 'default' : 'pointer', scrollMarginTop: 70 }} onClick={() => { if (!achOpen) setAchOpen(true) }}>
+        <div onClick={(e) => { e.stopPropagation(); setAchOpen(o => !o) }} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Achievement</span>
+          <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {unlockedCount}/{achievements.length}</span>
+          {secretTotal > 0 && <span style={{ fontWeight: 600, color: GOLD, fontSize: 12 }}>✨ {secretDone}/{secretTotal} segreti</span>}
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: t.textSub, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {achOpen ? 'nascondi' : 'mostra'}
+            <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: achOpen ? 'rotate(90deg)' : 'none' }}>▸</span>
+          </span>
+        </div>
+
+        {!achOpen && (
+          <>
+            <div style={{ display: 'flex', gap: 6, marginTop: 12, overflow: 'hidden', maskImage: 'linear-gradient(to right, #000 78%, transparent)', WebkitMaskImage: 'linear-gradient(to right, #000 78%, transparent)' }}>
+              {previewOrder.map(achChip)}
+            </div>
+            {nextAch && (
+              <div style={{ marginTop: 10, fontSize: 12, color: t.textSub, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ opacity: 0.5 }}>{nextAch.icon}</span>
+                <span>Prossimo: <strong style={{ color: t.text }}>{nextAch.title}</strong> — {nextAch.desc}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {achOpen && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginTop: 12 }}>
+            {achievements.map(achTile)}
+          </div>
+        )}
       </div>
 
-      {/* Eliminazioni (kill tracking) */}
-      {hasKillData && (
-        <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          {stat('⚔️ Kill', kills, 'giocatori eliminati')}
-          {stat('💀 Morti', deaths, 'volte eliminato')}
-          {stat('😈 Arcinemico', archNemesis ? archNemesis[0] : '—', archNemesis ? `ti ha eliminato ${archNemesis[1]}×` : 'nessuno')}
-          {stat('🎯 Preda preferita', favoritePrey ? favoritePrey[0] : '—', favoritePrey ? `eliminato ${favoritePrey[1]}×` : 'nessuna')}
-        </div>
-      )}
-
-      {/* Trend win rate */}
-      {trend.length >= 2 && (
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 4 }}>Andamento win rate</div>
-          <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>win rate cumulativo nel corso delle {trend.length} partite</div>
-          {(() => {
-            const W = 600, H = 120, pad = 6
-            const n = trend.length
-            const x = (i) => pad + (i / (n - 1)) * (W - pad * 2)
-            const y = (v) => pad + (1 - v / 100) * (H - pad * 2)
-            const line = trend.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
-            const area = `${line} L ${x(n - 1).toFixed(1)} ${H - pad} L ${x(0).toFixed(1)} ${H - pad} Z`
-            return (
-              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }} preserveAspectRatio="none">
-                {/* griglia 50% */}
-                <line x1={pad} y1={y(50)} x2={W - pad} y2={y(50)} stroke={t.border} strokeWidth="1" strokeDasharray="4 4" />
-                <defs>
-                  <linearGradient id="ct-trend" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={t.primary} stopOpacity="0.30" />
-                    <stop offset="100%" stopColor={t.primary} stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d={area} fill="url(#ct-trend)" />
-                <path d={line} fill="none" stroke={t.primary} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-                <circle cx={x(n - 1)} cy={y(trend[n - 1])} r="4" fill={t.primary} />
-              </svg>
-            )
-          })()}
-        </div>
-      )}
-
-      {/* Rivalità (scontri diretti) */}
-      {opponents.length > 0 && h2h && (
-        <>
-          <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            Rivalità ⚔️
-            <select
-              value={rivalId || ''}
-              onChange={e => setRivalId(Number.parseInt(e.target.value, 10))}
-              style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
-            >
-              {opponents.map(o => <option key={o.id} value={o.id}>vs {o.username}</option>)}
-            </select>
-          </div>
-
-          {(() => {
-            const decided = h2h.meBetter + h2h.oppBetter
-            const mePct = decided ? Math.round(h2h.meBetter / decided * 100) : 50
-            const row = (label, a, b) => (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: `0.5px solid ${t.border}` }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: t.text, minWidth: 30, textAlign: 'left' }}>{a}</span>
-                <span style={{ fontSize: 12, color: t.textSub }}>{label}</span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: t.text, minWidth: 30, textAlign: 'right' }}>{b}</span>
-              </div>
-            )
-            return (
-              <div style={card}>
-                {/* Intestazione nomi */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, color: t.primary, fontSize: 14 }}>{player.username}</span>
-                  <span style={{ fontSize: 11, color: t.textMuted }}>{h2h.shared.length} partite insieme</span>
-                  <span style={{ fontWeight: 700, color: t.text, fontSize: 14 }}>{h2h.rival?.username}</span>
-                </div>
-                {/* Barra "chi finisce meglio" */}
-                <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', marginBottom: 4 }}>
-                  <div style={{ width: `${mePct}%`, background: t.primary }} />
-                  <div style={{ width: `${100 - mePct}%`, background: t.bgMuted }} />
-                </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: t.textMuted, marginBottom: 12 }}>chi finisce più in alto</div>
-
-                {row('arrivato più in alto', h2h.meBetter, h2h.oppBetter)}
-                {row('vittorie del pod', h2h.myWins, h2h.oppWins)}
-                {row('eliminazioni inflitte ⚔️', h2h.myKills, h2h.oppKills)}
-                {h2h.undecided > 0 && (
-                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 8 }}>
-                    {h2h.undecided} {h2h.undecided === 1 ? 'partita senza' : 'partite senza'} ordine di uscita (vinte da altri) non assegnate.
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-        </>
-      )}
-
-      {/* Achievement */}
-      {(() => {
-        const GOLD = '#E8B84B'
-        const unlockedCount = achievements.filter(a => a.unlocked).length
-        const secretTotal = achievements.filter(a => a.secret).length
-        const secretDone = achievements.filter(a => a.secret && a.unlocked).length
-        // preview: prima gli sbloccati (i "record" ottenuti), poi il resto
-        const previewOrder = [...achievements].sort((a, b) => (b.unlocked ? 1 : 0) - (a.unlocked ? 1 : 0))
-
-        // pallina icona per la preview a scomparsa
-        const chip = (a) => {
-          const hidden = a.secret && !a.unlocked
-          const gold = a.secret && a.unlocked
-          return (
-            <span key={a.id} title={hidden ? 'Achievement segreto' : a.title} style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-              background: a.unlocked ? (gold ? GOLD + '22' : t.primaryBg) : t.bgMuted,
-              border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : t.border}`,
-              filter: a.unlocked ? 'none' : 'grayscale(1)', opacity: a.unlocked ? 1 : 0.5,
-              boxShadow: gold ? `0 0 8px ${GOLD}55` : 'none',
-            }}>{hidden ? '🔒' : a.icon}</span>
-          )
-        }
-
-        // tessera completa (griglia espansa)
-        const tile = (a) => {
-          const hidden = a.secret && !a.unlocked
-          const gold = a.secret && a.unlocked
-          return (
-            <div key={a.id} title={hidden ? 'Achievement segreto' : a.desc} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10,
-              background: a.unlocked ? (gold ? GOLD + '1f' : t.primaryBg) : t.bgMuted,
-              border: `1px solid ${a.unlocked ? (gold ? GOLD + '88' : t.primaryBorder) : (a.secret ? GOLD + '40' : t.border)}`,
-              borderStyle: hidden ? 'dashed' : 'solid',
-              opacity: a.unlocked ? 1 : 0.55,
-              boxShadow: gold ? `0 0 10px ${GOLD}44` : 'none',
-            }}>
-              <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{hidden ? '🔒' : a.icon}</span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
-                  {hidden ? '???' : a.title}{gold && ' ✨'}
-                </div>
-                <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{hidden ? 'Achievement segreto' : a.desc}</div>
-              </div>
-            </div>
-          )
-        }
-
-        return (
-          <div id="achievements" style={{ ...card, marginTop: 16, cursor: achOpen ? 'default' : 'pointer', scrollMarginTop: 70 }} onClick={() => { if (!achOpen) setAchOpen(true) }}>
-            <div
-              onClick={(e) => { e.stopPropagation(); setAchOpen(o => !o) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}
-            >
-              <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Achievement</span>
-              <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {unlockedCount}/{achievements.length}</span>
-              {secretTotal > 0 && (
-                <span style={{ fontWeight: 600, color: GOLD, fontSize: 12 }}>✨ {secretDone}/{secretTotal} segreti</span>
-              )}
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: t.textSub, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                {achOpen ? 'nascondi' : 'mostra'}
-                <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: achOpen ? 'rotate(90deg)' : 'none' }}>▸</span>
-              </span>
-            </div>
-
-            {!achOpen && (
-              <div style={{
-                display: 'flex', gap: 6, marginTop: 12, overflow: 'hidden',
-                maskImage: 'linear-gradient(to right, #000 78%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, #000 78%, transparent)',
-              }}>
-                {previewOrder.map(chip)}
-              </div>
-            )}
-
-            {achOpen && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginTop: 12 }}>
-                {achievements.map(tile)}
-              </div>
-            )}
-          </div>
-        )
-      })()}
-
-      {/* Mazzi del giocatore */}
+      {/* 3. Mazzi del giocatore */}
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Mazzi</div>
       {myDecks.length === 0 ? (
         <EmptyState icon="🎴" title="Nessun mazzo con partite" message="Questo giocatore non ha ancora mazzi che hanno giocato." />
@@ -440,9 +333,7 @@ export default function PlayerProfilePage() {
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: t.textSub }}>
-                {d.commander || 'Nessun commander'} · {d.wins}V / {d.games - d.wins}P
-              </div>
+              <div style={{ fontSize: 12, color: t.textSub }}>{d.commander || 'Nessun commander'} · {d.wins}V / {d.games - d.wins}P</div>
               {d.games > 0 && <WinBar pct={d.winRate} t={t} />}
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: d.winRate >= 50 ? t.win : d.winRate > 0 ? t.primary : t.textMuted, flexShrink: 0 }}>
@@ -452,13 +343,130 @@ export default function PlayerProfilePage() {
         ))
       )}
 
-      {/* Storico personale */}
+      {/* 4. Scontri diretti (collassato) */}
+      {opponents.length > 0 && (
+        <div style={card}>
+          <div onClick={() => setShowRivalita(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Scontri diretti ⚔️</span>
+            <span style={{ fontSize: 12, color: t.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {showRivalita ? 'nascondi' : `${opponents.length} avversari`}
+              <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showRivalita ? 'rotate(90deg)' : 'none' }}>▸</span>
+            </span>
+          </div>
+
+          {showRivalita && h2h && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: t.textSub }}>vs</span>
+                <select
+                  value={rivalId || ''}
+                  onChange={e => setRivalId(Number.parseInt(e.target.value, 10))}
+                  style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                >
+                  {opponents.map(o => <option key={o.id} value={o.id}>{o.username}</option>)}
+                </select>
+                <span style={{ fontSize: 12, color: t.textMuted }}>{h2h.shared.length} partite insieme</span>
+              </div>
+              {(() => {
+                const decided = h2h.meBetter + h2h.oppBetter
+                const mePct = decided ? Math.round(h2h.meBetter / decided * 100) : 50
+                const row = (label, a, b) => (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: `0.5px solid ${t.border}` }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: t.text, minWidth: 30, textAlign: 'left' }}>{a}</span>
+                    <span style={{ fontSize: 12, color: t.textSub }}>{label}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: t.text, minWidth: 30, textAlign: 'right' }}>{b}</span>
+                  </div>
+                )
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, color: t.primary, fontSize: 14 }}>{player.username}</span>
+                      <span style={{ fontWeight: 700, color: t.text, fontSize: 14 }}>{h2h.rival?.username}</span>
+                    </div>
+                    <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', marginBottom: 4 }}>
+                      <div style={{ width: `${mePct}%`, background: t.primary }} />
+                      <div style={{ width: `${100 - mePct}%`, background: t.bgMuted }} />
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: 11, color: t.textMuted, marginBottom: 12 }}>chi finisce piu in alto</div>
+                    {row('arrivato piu in alto', h2h.meBetter, h2h.oppBetter)}
+                    {row('vittorie del pod', h2h.myWins, h2h.oppWins)}
+                    {row('eliminazioni inflitte ⚔️', h2h.myKills, h2h.oppKills)}
+                    {h2h.undecided > 0 && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 8 }}>{h2h.undecided} partite senza ordine di uscita non assegnate.</div>}
+                  </>
+                )
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. Statistiche dettagliate (collassato) */}
+      {total > 0 && (
+        <div style={card}>
+          <div onClick={() => setShowStats(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Statistiche dettagliate</span>
+            <span style={{ fontSize: 12, color: t.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {showStats ? 'nascondi' : 'vittorie, kill, trend'}
+              <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showStats ? 'rotate(90deg)' : 'none' }}>▸</span>
+            </span>
+          </div>
+
+          {showStats && (
+            <div style={{ marginTop: 14 }}>
+              {/* Stats numeriche */}
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
+                {stat('Vittorie', wins, `${total - wins} sconfitte`)}
+                {stat('Nemesi', nemesis ? nemesis[0] : '—', nemesis ? `ti ha battuto ${nemesis[1]} volte` : 'nessuna')}
+                {stat('Mazzo preferito', favDeck ? favDeck[0] : '—', favDeck ? `${favDeck[1]} partite` : '')}
+                {stat('Piazz. medio', avgPlacement ? avgPlacement.toFixed(1) + '°' : '—', placed.length ? `su ${placed.length} partite` : 'nessun dato')}
+                {stat('Primo eliminato', placed.length ? `${firstOuts}×` : '—', placed.length ? 'volte fuori per primo' : 'nessun dato')}
+              </div>
+
+              {/* Kill tracking */}
+              {hasKillData && (
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingTop: 12, borderTop: `0.5px solid ${t.border}`, marginBottom: 12 }}>
+                  {stat('⚔️ Kill', kills, 'giocatori eliminati')}
+                  {stat('💀 Morti', deaths, 'volte eliminato')}
+                  {stat('😈 Arcinemico', archNemesis ? archNemesis[0] : '—', archNemesis ? `ti ha eliminato ${archNemesis[1]}×` : 'nessuno')}
+                  {stat('🎯 Preda preferita', favoritePrey ? favoritePrey[0] : '—', favoritePrey ? `eliminato ${favoritePrey[1]}×` : 'nessuna')}
+                </div>
+              )}
+
+              {/* Trend SVG */}
+              {trend.length >= 2 && (
+                <div style={{ paddingTop: 12, borderTop: `0.5px solid ${t.border}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 4 }}>Andamento win rate</div>
+                  <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>win rate cumulativo · {trend.length} partite</div>
+                  {(() => {
+                    const W = 600, H = 120, pad = 6, n = trend.length
+                    const x = (i) => pad + (i / (n - 1)) * (W - pad * 2)
+                    const y = (v) => pad + (1 - v / 100) * (H - pad * 2)
+                    const line = trend.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
+                    const area = `${line} L ${x(n - 1).toFixed(1)} ${H - pad} L ${x(0).toFixed(1)} ${H - pad} Z`
+                    return (
+                      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }} preserveAspectRatio="none">
+                        <line x1={pad} y1={y(50)} x2={W - pad} y2={y(50)} stroke={t.border} strokeWidth="1" strokeDasharray="4 4" />
+                        <defs><linearGradient id="ct-trend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={t.primary} stopOpacity="0.30" /><stop offset="100%" stopColor={t.primary} stopOpacity="0" /></linearGradient></defs>
+                        <path d={area} fill="url(#ct-trend)" />
+                        <path d={line} fill="none" stroke={t.primary} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                        <circle cx={x(n - 1)} cy={y(trend[n - 1])} r="4" fill={t.primary} />
+                      </svg>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. Storico personale */}
       <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Storico partite</div>
       {myGames.length === 0 ? (
         <EmptyState icon="🃏" title="Nessuna partita" message="Questo giocatore non ha ancora giocato." />
       ) : (
         myGames.map(g => {
-          const me = g.players.find(p => p.user.id === pid)
+          const me  = g.players.find(p => p.user.id === pid)
           const won = me?.isWinner
           const winner = g.players.find(p => p.isWinner)
           const date = new Date(g.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -466,11 +474,7 @@ export default function PlayerProfilePage() {
             <div key={g.id} style={{ ...card, marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <div style={{ fontSize: 12, color: t.textMuted }}>{date} · {g.players.length} giocatori</div>
-                <span style={{
-                  fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20,
-                  background: won ? t.winBg : t.bgMuted,
-                  color: won ? t.win : t.textSub,
-                }}>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20, background: won ? t.winBg : t.bgMuted, color: won ? t.win : t.textSub }}>
                   {won ? 'Vittoria' : 'Sconfitta'}{me?.placement ? ` · ${me.placement}°` : ''}
                 </span>
               </div>
