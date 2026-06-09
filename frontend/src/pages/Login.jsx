@@ -40,7 +40,7 @@ export default function Login() {
   })
 
   return (
-    <div style={{ minHeight: '100dvh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100dvh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 'clamp(2rem, 10vh, 5rem)', paddingBottom: '2rem', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
       {/* Sfondo aurora */}
       <div className={`ct-aurora ${dark ? 'dark' : 'light'}`} />
 

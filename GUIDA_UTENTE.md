@@ -46,6 +46,7 @@ Su telefono la navigazione è tutta raggiungibile con il pollice:
 
 **Header in alto:**
 - Logo e nome del portale
+- 👤 **Il tuo nome/avatar** — toccalo per aprire direttamente il tuo profilo
 - 🔔 **Campanella** — notifiche (pallino rosso se ci sono novità)
 - 🌙/☀ **Tema** — passa da dark a light (si ricorda sul dispositivo)
 - **Esci** — disconnessione
@@ -111,7 +112,7 @@ Premi **Registra Partita** da Gioca (o accedi direttamente da Gioca → Registra
 
 ![Pagina Mazzi](docs/img/mobile-mazzi.png)
 
-Su desktop trovi **Mazzi** nella barra in alto. Su telefono puoi raggiungerli dal tuo profilo (**Io** nel dock) oppure dalla tab **Mazzi** nella sezione Gruppo.
+Su desktop trovi **Mazzi** nella barra in alto. Su telefono il percorso più rapido è: **Io** nel dock → sezione **I miei mazzi** → pulsante **Gestisci →**. In alternativa puoi usare la tab **Mazzi** nella sezione Gruppo per vedere i mazzi di tutto il gruppo (senza form di creazione).
 
 ### Aggiungere un mazzo
 Nel riquadro **Aggiungi mazzo**:
@@ -229,14 +230,19 @@ Ogni partita ha la sua sezione **social**: **reazioni** emoji (👍 🔥 😂 �
 
 ![Profilo giocatore](docs/img/mobile-profilo-giocatore.png)
 
-Si apre toccando un giocatore nella tab Giocatori, nel Feed o nel dock **Io** per il tuo profilo. Mostra:
+Si apre toccando un giocatore nella tab Giocatori, nel Feed o nel dock **Io** per il tuo profilo. Puoi aprire il tuo profilo anche toccando **il tuo nome/avatar** nell'header in qualsiasi momento.
+
+Sul **tuo** profilo, in alto a destra compare il pulsante **? Guida** che apre questa guida.
+
+Le sezioni del profilo:
 
 - **Header** — avatar con iniziali, win rate globale, partite totali, eventuale streak attiva.
 - **Achievement** — quanti ne hai sbloccati (es. *15/20, 3/6 segreti*) con l'anteprima del prossimo obiettivo. Tocca per espandere tutti i badge.
 
 ![Achievement del giocatore](docs/img/mobile-giocatore-achievement.png)
 
-- **Mazzi** — i mazzi del giocatore con win rate e link al profilo.
+- **Miglior Mazzo** — il mazzo con il win rate più alto tra quelli che hanno disputato almeno una partita. Toccalo per aprirne il profilo completo.
+- **I miei mazzi** *(solo sul tuo profilo)* — lista di tutti i tuoi mazzi con win rate. Il pulsante **Gestisci →** apre la pagina di creazione e modifica mazzi; se non hai ancora nessun mazzo compare **+ Crea mazzo**.
 - **Scontri diretti ⚔️** *(collassabile)* — scegli un avversario e vedi il vostro testa a testa: piazzamento medio, vittorie condivise, kill reciproci.
 - **Statistiche dettagliate** *(collassabile)* — kill totali, morti, arcinemico, preda preferita, piazzamento medio, andamento win rate nel tempo.
 - **Storico partite** — tutte le partite di quel giocatore.

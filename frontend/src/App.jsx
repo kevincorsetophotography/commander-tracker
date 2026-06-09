@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 function RedirectWithSearch({ to }) {
   const { search } = useLocation()
@@ -23,6 +23,7 @@ import EventDetailPage from './pages/EventDetailPage'
 import GamePage from './pages/GamePage'
 import JudgePage from './pages/JudgePage'
 import GiocaPage from './pages/GiocaPage'
+import GuidaPage from './pages/GuidaPage'
 import NotificationBell from './components/NotificationBell'
 
 function NavItem({ to, end, children }) {
@@ -103,8 +104,13 @@ function Brand({ logoSize = 42, titleSize = 14, compact = false }) {
 function UserChip({ titleSize = 13, avatar = 26 }) {
   const { t } = useTheme()
   const { user } = useAuth()
+  const navigate = useNavigate()
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+    <span
+      onClick={() => user?.id && navigate(`/giocatore/${user.id}`)}
+      title="Vai al tuo profilo"
+      style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, cursor: 'pointer' }}
+    >
       <span style={{ width: avatar, height: avatar, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: avatar * 0.42, fontWeight: 700, border: `1px solid ${t.primaryBorder}`, flexShrink: 0 }}>
         {user?.username?.substring(0, 2).toUpperCase()}
       </span>
@@ -157,6 +163,7 @@ function Layout() {
       <Route path="/evento/:id"    element={<EventDetailPage />} />
       <Route path="/nuova-partita" element={<NewGamePage />} />
       <Route path="/giudice"       element={<JudgePage />} />
+      <Route path="/guida"         element={<GuidaPage />} />
       <Route path="/admin"         element={user?.role === 'ADMIN' ? <AdminPage /> : <Navigate to="/" replace />} />
     </Routes>
   )

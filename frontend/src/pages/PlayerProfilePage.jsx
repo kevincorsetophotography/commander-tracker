@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../hooks/useAuth'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
@@ -22,6 +23,8 @@ export default function PlayerProfilePage() {
   const pid = Number.parseInt(id, 10)
   const navigate = useNavigate()
   const { t } = useTheme()
+  const { user } = useAuth()
+  const isOwnProfile = user?.id === pid
 
   const [games, setGames] = useState([])
   const [deckStats, setDeckStats] = useState([])
@@ -188,13 +191,14 @@ export default function PlayerProfilePage() {
     boxShadow: t.shadow,
   }
 
+  const btnStyle = { padding: '6px 14px', borderRadius: 10, border: `1px solid ${t.border}`, background: t.bgMuted, color: t.textSub, fontSize: 13, fontWeight: 600, cursor: 'pointer' }
   const backBtn = (
-    <button
-      onClick={() => navigate(-1)}
-      style={{ padding: '6px 14px', borderRadius: 10, border: `1px solid ${t.border}`, background: t.bgMuted, color: t.textSub, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16 }}
-    >
-      ← Indietro
-    </button>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <button onClick={() => navigate(-1)} style={btnStyle}>← Indietro</button>
+      {isOwnProfile && (
+        <button onClick={() => navigate('/guida')} style={btnStyle}>? Guida</button>
+      )}
+    </div>
   )
 
   if (loading) return (<div>{backBtn}<Skeleton h={120} r={16} style={{ marginBottom: 16 }} /><SkeletonList rows={4} /></div>)
@@ -314,33 +318,63 @@ export default function PlayerProfilePage() {
         )}
       </div>
 
-      {/* 3. Mazzi del giocatore */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Mazzi</div>
-      {myDecks.length === 0 ? (
-        <EmptyState icon="🎴" title="Nessun mazzo con partite" message="Questo giocatore non ha ancora mazzi che hanno giocato." />
-      ) : (
-        myDecks.map(d => (
-          <div key={d.id} className="ct-lift" style={{ ...card, marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${d.id}`)}>
-            <DeckThumb commander={d.commander} w={64} preview={false} />
+      {/* 3. Miglior Mazzo */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Miglior Mazzo</div>
+      {(() => {
+        const best = myDecks.find(d => d.games > 0)
+        if (!best) return <EmptyState icon="🎴" title="Nessun mazzo con partite" message="Nessun mazzo ha ancora disputato partite." />
+        return (
+          <div className="ct-lift" style={{ ...card, marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${best.id}`)}>
+            <DeckThumb commander={best.commander} w={64} preview={false} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                {d.name}
-                {d.colors && (
+                {best.name}
+                {best.colors && (
                   <span style={{ display: 'inline-flex', gap: 2 }}>
-                    {d.colors.split('').map(c => (
+                    {best.colors.split('').map(c => (
                       <span key={c} style={{ width: 11, height: 11, borderRadius: '50%', background: COLOR_MAP[c] || '#eee', border: '1px solid rgba(0,0,0,0.15)' }} />
                     ))}
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: t.textSub }}>{d.commander || 'Nessun commander'} · {d.wins}V / {d.games - d.wins}P</div>
-              {d.games > 0 && <WinBar pct={d.winRate} t={t} />}
+              <div style={{ fontSize: 12, color: t.textSub }}>{best.commander || 'Nessun commander'} · {best.wins}V / {best.games - best.wins}P su {best.games} partite</div>
+              <WinBar pct={best.winRate} t={t} />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: d.winRate >= 50 ? t.win : d.winRate > 0 ? t.primary : t.textMuted, flexShrink: 0 }}>
-              {d.games > 0 ? `${d.winRate}%` : 'n/a'}
+            <div style={{ fontSize: 18, fontWeight: 700, color: best.winRate >= 50 ? t.win : t.primary, flexShrink: 0 }}>
+              {best.winRate}%
             </div>
           </div>
-        ))
+        )
+      })()}
+
+      {/* 3b. I miei mazzi (solo profilo proprio) */}
+      {isOwnProfile && (
+        <div style={{ ...card, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: myDecks.length > 0 ? 12 : 0 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>
+              I miei mazzi
+              {myDecks.length > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: t.textMuted, marginLeft: 6 }}>{myDecks.length}</span>}
+            </span>
+            <button
+              onClick={() => navigate('/mazzi')}
+              style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${t.primary}`, background: t.primaryBg, color: t.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {myDecks.length === 0 ? '+ Crea mazzo' : 'Gestisci →'}
+            </button>
+          </div>
+          {myDecks.length > 0 && myDecks.map(d => (
+            <div key={d.id} className="ct-lift" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${t.border}`, cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${d.id}`)}>
+              <DeckThumb commander={d.commander} w={36} preview={false} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
+                <div style={{ fontSize: 11, color: t.textMuted }}>{d.commander || '—'}</div>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: d.games === 0 ? t.textMuted : d.winRate >= 50 ? t.win : t.primary, flexShrink: 0 }}>
+                {d.games === 0 ? 'n/a' : `${d.winRate}%`}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* 4. Scontri diretti (collassato) */}
