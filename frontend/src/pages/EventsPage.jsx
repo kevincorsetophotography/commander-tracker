@@ -234,55 +234,63 @@ export default function EventsPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: t.text }}>📅 Eventi</div>
-        {isAdmin && !showForm && (
+        <div style={{ fontSize: 18, fontWeight: 600, color: t.text }}>Tornei & eventi</div>
+        {isAdmin && (
           <button style={btnPrimary} onClick={startCreate}>+ Nuovo evento</button>
         )}
       </div>
 
-      {/* Form admin (crea / modifica) */}
+      {/* Modal form admin (crea / modifica) */}
       {isAdmin && showForm && (
-        <div style={{ ...glass, borderRadius: 16, padding: '1.15rem 1.35rem', marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>{editingId ? 'Modifica evento' : 'Nuovo evento'}</div>
-          <form onSubmit={submit}>
-            <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Titolo *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} maxLength={120} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Data *</label>
-                <input type="date" style={inputSt} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Ora (opzionale)</label>
-                <input type="time" style={inputSt} value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
-              </div>
+        <div
+          onClick={e => { if (e.target === e.currentTarget) resetForm() }}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+        >
+          <div style={{ ...glass, borderRadius: 18, padding: '1.35rem 1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{editingId ? 'Modifica evento' : 'Nuovo evento'}</div>
+              <button onClick={resetForm} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: t.textMuted, lineHeight: 1, padding: '0 4px' }}>×</button>
             </div>
-            <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Luogo (opzionale)" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} maxLength={160} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Formato torneo</label>
-                <select style={inputSt} value={form.format} onChange={e => setForm(f => ({ ...f, format: e.target.value }))}>
-                  <option value="">— Nessuno (solo evento)</option>
-                  <option value="multiplayer">Multiplayer (pod Commander)</option>
-                  <option value="1v1">1v1 (svizzera)</option>
-                </select>
-              </div>
-              {form.format === '1v1' && (
+            <form onSubmit={submit}>
+              <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Titolo *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} maxLength={120} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Match</label>
-                  <select style={inputSt} value={form.bestOf} onChange={e => setForm(f => ({ ...f, bestOf: e.target.value }))}>
-                    <option value="1">Best of 1</option>
-                    <option value="3">Best of 3</option>
+                  <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Data *</label>
+                  <input type="date" style={inputSt} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Ora (opzionale)</label>
+                  <input type="time" style={inputSt} value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+                </div>
+              </div>
+              <input style={{ ...inputSt, marginBottom: 10 }} placeholder="Luogo (opzionale)" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} maxLength={160} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Formato torneo</label>
+                  <select style={inputSt} value={form.format} onChange={e => setForm(f => ({ ...f, format: e.target.value }))}>
+                    <option value="">— Nessuno (solo evento)</option>
+                    <option value="multiplayer">Multiplayer (pod Commander)</option>
+                    <option value="1v1">1v1 (svizzera)</option>
                   </select>
                 </div>
-              )}
-            </div>
-            <textarea style={{ ...inputSt, marginBottom: 12, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Descrizione (opzionale)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={2000} />
-            {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 10 }}>{formError}</div>}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" style={btnPrimary} disabled={saving}>{editingId ? 'Salva modifiche' : 'Crea evento'}</button>
-              <button type="button" style={btnGhost} onClick={resetForm}>Annulla</button>
-            </div>
-          </form>
+                {form.format === '1v1' && (
+                  <div>
+                    <label style={{ fontSize: 12, color: t.textSub, display: 'block', marginBottom: 4 }}>Match</label>
+                    <select style={inputSt} value={form.bestOf} onChange={e => setForm(f => ({ ...f, bestOf: e.target.value }))}>
+                      <option value="1">Best of 1</option>
+                      <option value="3">Best of 3</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              <textarea style={{ ...inputSt, marginBottom: 12, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Descrizione (opzionale)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={2000} />
+              {formError && <div style={{ color: t.danger, fontSize: 13, marginBottom: 10 }}>{formError}</div>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" style={btnPrimary} disabled={saving}>{editingId ? 'Salva modifiche' : 'Crea evento'}</button>
+                <button type="button" style={btnGhost} onClick={resetForm}>Annulla</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
