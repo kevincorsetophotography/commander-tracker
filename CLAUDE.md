@@ -65,9 +65,9 @@ backend/src/
 
 frontend/src/
   App.jsx             rotte React + layout (header desktop/mobile, dock 5-item mobile, NotificationBell)
-                      Dock: Feed(/) | Gioca(/gioca) | Tornei(/tornei) | Gruppo(/gruppo) | Io(/giocatore/:id)
-                      Desktop navbar: Feed | Gioca | Tornei | Gruppo | Mazzi | [Admin]
-                      /eventi → /tornei redirect (preserva querystring deep-link)
+                      Dock: Feed(/) | Gioca(/gioca) | Eventi(/eventi) | Gruppo(/gruppo) | Io(/giocatore/:id)
+                      Desktop navbar: Feed | Gioca | Eventi | Gruppo | Mazzi | [Admin]
+                      /tornei → /eventi redirect (retrocompatibilità deep-link)
   lib/
     api.js            client fetch (Authorization Bearer) — espone tutti i metodi API
     achievements.js   26 achievement: definizioni + computeUnlocked (mirror backend)
@@ -87,14 +87,14 @@ frontend/src/
     Login.jsx             /login — form login/register con inviteCode
     FeedPage.jsx          / — home feed: snapshot stagione, prossimo evento, ultime partite + notifiche
     GiocaPage.jsx         /gioca — landing "Gioca": CTA nuova partita, mazzi recenti, ultima partita
-    GruppoPage.jsx        /gruppo — statistiche gruppo section-based (stagione, primati, meta, storico)
+    GruppoPage.jsx        /gruppo — statistiche gruppo con 4 tab URL-based: Stagione (classifica + Primati + Meta), Giocatori, Mazzi, Storico
     DashboardPage.jsx     /dashboard — 6 tab stats LEGACY (ancora funzionante, non nel dock)
     DecksPage.jsx         /mazzi — lista mazzi + form creazione
     DeckProfilePage.jsx   /mazzo/:id — profilo mazzo (tab perf/lista, stima prezzo €)
     PlayerProfilePage.jsx /giocatore/:id — profilo giocatore (progressive disclosure 6 sezioni)
     GamePage.jsx          /partita/:id — dettaglio partita + social
     NewGamePage.jsx       /nuova-partita — form registrazione partita
-    EventsPage.jsx        /tornei — tornei & eventi + RSVP (form crea/modifica in modal overlay)
+    EventsPage.jsx        /eventi — eventi + RSVP (form crea/modifica in modal overlay); /tornei redirige qui
     EventDetailPage.jsx   /evento/:id — dettaglio torneo (turni, tavoli, standings)
     AdminPage.jsx         /admin — gestione utenti/mazzi/partite (solo ADMIN)
     JudgePage.jsx         /giudice — Q&A ruling Commander + storico domande del gruppo (ultimi 20)
@@ -248,11 +248,11 @@ Punteggio: 1°=3, 2°=2, 3°=1, +1 per ogni partenza. Achievement stagionali sol
 - Link all'ultima partita giocata
 
 ### GruppoPage (`/gruppo`)
-- 4 MetricCard in alto (partite totali, vincitori diversi, mazzo più usato, sessione più affollata)
-- **Stagione** (sempre aperta): selector stagione, classifica con punti e qualificazione
-- **Primati** (collassabile, default aperto): 11 record globali + meta colori
-- **Meta colori** (collassabile, default chiuso): win rate per colore + istogramma attività mensile
-- **Storico partite** (sempre visibile): presets periodo + range date custom, `GameSocial`
+4 MetricCard in alto (partite totali, giocatori, mazzi, top player), poi **4 tab URL-based** (`?tab=`):
+- **Stagione** (default, no `?tab`): selector stagione, classifica con punti/qualificazione + **Primati** (collassabile, default aperto, 11 record, card grid `minmax(110px)` → 3 col mobile) + **Meta colori** (collassabile, default chiuso)
+- **Giocatori** (`?tab=giocatori`): lista tutti i giocatori ordinata per win rate, WinBar, link a profilo
+- **Mazzi** (`?tab=mazzi`): lista tutti i mazzi ordinata per win rate, DeckThumb + BracketBadge, link a profilo
+- **Storico** (`?tab=storico`): presets periodo + range date custom, `GameSocial`
 
 ### DashboardPage (`/dashboard`) — LEGACY ancora funzionante
 6 tab nell'URL (`?tab=…`): `stagione | giocatori | mazzi | matchup | storico | primati`
@@ -287,7 +287,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - Textarea decklist libera
 - **Import da URL**: `POST /api/decks/import` → Archidekt (funziona), Moxfield (spesso blocca → messaggio guida export manuale)
 
-### EventsPage (`/tornei`) — anche /eventi redirige qui
+### EventsPage (`/eventi`) — /tornei redirige qui (retrocompatibilità)
 - Lista eventi con RSVP toggle
 - Form crea/modifica evento (solo ADMIN) in **modal overlay** (fixed backdrop + card centrata, chiude su click fuori o ×)
 
@@ -303,7 +303,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - **Achievement: logica DUPLICATA** → vanno tenuti in **parità** (entrambi hanno test). La **fonte di verità per il DISPLAY** è lo **snapshot del server** (`AchievementUnlock`, esposto da `GET /api/stats/achievements/:userId`): `getAchievements` fa **unione snapshot ∪ live**, così gli achievement "non monotoni" (Ammazzagiganti, Dominatore, Sopravvissuto) non spariscono.
 - **Achievement stagionali** (`season_champion`, `season_perfect`): solo per **stagioni concluse**, mai per quella in corso.
 - **Anti-flood notifiche achievement**: `initAchievementSnapshots` gira a ogni avvio e registra in **silenzio** ciò che è già maturato (niente notifiche retroattive). Lo sblocco "vero" usa il vincolo unique come lock atomico → 1 sola notifica.
-- **Notifiche**: create **lato server** come side-effect (mai dal client). **Deep-link**: commento/reazione → `/partita/:id`; evento → `/tornei?focus=:id` (scroll+highlight); achievement → `/giocatore/:id?ach=1`. Polling ogni 60s (`NotificationBell`). `/eventi` redirige a `/tornei` preservando la querystring.
+- **Notifiche**: create **lato server** come side-effect (mai dal client). **Deep-link**: commento/reazione → `/partita/:id`; evento → `/eventi?focus=:id` (scroll+highlight); achievement → `/giocatore/:id?ach=1`. Polling ogni 60s (`NotificationBell`). `/tornei` redirige a `/eventi` preservando la querystring (retrocompatibilità).
 - **Scryfall**: MAI una chiamata `cards/named?format=image` per ogni miniatura (rate-limit 429). Usa `cardCache` (batch `/cards/collection` + URL CDN `cards.scryfall.io` in localStorage). Il batch non trova DFC con solo la faccia frontale né nomi alternativi (universe beyond): `batchFetch` ha un fuzzy fallback via `/cards/named?fuzzy=` per i not_found.
 - **Judge Bot**: `lib/judge.js` carica le CR all'avvio in memoria (best-effort, fallback silenzioso). L'URL CR va aggiornato ad ogni set da `https://magic.wizards.com/en/rules`. Rate limit dedicato: 5 req / 5 min per IP. `GROQ_API_KEY` richiesta sia in `.env` locale che in Railway.
   - **Pipeline a due step**: (1) `llama-3.1-8b-instant` (`normalizeQuestion`) risolve abbreviazioni e slang italiano; (2) `llama-3.3-70b-versatile` risponde con oracle text + rulings Scryfall + regole CR.
@@ -325,10 +325,8 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 
 Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · Notifiche (con deep-link) · Achievement 26 (pubblici/segreti/stagionali) · Pagina partita (`/partita/:id`) · **Tornei negli eventi** (1v1 svizzera + multiplayer pod con partite reali) · **Judge Bot** (`/giudice`: Groq + Scryfall + CR) · Guida Utente (`GUIDA_UTENTE.md`) · **Dashboard 6 tab** (stagione, giocatori, mazzi, matchup, storico, primati) · **Rivalità h2h** in PlayerProfilePage · **Kill tracking** completo (arcinemico, preda preferita, primati) · **Import decklist da URL** (Archidekt/Moxfield via DeckListPanel) · **Lista carte per tipo** in DeckProfilePage con anteprima hover/modal · **Meta colori** e **attività mensile** nei Primati.
 
-**UX/IA revision (2026-06)**: **FeedPage** (nuova home `/`), **GiocaPage** (`/gioca`), **GruppoPage** (`/gruppo` section-based), **progressive disclosure** PlayerProfilePage (6 sezioni, achievement in posizione 2) e DeckProfilePage (tab perf/lista + stima prezzo €), **storico Judge Bot** (`GET /api/judge`), **modal form eventi**, **deep-link notifiche** `/eventi` → `/tornei`, **5-item dock** mobile.
+**UX/IA revision (2026-06)**: **FeedPage** (nuova home `/`), **GiocaPage** (`/gioca`), **GruppoPage** (`/gruppo` section-based), **progressive disclosure** PlayerProfilePage (6 sezioni, achievement in posizione 2) e DeckProfilePage (tab perf/lista + stima prezzo €), **storico Judge Bot** (`GET /api/judge`), **modal form eventi**, **deep-link notifiche** `/eventi?focus=:id`, **5-item dock** mobile.
+
+**Refactor UX (2026-06)**: **GruppoPage** ristrutturata con **4 tab URL-based** (Stagione/Giocatori/Mazzi/Storico); Primati compatti (`minmax(110px)`, 3 col mobile); **rinomina Tornei → Eventi** ovunque (dock, navbar, route canonica `/eventi`, heading, notifiche backend); `/tornei` → redirect retrocompatibile. **GUIDA_UTENTE.md** riscritta con screenshot mobile reali (20 immagini).
 
 Robustezza: PrismaClient singleton, rate-limit login + judge, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
-
-## Cosa manca (verificato — non è in nessun file)
-
-- **Guida Utente — sezione Tornei**: `GUIDA_UTENTE.md` non copre i tornei.

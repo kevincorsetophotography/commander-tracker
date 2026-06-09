@@ -234,7 +234,7 @@ export default function EventsPage() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: t.text }}>Tornei & eventi</div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: t.text }}>Eventi</div>
         {isAdmin && (
           <button style={btnPrimary} onClick={startCreate}>+ Nuovo evento</button>
         )}

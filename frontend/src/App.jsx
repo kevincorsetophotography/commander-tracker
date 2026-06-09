@@ -147,10 +147,9 @@ function Layout() {
       <Route path="/gruppo"        element={<GruppoPage />} />
       {/* Gioca: nuova landing */}
       <Route path="/gioca"         element={<GiocaPage />} />
-      {/* Tornei: alias di /eventi, sarà rinominato in Fase 6 */}
-      <Route path="/tornei"        element={<EventsPage />} />
-      {/* Redirect /eventi → /tornei preservando querystring (deep-link notifiche) */}
-      <Route path="/eventi"        element={<RedirectWithSearch to="/tornei" />} />
+      <Route path="/eventi"        element={<EventsPage />} />
+      {/* Redirect /tornei → /eventi per retrocompatibilità deep-link */}
+      <Route path="/tornei"        element={<RedirectWithSearch to="/eventi" />} />
       <Route path="/giocatore/:id" element={<PlayerProfilePage />} />
       <Route path="/mazzo/:id"     element={<DeckProfilePage />} />
       <Route path="/mazzi"         element={<DecksPage />} />
@@ -203,7 +202,7 @@ function Layout() {
                 <div style={{ marginRight: 8 }}><Brand /></div>
                 <NavItem to="/" end>Feed</NavItem>
                 <NavItem to="/gioca">Gioca</NavItem>
-                <NavItem to="/tornei">Tornei</NavItem>
+                <NavItem to="/eventi">Eventi</NavItem>
                 <NavItem to="/gruppo">Gruppo</NavItem>
                 <NavItem to="/mazzi">Mazzi</NavItem>
                 {user?.role === 'ADMIN' && <NavItem to="/admin">Admin</NavItem>}
@@ -237,7 +236,7 @@ function Layout() {
         }}>
           <DockItem to="/" end icon="🏠" label="Feed" />
           <DockItem to="/gioca"  icon="🎮" label="Gioca" />
-          <DockItem to="/tornei" icon="📅" label="Tornei" />
+          <DockItem to="/eventi" icon="📅" label="Eventi" />
           <DockItem to="/gruppo" icon="📊" label="Gruppo" />
           <DockItem to={`/giocatore/${user?.id}`} icon="👤" label="Io" />
         </div>
