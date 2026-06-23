@@ -14,6 +14,7 @@ import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { useCountUp } from '../hooks/useCountUp'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { listSeasons, computeStandings } from '../lib/seasons'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 function WinBar({ pct, t }) {
   return (
@@ -23,17 +24,6 @@ function WinBar({ pct, t }) {
   )
 }
 
-function Avatar({ name, t, size = 32 }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', background: t.primaryBg, color: t.primary,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.38, fontWeight: 600, flexShrink: 0
-    }}>
-      {name?.substring(0, 2).toUpperCase()}
-    </div>
-  )
-}
 
 function MetricCard({ label, value, t }) {
   const shown = useCountUp(value)
@@ -450,7 +440,7 @@ export default function DashboardPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 && s.qualified ? t.primary : t.textMuted, minWidth: 22 }}>{i + 1}°</span>
-                      <Avatar name={s.username} t={t} />
+                      <PlayerAvatar username={s.username} avatarCardName={playerStats.find(p => p.id === s.id)?.avatarCardName} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                           {s.username}
@@ -490,7 +480,7 @@ export default function DashboardPage() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 12, color: t.textMuted, minWidth: 20 }}>#{i + 1}</span>
-                    <Avatar name={p.username} t={t} />
+                    <PlayerAvatar username={p.username} avatarCardName={p.avatarCardName} />
                     <div>
                       <div style={{ fontWeight: 500, color: t.text }}>{p.username}</div>
                       <div style={{ fontSize: 12, color: t.textSub }}>{p.wins}V / {p.games - p.wins}P · {p.games} partite</div>

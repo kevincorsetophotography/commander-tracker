@@ -49,7 +49,7 @@ const parseEventId = (value) => {
 
 const eventInclude = {
   createdBy: { select: { id: true, username: true } },
-  rsvps: { select: { userId: true, user: { select: { username: true } } } }
+  rsvps: { select: { userId: true, user: { select: { username: true, avatarCardName: true } } } }
 };
 
 // Dettaglio completo: + turni → tavoli → posti (con username)
@@ -63,7 +63,7 @@ const eventDetailInclude = {
         include: {
           seats: {
             orderBy: { seat: 'asc' },
-            include: { user: { select: { id: true, username: true } } },
+            include: { user: { select: { id: true, username: true, avatarCardName: true } } },
           },
           game: {
             select: {

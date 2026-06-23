@@ -25,15 +25,17 @@ router.get('/players', auth, async (req, res) => {
     select: {
       id: true,
       username: true,
+      avatarCardName: true,
       gamePlayers: { select: { isWinner: true } }
     }
   });
   const stats = players.map(p => ({
-    id:      p.id,
-    username: p.username,
-    games:   p.gamePlayers.length,
-    wins:    p.gamePlayers.filter(gp => gp.isWinner).length,
-    winRate: p.gamePlayers.length > 0
+    id:            p.id,
+    username:      p.username,
+    avatarCardName: p.avatarCardName ?? null,
+    games:         p.gamePlayers.length,
+    wins:          p.gamePlayers.filter(gp => gp.isWinner).length,
+    winRate:       p.gamePlayers.length > 0
       ? Math.round(p.gamePlayers.filter(gp => gp.isWinner).length / p.gamePlayers.length * 100)
       : 0
   }));

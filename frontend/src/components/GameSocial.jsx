@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
+import PlayerAvatar from './PlayerAvatar'
 
 // Emoji consentite per le reazioni (deve combaciare col backend)
 export const REACTION_EMOJI = ['👍', '🔥', '😂', '😮', '💀', '🎉', '🐸']
@@ -20,18 +21,6 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
 }
 
-function Avatar({ name, t }) {
-  return (
-    <span style={{
-      width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-      background: t.bgMuted, color: t.textSub, fontSize: 11, fontWeight: 700,
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      textTransform: 'uppercase',
-    }}>
-      {(name || '?').slice(0, 1)}
-    </span>
-  )
-}
 
 export default function GameSocial({ game, defaultOpen = false }) {
   const { t } = useTheme()
@@ -174,7 +163,7 @@ export default function GameSocial({ game, defaultOpen = false }) {
             const canDelete = user?.id === c.user.id || user?.role === 'ADMIN'
             return (
               <div key={c.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
-                <Avatar name={c.user.username} t={t} />
+                <PlayerAvatar username={c.user.username} avatarCardName={c.user.avatarCardName} size={22} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 12, color: t.textSub }}>
                     <span style={{ fontWeight: 600, color: t.text }}>{c.user.username}</span>

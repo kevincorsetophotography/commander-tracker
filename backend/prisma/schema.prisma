@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  username    String       @unique
-  password    String       // bcrypt hash
-  role        String       @default("PLAYER")
-  createdAt   DateTime     @default(now())
+  id             Int          @id @default(autoincrement())
+  username       String       @unique
+  password       String       // bcrypt hash
+  role           String       @default("PLAYER")
+  avatarCardName String?
+  createdAt      DateTime     @default(now())
   decks       Deck[]
   gamePlayers GamePlayer[]
   createdGames Game[]      @relation("GameCreator")

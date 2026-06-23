@@ -33,8 +33,9 @@ const req = async (method, path, body) => {
 
 export const api = {
   // auth
-  register: (data) => req('POST', '/auth/register', data),
-  login:    (data) => req('POST', '/auth/login', data),
+  register:      (data) => req('POST',  '/auth/register', data),
+  login:         (data) => req('POST',  '/auth/login', data),
+  updateProfile: (data) => req('PATCH', '/auth/profile', data),
   adminUsers: () => req('GET', '/admin/users'),
   createUser: (data) => req('POST', '/admin/users', data),
   updateUser: (id, data) => req('PATCH', `/admin/users/${id}`, data),

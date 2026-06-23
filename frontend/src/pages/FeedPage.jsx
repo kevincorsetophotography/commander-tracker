@@ -258,9 +258,22 @@ export default function FeedPage() {
   }, [games, user])
 
   const nextEvent = useMemo(() => {
-    const now = new Date()
+    const now = Date.now()
     return events
-      .filter(e => new Date(e.startsAt) > now)
+      .filter(e => {
+        const eventDate = new Date(e.startsAt)
+        const parts = new Intl.DateTimeFormat('en', {
+          timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+        }).formatToParts(eventDate)
+        const y = +parts.find(p => p.type === 'year').value
+        const mo = +parts.find(p => p.type === 'month').value
+        const d = +parts.find(p => p.type === 'day').value
+        const probe = new Date(Date.UTC(y, mo - 1, d + 1, 5, 0, 0))
+        const romeHour = +new Intl.DateTimeFormat('en', {
+          timeZone: 'Europe/Rome', hour: 'numeric', hour12: false,
+        }).format(probe)
+        return probe.getTime() - (romeHour - 5) * 3600000 > now
+      })
       .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))[0] || null
   }, [events])
 

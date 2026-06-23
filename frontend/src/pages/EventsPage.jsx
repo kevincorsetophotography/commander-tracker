@@ -23,9 +23,22 @@ function countdown(startsAt) {
 }
 
 function isPast(ev) {
-  const now = new Date()
-  if (ev.allDay) { const end = new Date(ev.startsAt); end.setHours(23, 59, 59, 999); return end < now }
-  return new Date(ev.startsAt) < now
+  const now = Date.now()
+  const eventDate = new Date(ev.startsAt)
+  // Giorno dell'evento in Europe/Rome
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(eventDate)
+  const y = +parts.find(p => p.type === 'year').value
+  const mo = +parts.find(p => p.type === 'month').value
+  const d = +parts.find(p => p.type === 'day').value
+  // Probe: giorno+1 alle 05:00 UTC, poi aggiusta per l'offset di Roma
+  const probe = new Date(Date.UTC(y, mo - 1, d + 1, 5, 0, 0))
+  const romeHour = +new Intl.DateTimeFormat('en', {
+    timeZone: 'Europe/Rome', hour: 'numeric', hour12: false,
+  }).format(probe)
+  const deadline = probe.getTime() - (romeHour - 5) * 3600000
+  return deadline < now
 }
 
 const EMPTY = { title: '', date: '', time: '', location: '', description: '', format: '', bestOf: '1' }

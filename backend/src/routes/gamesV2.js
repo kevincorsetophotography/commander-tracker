@@ -116,7 +116,7 @@ const gameInclude = {
   createdBy: { select: { id: true, username: true } },
   players: {
     include: {
-      user: { select: { id: true, username: true } },
+      user: { select: { id: true, username: true, avatarCardName: true } },
       deck: true
     }
   },
@@ -272,7 +272,7 @@ router.get('/:id/comments', auth, async (req, res) => {
     const comments = await prisma.comment.findMany({
       where: { gameId },
       orderBy: { createdAt: 'asc' },
-      include: { user: { select: { id: true, username: true } } }
+      include: { user: { select: { id: true, username: true, avatarCardName: true } } }
     });
     res.json(comments);
   } catch (error) {
@@ -296,7 +296,7 @@ router.post('/:id/comments', auth, async (req, res) => {
 
     const comment = await prisma.comment.create({
       data: { gameId, userId: req.user.id, body },
-      include: { user: { select: { id: true, username: true } } }
+      include: { user: { select: { id: true, username: true, avatarCardName: true } } }
     });
 
     // Notifica gli altri partecipanti alla partita

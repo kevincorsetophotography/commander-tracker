@@ -8,10 +8,11 @@ import CommanderInput from './CommanderInput'
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
 
-export default function DeckListPanel({ decklist, commander, onSave }) {
+export default function DeckListPanel({ decklist, commander, name, onSave }) {
   const { t } = useTheme()
   const [open, setOpen]                     = useState(false)
   const [mode, setMode]                     = useState('view')
+  const [nameInput, setNameInput]           = useState(name || '')
   const [commanderInput, setCommanderInput] = useState('')
   const [detectedColors, setDetectedColors] = useState(null)
   const [detectingColors, setDetectingColors] = useState(false)
@@ -44,11 +45,11 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
   }
 
   const handleCommanderBlur = async () => {
-    const name = commanderInput.trim()
-    if (!name) return
+    const cmdName = commanderInput.trim()
+    if (!cmdName) return
     setDetectingColors(true)
     try {
-      const colors = await fetchCommanderColors(name)
+      const colors = await fetchCommanderColors(cmdName)
       setDetectedColors(colors)
     } finally {
       setDetectingColors(false)
@@ -56,6 +57,7 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
   }
 
   const enterEditMode = () => {
+    setNameInput(name || '')
     setCommanderInput(commander || '')
     setDetectedColors(null)
     if (decklist) {
@@ -92,6 +94,12 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
     setSaving(true)
     setErrors([])
 
+    if (!nameInput.trim()) {
+      setErrors(['Il nome del mazzo è obbligatorio'])
+      setSaving(false)
+      return
+    }
+
     if (!commanderInput.trim()) {
       setErrors(['Inserisci il nome del commander'])
       setSaving(false)
@@ -116,9 +124,9 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
         return
       }
 
-      // 4. Salva — passa nome esatto commander + colori rilevati
+      // 4. Salva — passa nome esatto commander + colori rilevati + nome mazzo
       const colorsToSave = detectedColors ? detectedColors.join('') : null
-      await onSave(fullList, commanderCard.name, colorsToSave)
+      await onSave(fullList, commanderCard.name, colorsToSave, nameInput.trim())
       setCards(result.cards)
       setSelectedCard(null)
       setDetectedColors(null)
@@ -173,7 +181,7 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div style={{ fontSize: 13, color: t.textSub }}>{totalCount} carte</div>
-                <button style={btnSecondary} onClick={enterEditMode}>Modifica lista</button>
+                <button style={btnSecondary} onClick={enterEditMode}>Modifica mazzo</button>
               </div>
 
               {loadingCards ? (
@@ -220,6 +228,17 @@ export default function DeckListPanel({ decklist, commander, onSave }) {
           {/* ── EDITOR ── */}
           {mode === 'edit' && (
             <>
+              {/* Nome mazzo */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4, fontWeight: 500 }}>Nome mazzo</div>
+                <input
+                  value={nameInput}
+                  onChange={e => setNameInput(e.target.value)}
+                  placeholder="Nome mazzo"
+                  style={inputSt}
+                />
+              </div>
+
               {/* Import da URL */}
               <div style={{ marginBottom: 12, padding: '10px 12px', background: t.bgMuted, borderRadius: 10, border: `1px solid ${t.border}` }}>
                 <div style={{ fontSize: 12, color: t.textSub, marginBottom: 6, fontWeight: 500 }}>Importa da Archidekt o Moxfield</div>

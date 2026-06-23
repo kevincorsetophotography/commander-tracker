@@ -25,6 +25,7 @@ import JudgePage from './pages/JudgePage'
 import GiocaPage from './pages/GiocaPage'
 import GuidaPage from './pages/GuidaPage'
 import NotificationBell from './components/NotificationBell'
+import PlayerAvatar from './components/PlayerAvatar'
 
 function NavItem({ to, end, children }) {
   const { t } = useTheme()
@@ -100,20 +101,18 @@ function Brand({ logoSize = 42, titleSize = 14, compact = false }) {
   )
 }
 
-// Avatar (iniziali) + username, riusato in alto a destra.
+// Avatar + username, riusato in alto a destra.
 function UserChip({ titleSize = 13, avatar = 26 }) {
-  const { t } = useTheme()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTheme()
   return (
     <span
       onClick={() => user?.id && navigate(`/giocatore/${user.id}`)}
       title="Vai al tuo profilo"
       style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, cursor: 'pointer' }}
     >
-      <span style={{ width: avatar, height: avatar, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: avatar * 0.42, fontWeight: 700, border: `1px solid ${t.primaryBorder}`, flexShrink: 0 }}>
-        {user?.username?.substring(0, 2).toUpperCase()}
-      </span>
+      <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} size={avatar} highlight />
       <span style={{ fontSize: titleSize, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {user?.username}
       </span>

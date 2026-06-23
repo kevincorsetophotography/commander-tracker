@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { fetchCommanderColors } from '../lib/scryfall'
 import { useFeedback } from '../hooks/useFeedback'
 import DeckListPanel from '../components/DeckListPanel'
@@ -31,6 +32,7 @@ const commanderArtUrl = (name) =>
 
 export default function DecksPage() {
   const { t } = useTheme()
+  const isMobile = useIsMobile()
   const navigate = useNavigate()
   const { toast, confirm } = useFeedback()
   const [decks, setDecks]                     = useState([])
@@ -134,7 +136,7 @@ export default function DecksPage() {
       <div style={formCard}>
         <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 12, color: t.text }}>Aggiungi mazzo</div>
         <form onSubmit={submit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10 }}>
             <input style={inputSt} placeholder="Nome mazzo *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <CommanderInput
               style={inputSt}
@@ -225,12 +227,12 @@ export default function DecksPage() {
             </div>
           )}
 
-          <div style={{ padding: '10px 14px', display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <div style={{ padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <select
               value={deck.archetype || ''}
               onChange={e => updateArchetype(deck.id, e.target.value)}
               title="Archetipo"
-              style={{ padding: '5px 8px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none', marginRight: 'auto' }}
+              style={{ padding: '5px 8px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none', flex: 1, minWidth: 0 }}
             >
               <option value="">— archetipo</option>
               {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
@@ -247,14 +249,16 @@ export default function DecksPage() {
             <DeckListPanel
               decklist={deck.decklist}
               commander={deck.commander}
-              onSave={async (newList, newCommander, newColors) => {
+              name={deck.name}
+              onSave={async (newList, newCommander, newColors, newName) => {
                 await api.updateDeck(deck.id, {
+                  name: newName,
                   decklist: newList,
                   commander: newCommander,
-                  colors: newColors || undefined
+                  colors: newColors || undefined,
                 })
                 await loadDecks()
-                toast('Lista salvata', 'success')
+                toast('Mazzo aggiornato', 'success')
               }}
             />
             <button style={btnDanger} onClick={() => deleteDeck(deck.id, deck.name)}>Elimina</button>

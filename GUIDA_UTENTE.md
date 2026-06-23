@@ -110,17 +110,34 @@ Premi **Registra Partita** da Gioca (o accedi direttamente da Gioca → Registra
 
 ## 6. I miei mazzi
 
-![Pagina Mazzi](docs/img/mobile-mazzi.png)
-
-Su desktop trovi **Mazzi** nella barra in alto. Su telefono il percorso più rapido è: **Io** nel dock → sezione **I miei mazzi** → pulsante **Gestisci →**. In alternativa puoi usare la tab **Mazzi** nella sezione Gruppo per vedere i mazzi di tutto il gruppo (senza form di creazione).
+Apri il tuo profilo toccando **Io** nel dock (o il tuo nome nell'header): trovi la sezione **I miei mazzi** con tutte le operazioni di creazione, modifica ed eliminazione. Su desktop è disponibile anche la voce **Mazzi** nella barra in alto. La tab **Mazzi** in **Gruppo** mostra i mazzi di tutti i giocatori ma non ha form di modifica.
 
 ### Aggiungere un mazzo
-Nel riquadro **Aggiungi mazzo**:
+Premi **+ Aggiungi** nella sezione *I miei mazzi*:
 1. Scrivi il **nome** del mazzo.
 2. Scrivi il **Commander** — man mano che digiti compaiono i suggerimenti ufficiali: scegli dall'elenco.
 3. I **colori** si rilevano in automatico dal commander (puoi aggiustarli a mano con i pallini W/U/B/R/G).
 4. Scegli il **Livello** e l'**Archetipo** (entrambi facoltativi, vedi sotto).
-5. Premi **+ Aggiungi mazzo**.
+5. Premi **+ Crea mazzo**.
+
+### Modificare un mazzo
+
+![Toolbar modifica mazzo](docs/img/mobile-mazzi.png)
+
+Ogni card nella sezione *I miei mazzi* ha una toolbar in basso con cui puoi modificare il mazzo senza aprire nessuna pagina separata:
+
+| Controllo | Cosa fa |
+|-----------|---------|
+| **Menù Archetipo** | Cambia l'archetipo del mazzo — si salva immediatamente |
+| **Menù Livello** | Cambia il bracket (B1–B4) — si salva immediatamente |
+| **Lista** / **Lista ✓** | Apre il pannello decklist (vedi [sezione 7](#7-la-lista-del-mazzo)) |
+
+All'interno del pannello **Lista**, premi **Modifica mazzo** per entrare in modalità di modifica completa: puoi cambiare il **nome del mazzo**, il **commander** e le **carte** della lista. Premi **Salva** per confermare tutto insieme.
+
+### Eliminare un mazzo
+Nella toolbar della card, premi **Elimina**. Ti viene chiesta conferma prima di procedere.
+
+> Non è possibile eliminare un mazzo che ha già partite registrate. In quel caso contatta un amministratore.
 
 ### Il livello (bracket)
 Indica la potenza del mazzo — utile per comporre tavoli equilibrati:
@@ -156,7 +173,16 @@ Ogni mazzo mostra l'illustrazione del commander come copertina. Su desktop passa
 
 ## 7. La lista del mazzo
 
-Sulla card di ogni tuo mazzo c'è il pulsante **Lista**. Aprilo per vedere o modificare le 100 carte.
+Sulla card di ogni tuo mazzo c'è il pulsante **Lista** (diventa **Lista ✓** quando la lista è già caricata). Aprilo per vedere o modificare le 100 carte.
+
+Il pannello si apre in **modalità visualizzazione**: vedi le carte divise per tipo. Per modificare premi **Modifica mazzo**: si aprono i campi di editing completo.
+
+![Modifica lista mazzo](docs/img/mobile-mazzo-modifica.png)
+
+In modalità modifica puoi cambiare:
+- **Nome mazzo** — il campo è precompilato con il nome attuale.
+- **Commander** — autocomplete Scryfall; i colori si aggiornano in automatico al salvataggio.
+- **Lista carte** — 99 carte (commander escluso), una per riga nel formato `1 Sol Ring`.
 
 ### Importare da URL
 Premi **Importa da URL**, incolla il link del mazzo da **Archidekt** (funziona sempre) e premi **Importa**: commander e carte si compilano da soli.
@@ -166,7 +192,7 @@ Premi **Importa da URL**, incolla il link del mazzo da **Archidekt** (funziona s
 ### Inserimento manuale
 Scrivi il commander nel campo apposito e le 99 carte nel riquadro, una per riga nel formato `1 Sol Ring`.
 
-Quando premi **Salva lista** il sistema verifica che ci siano **esattamente 100 carte** e che ogni nome esista su Scryfall. Se qualcosa non torna, ti dice esattamente cosa correggere. Salvando, colori e immagine del mazzo si aggiornano automaticamente.
+Quando premi **Salva** il sistema verifica che ci siano **esattamente 100 carte** (commander + 99) e che ogni nome esista su Scryfall. Se qualcosa non torna, ti dice esattamente cosa correggere. Al salvataggio, colori e immagine del mazzo si aggiornano automaticamente.
 
 ---
 
@@ -234,15 +260,26 @@ Si apre toccando un giocatore nella tab Giocatori, nel Feed o nel dock **Io** pe
 
 Sul **tuo** profilo, in alto a destra compare il pulsante **? Guida** che apre questa guida.
 
-Le sezioni del profilo:
+### Immagine profilo
 
-- **Header** — avatar con iniziali, win rate globale, partite totali, eventuale streak attiva.
+![Selezione avatar](docs/img/mobile-avatar-picker.png)
+
+Tocca l'icona **✏️** sull'avatar (solo nel tuo profilo) per scegliere un'illustrazione Magic come foto:
+1. Cerca qualsiasi carta Magic — l'autocomplete completa mentre digiti.
+2. Vedi l'anteprima dell'illustrazione prima di confermare.
+3. Premi **Usa come avatar** per salvarla.
+
+Puoi cambiarla o rimuoverla in qualsiasi momento. L'immagine compare **ovunque nel portale**: nell'header, nelle classifiche, nelle liste iscritti degli eventi e accanto ai commenti.
+
+### Le sezioni del profilo
+
+- **Header** — avatar (illustrazione Magic o iniziali), win rate globale, partite totali, eventuale streak attiva.
 - **Achievement** — quanti ne hai sbloccati (es. *15/20, 3/6 segreti*) con l'anteprima del prossimo obiettivo. Tocca per espandere tutti i badge.
 
 ![Achievement del giocatore](docs/img/mobile-giocatore-achievement.png)
 
 - **Miglior Mazzo** — il mazzo con il win rate più alto tra quelli che hanno disputato almeno una partita. Toccalo per aprirne il profilo completo.
-- **I miei mazzi** *(solo sul tuo profilo)* — lista di tutti i tuoi mazzi con win rate. Il pulsante **Gestisci →** apre la pagina di creazione e modifica mazzi; se non hai ancora nessun mazzo compare **+ Crea mazzo**.
+- **I miei mazzi** *(solo sul tuo profilo)* — lista di tutti i tuoi mazzi con win rate e toolbar di modifica rapida (archetipo, livello, lista, elimina). Premi **+ Aggiungi** per creare un nuovo mazzo. Vedi [sezione 6](#6-i-miei-mazzi) per tutti i dettagli.
 - **Scontri diretti ⚔️** *(collassabile)* — scegli un avversario e vedi il vostro testa a testa: piazzamento medio, vittorie condivise, kill reciproci.
 - **Statistiche dettagliate** *(collassabile)* — kill totali, morti, arcinemico, preda preferita, piazzamento medio, andamento win rate nel tempo.
 - **Storico partite** — tutte le partite di quel giocatore.
@@ -278,7 +315,7 @@ Tocca **📅 Eventi** nel dock per vedere il calendario del gruppo: serate Comma
 
 - Gli eventi **prossimi** sono in cima con un'etichetta *"tra N giorni"*, **Oggi** o **Domani**.
 - Ogni evento mostra data, orario, 📍 luogo, descrizione e numero di iscritti.
-- Gli eventi **passati** restano visibili in fondo, in grigio.
+- Gli eventi **passati** restano visibili in fondo, in grigio. Un evento diventa *passato* alle **05:00 del mattino successivo** (ora italiana): hai tutta la sera — e la notte — per iscriverti e consultarlo senza che scompaia dai prossimi.
 
 ### Ci sono!
 Tocca **Ci sono** su un evento per segnare la tua partecipazione: il pulsante si evidenzia e il tuo nome entra nella lista. Ripremi per toglierti.
@@ -380,6 +417,9 @@ Solo gli **amministratori** creano e gestiscono gli eventi. Tutti gli altri li v
 
 **Il Judge Bot può sbagliare?**
 Sì. Le risposte si basano sulle Comprehensive Rules e su Scryfall, ma usa l'AI — tratta le risposte come indicazioni da verificare, non verdetti ufficiali.
+
+**Come cambio la mia immagine profilo?**
+Vai nel tuo profilo (dock **Io**) e tocca il **✏️** sull'avatar. Cerca una carta Magic, vedi l'anteprima e conferma. Si aggiorna subito in tutto il portale. Per tornare alle iniziali premi **Rimuovi**.
 
 **Come funzionano gli achievement?**
 Ci sono 26 achievement: alcuni pubblici (visibili fin dall'inizio), altri segreti (appaiono solo dopo lo sblocco). Li trovi nel tuo profilo sotto la sezione **Achievement**. Alcuni si sbloccano solo in stagioni concluse.
