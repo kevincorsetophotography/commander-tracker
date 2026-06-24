@@ -233,6 +233,13 @@ function Layout() {
                 <UserChip titleSize={12.5} avatar={22} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <NotificationBell />
+                  {user?.role === 'ADMIN' && (
+                    <NavLink to="/admin" style={({ isActive }) => ({
+                      padding: '6px 10px', borderRadius: 10, textDecoration: 'none', fontSize: 12, fontWeight: 600,
+                      background: isActive ? t.primary : t.bgSurfaceAlt, color: isActive ? t.primaryFg : t.textSub,
+                      border: `1px solid ${t.border}`,
+                    })}>Admin</NavLink>
+                  )}
                   <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
                   <IconButton onClick={logout} title="Esci">Esci</IconButton>
                 </div>
