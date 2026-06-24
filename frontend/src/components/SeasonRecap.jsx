@@ -71,10 +71,10 @@ function GLine({ col = '#34F08F', op = 0.45 }) {
   return <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${col}${h}, transparent)` }} />
 }
 
-// TopBar: ~40px totali (padding 9+7 + logo 24px)
+// TopBar: ~38px totali (padding 7+5 + logo 26px)
 function TopBar({ n }) {
   return (
-    <div style={{ padding: '9px 16px 7px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ padding: '7px 16px 5px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <span style={{ fontSize: 11, fontWeight: 800, color: C.green, letterSpacing: '0.04em' }}>
         {String(n).padStart(2, '0')}<span style={{ color: C.muted, fontWeight: 600 }}>/03</span>
       </span>
@@ -103,10 +103,10 @@ function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers,
       <TopBar n={1} />
       <div style={{ margin: '0 16px 10px' }}><GLine op={0.5} /></div>
 
-      {/* Title block ~64px */}
-      <div style={{ textAlign: 'center', padding: '0 16px 14px' }}>
+      {/* Title block */}
+      <div style={{ textAlign: 'center', padding: '0 16px 9px' }}>
         <div style={{ fontSize: 9, fontWeight: 800, color: C.green, letterSpacing: '0.32em', textTransform: 'uppercase', marginBottom: 5 }}>RECAP STAGIONE</div>
-        <div style={{ fontSize: 28, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</div>
         <div style={{ fontSize: 8.5, color: C.sub, marginTop: 7, fontStyle: 'italic' }}>La stagione è appena finita. E questa è la nostra leggenda.</div>
       </div>
 
@@ -141,8 +141,8 @@ function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers,
         </div>
       </div>
 
-      {/* Podio ~64px */}
-      <div style={{ display: 'flex', gap: 8, padding: '10px 14px 8px' }}>
+      {/* Podio */}
+      <div style={{ display: 'flex', gap: 8, padding: '8px 14px 6px' }}>
         {[{ p: second, col: C.silver, n: '2°' }, { p: third, col: C.bronze, n: '3°' }].map(({ p, col, n }) => (
           <div key={n} style={{ flex: 1, borderRadius: 12, padding: '10px 12px', background: C.card, borderTop: `2px solid ${col}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ fontSize: 21, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 24 }}>{n}</div>
@@ -157,7 +157,7 @@ function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers,
       {/* Stats row ~54px */}
       <div style={{ padding: '0 16px 8px' }}>
         <GLine col={C.muted} op={0.35} />
-        <div style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0 8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-around', padding: '8px 0 7px' }}>
           {[{ icon: '⚔️', v: total, l: 'PARTITE' }, { icon: '👥', v: uniquePlayers, l: 'GIOCATORI' }, { icon: '🃏', v: deckCount, l: 'DECK' }].map(({ icon, v, l }) => (
             <div key={l} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 17, lineHeight: 1, marginBottom: 4 }}>{icon}</div>
@@ -205,16 +205,17 @@ function Slide2({ total, uniquePlayers, deckCount, avgParticipation, topStreak, 
       </div>
 
       {/* Grid 2×3 — cuore della slide */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, padding: '0 12px' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'repeat(3, 1fr)', gap: 7, padding: '0 12px' }}>
         {stats.map(({ val, label, col, icon }) => (
           <div key={label} style={{
             borderRadius: 12, padding: '0 10px',
             background: C.card,
             border: `1.5px solid ${col}45`,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden',
           }}>
-            <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 7 }}>{icon}</div>
-            <div style={{ fontSize: 36, fontWeight: 900, color: C.text, lineHeight: 1 }}>{val}</div>
+            <div style={{ fontSize: 20, lineHeight: 1, marginBottom: 5 }}>{icon}</div>
+            <div style={{ fontSize: 33, fontWeight: 900, color: C.text, lineHeight: 1 }}>{val}</div>
             {/* Label — minimo 8px per leggibilità */}
             <div style={{ fontSize: 8, fontWeight: 700, color: col, letterSpacing: '0.12em', textAlign: 'center', textTransform: 'uppercase', lineHeight: 1.4, marginTop: 6, whiteSpace: 'pre-line' }}>{label}</div>
           </div>
@@ -256,22 +257,20 @@ function Slide3({ mostWins, mostGames, topKiller, bestWinRate, topStreak, mostCo
       <TopBar n={3} />
       <div style={{ margin: '0 16px 6px' }}><GLine op={0.5} /></div>
 
-      {/* Title ~47px */}
-      <div style={{ textAlign: 'center', padding: '0 16px 8px' }}>
+      {/* Title */}
+      <div style={{ textAlign: 'center', padding: '0 16px 5px' }}>
         <div style={{ fontSize: 25, fontWeight: 900, color: C.text, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>HALL OF FAME</div>
         <div style={{ fontSize: 9, fontWeight: 700, color: C.green, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 5 }}>I PROTAGONISTI DELLA STAGIONE</div>
       </div>
 
-      {/* Award tiles 3×2 — ~180px (2 righe da 87px + gap 6px) */}
+      {/* Award tiles 3×2 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '0 12px' }}>
         {awards.map(({ icon, col, label, name, stat }) => (
-          <div key={label} style={{ borderRadius: 11, padding: '9px 5px 8px', textAlign: 'center', background: C.card, border: `1.5px solid ${col}45` }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${col}1A`, border: `1.5px solid ${col}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 5px', fontSize: 14, lineHeight: 1 }}>{icon}</div>
-            {/* categoria — 7.5px ben leggibile */}
+          <div key={label} style={{ borderRadius: 11, padding: '6px 5px 5px', textAlign: 'center', background: C.card, border: `1.5px solid ${col}45` }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', background: `${col}1A`, border: `1.5px solid ${col}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 3px', fontSize: 12, lineHeight: 1 }}>{icon}</div>
             <div style={{ fontSize: 7.5, fontWeight: 800, color: col, letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.2 }}>{label}</div>
-            {/* vincitore — hero del tile */}
-            <div style={{ fontSize: 13, fontWeight: 900, color: C.text, marginTop: 3, lineHeight: 1 }}>{name}</div>
-            <div style={{ fontSize: 9, color: C.sub, marginTop: 3 }}>{stat}</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: C.text, marginTop: 2, lineHeight: 1 }}>{name}</div>
+            <div style={{ fontSize: 9, color: C.sub, marginTop: 2 }}>{stat}</div>
           </div>
         ))}
       </div>
@@ -290,14 +289,14 @@ function Slide3({ mostWins, mostGames, topKiller, bestWinRate, topStreak, mostCo
         </div>
       )}
 
-      {/* Thank you ~39px */}
-      <div style={{ textAlign: 'center', padding: '8px 16px 4px' }}>
+      {/* Thank you */}
+      <div style={{ textAlign: 'center', padding: '5px 16px 2px' }}>
         <div style={{ fontSize: 14, fontWeight: 900, color: C.green, fontStyle: 'italic', textShadow: '0 0 20px rgba(52,240,143,0.6)', letterSpacing: '0.02em' }}>GRAZIE A TUTTA LA COMMUNITY!</div>
         <div style={{ fontSize: 9.5, color: C.sub, marginTop: 4, letterSpacing: '0.05em' }}>Ci vediamo alla prossima stagione!</div>
       </div>
 
       {/* Footer QR — spinto a fondo da marginTop:auto */}
-      <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '6px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/logo.png" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
           <div>
