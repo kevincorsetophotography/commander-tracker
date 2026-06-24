@@ -2,9 +2,18 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const prisma = require('../lib/prisma');
 const { askJudge } = require('../lib/judge');
+const { rateLimit } = require('express-rate-limit');
+
+const judgeLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Troppe domande al judge, riprova tra qualche minuto.' },
+});
 
 // POST /api/judge — domanda al judge bot
-router.post('/', auth, async (req, res) => {
+router.post('/', judgeLimiter, auth, async (req, res) => {
   const { question } = req.body;
 
   if (!question || typeof question !== 'string' || question.trim().length < 5) {
@@ -46,7 +55,7 @@ router.get('/', auth, async (req, res) => {
       take: 30,
       select: {
         id: true, question: true, answer: true, confidence: true, createdAt: true,
-        user: { select: { username: true } }
+        user: { select: { username: true, avatarCardName: true } }
       }
     });
     res.json(questions);

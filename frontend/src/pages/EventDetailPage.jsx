@@ -174,28 +174,52 @@ export default function EventDetailPage() {
     <div>
       {back}
 
-      {/* Intestazione evento */}
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-          <span style={{ fontSize: 19, fontWeight: 800, color: t.text }}>{event.title}</span>
-          {badge && (
-            <span style={{ fontSize: 12, fontWeight: 700, color: badge.color, background: badge.color + '22', border: `1px solid ${badge.color}55`, padding: '2px 10px', borderRadius: 20 }}>
-              {badge.label}{event.format === '1v1' && event.bestOf ? ` · Bo${event.bestOf}` : ''}
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 13, color: t.textSub, textTransform: 'capitalize' }}>
-          {dateLine}{time ? ` · ${time}` : ''}{event.location ? <span style={{ textTransform: 'none' }}> · 📍 {event.location}</span> : ''}
-        </div>
-        {event.description && <div style={{ fontSize: 13, color: t.textMuted, marginTop: 8, whiteSpace: 'pre-wrap' }}>{event.description}</div>}
+      {/* Hero intestazione evento */}
+      {(() => {
+        const diffMs = new Date(event.startsAt) - Date.now()
+        const diffDays = Math.ceil(diffMs / 86400000)
+        const isPast = diffMs < 0
+        const countdown = isPast ? null : diffDays === 0 ? 'Oggi' : diffDays === 1 ? 'Domani' : `tra ${diffDays} giorni`
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-          <button onClick={toggleRsvp} style={{ padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${going ? t.primary : t.border}`, background: going ? t.primary : 'transparent', color: going ? t.primaryFg : t.textSub }}>
-            {going ? '✓ Ci sono' : 'Ci sono'}
-          </button>
-          <span style={{ fontSize: 12, color: t.textMuted }}>{registrants.length} iscritt{registrants.length === 1 ? 'o' : 'i'}</span>
-        </div>
-      </div>
+        return (
+          <div style={{
+            borderRadius: 18, marginBottom: 14, overflow: 'hidden',
+            border: `1px solid ${t.border}`, boxShadow: t.shadow,
+          }}>
+            {/* Striscia colorata top */}
+            <div style={{ height: 4, background: badge ? badge.color : t.primary }} />
+            <div style={{ background: t.bgSurface, padding: '1.2rem 1.35rem' }}>
+              {/* Badge formato + countdown */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                {badge && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: badge.color, background: badge.color + '22', border: `1px solid ${badge.color}55`, padding: '3px 10px', borderRadius: 20 }}>
+                    {badge.label}{event.format === '1v1' && event.bestOf ? ` · Bo${event.bestOf}` : ''}
+                  </span>
+                )}
+                {!badge && <span style={{ fontSize: 12, fontWeight: 600, color: t.textSub, background: t.bgMuted, padding: '3px 10px', borderRadius: 20, border: `1px solid ${t.border}` }}>🎴 Serata libera</span>}
+                {countdown && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: t.primary, background: t.primaryBg, border: `1px solid ${t.primaryBorder}`, padding: '3px 10px', borderRadius: 20 }}>
+                    {countdown}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ fontSize: 20, fontWeight: 800, color: t.text, marginBottom: 6 }}>{event.title}</div>
+              <div style={{ fontSize: 13, color: t.textSub, textTransform: 'capitalize' }}>
+                {dateLine}{time ? ` · ${time}` : ''}{event.location ? <span style={{ textTransform: 'none' }}> · 📍 {event.location}</span> : ''}
+              </div>
+              {event.description && <div style={{ fontSize: 13, color: t.textMuted, marginTop: 8, whiteSpace: 'pre-wrap' }}>{event.description}</div>}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+                <button onClick={toggleRsvp} style={{ padding: '7px 18px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: `1px solid ${going ? t.primary : t.border}`, background: going ? t.primary : 'transparent', color: going ? t.primaryFg : t.textSub }}>
+                  {going ? '✓ Ci sono' : '+ Ci sono'}
+                </button>
+                <span style={{ fontSize: 12, color: t.textMuted }}>{registrants.length} iscritt{registrants.length === 1 ? 'o' : 'i'}</span>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Iscritti */}
       <div style={card}>

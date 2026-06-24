@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { useAuth } from '../hooks/useAuth'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 function ConfidenceBadge({ value }) {
   const pct = Math.round(value * 100)
@@ -39,41 +41,39 @@ function HistoryItem({ item, t }) {
 
   return (
     <div style={{
-      background: t.bgSurface,
-      border: `1px solid ${t.border}`,
-      borderRadius: 12,
-      overflow: 'hidden',
-      transition: 'border-color 0.15s',
+      background: t.bgSurface, border: `1px solid ${t.border}`,
+      borderRadius: 12, overflow: 'hidden',
     }}>
       <button
         onClick={() => setOpen(v => !v)}
         style={{
           width: '100%', textAlign: 'left', background: 'none', border: 'none',
-          padding: '0.85rem 1rem', cursor: 'pointer',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
+          padding: '0.75rem 0.9rem', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 10,
         }}
       >
+        <PlayerAvatar username={item.user.username} avatarCardName={item.user.avatarCardName || null} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 3, lineHeight: 1.4 }}>
-            ⚖ {item.question}
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {item.question}
           </div>
-          <div style={{ fontSize: 11, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 11, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <span>{item.user.username}</span>
             <span>·</span>
             <span>{date}</span>
-            <span>·</span>
+            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: confColor, flexShrink: 0 }} />
             <span style={{ color: confColor, fontWeight: 600 }}>{pct}%</span>
           </div>
         </div>
         <span style={{
-          fontSize: 11, color: t.textMuted, flexShrink: 0, marginTop: 2,
+          fontSize: 11, color: t.textMuted, flexShrink: 0,
           transition: 'transform 0.2s', display: 'inline-block',
           transform: open ? 'rotate(90deg)' : 'rotate(0deg)'
         }}>▶</span>
       </button>
 
       {open && (
-        <div style={{ padding: '0 1rem 1rem', borderTop: `1px solid ${t.border}` }}>
+        <div style={{ padding: '0 0.9rem 0.9rem 0.9rem', borderTop: `1px solid ${t.border}` }}>
           <div style={{ fontSize: 14, color: t.text, lineHeight: 1.65, paddingTop: '0.75rem' }}>
             {item.answer}
           </div>
@@ -85,6 +85,7 @@ function HistoryItem({ item, t }) {
 
 export default function JudgePage() {
   const { t } = useTheme()
+  const { user } = useAuth()
   const [question, setQuestion]   = useState('')
   const [result, setResult]       = useState(null)
   const [loading, setLoading]     = useState(false)
@@ -109,7 +110,7 @@ export default function JudgePage() {
       setHistory(prev => [{
         id: Date.now(), question: q, answer: data.answer,
         confidence: data.confidence, createdAt: new Date().toISOString(),
-        user: { username: 'Tu' }
+        user: { username: user?.username || 'Tu', avatarCardName: user?.avatarCardName || null }
       }, ...prev.slice(0, 29)])
     } catch (err) {
       setError(err.error || 'Errore durante la consulenza. Riprova.')

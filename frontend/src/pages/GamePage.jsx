@@ -6,6 +6,7 @@ import { Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
 import GameSocial from '../components/GameSocial'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 export default function GamePage() {
   const { id } = useParams()
@@ -65,26 +66,31 @@ export default function GamePage() {
         </div>
 
         {/* Giocatori al tavolo (in ordine di piazzamento se disponibile) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {ordered.map(p => (
             <div
               key={p.id}
               onClick={() => navigate(`/mazzo/${p.deck.id}`)}
-              title="Apri il profilo del mazzo"
               style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 12, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, cursor: 'pointer',
                 background: p.isWinner ? t.winBg : t.bgMuted,
-                border: `1px solid ${p.isWinner ? (t.winBorder || t.border) : t.border}`,
+                border: `1px solid ${p.isWinner ? t.win + '55' : t.border}`,
+                boxShadow: p.isWinner ? `0 0 0 1px ${t.win}30` : 'none',
               }}
             >
-              {ranked && <span style={{ fontSize: 15, fontWeight: 800, minWidth: 26, textAlign: 'center', color: p.isWinner ? t.win : t.textSub }}>{medal(p.placement)}</span>}
-              <DeckThumb commander={p.deck.commander} w={48} preview={false} />
+              {ranked && (
+                <span style={{ fontSize: 16, minWidth: 24, textAlign: 'center', flexShrink: 0 }}>
+                  {medal(p.placement)}
+                </span>
+              )}
+              <PlayerAvatar username={p.user.username} avatarCardName={p.user.avatarCardName} size={36} highlight={p.isWinner} />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: p.isWinner ? t.win : t.text }}>{p.user.username}</div>
-                <div style={{ fontSize: 12, color: t.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {p.deck.name}{p.deck.commander ? ` · ${p.deck.commander}` : ''}
+                <div style={{ fontSize: 14, fontWeight: p.isWinner ? 800 : 600, color: p.isWinner ? t.win : t.text }}>{p.user.username}</div>
+                <div style={{ fontSize: 11, color: t.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {p.deck.commander ? p.deck.commander.split('//')[0].trim() : p.deck.name}
                 </div>
               </div>
+              <DeckThumb commander={p.deck.commander} w={38} preview={false} style={{ borderRadius: 6, flexShrink: 0 }} />
             </div>
           ))}
         </div>
@@ -92,11 +98,19 @@ export default function GamePage() {
         {/* Eliminazioni */}
         {kills.length > 0 && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 6 }}>Eliminazioni</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', fontSize: 13, color: t.textMuted }}>
+            <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>Eliminazioni</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {kills.map(p => {
                 const killer = game.players.find(x => x.user.id === p.eliminatedById)
-                return <span key={p.id}>⚔️ {killer?.user.username || '?'} → {p.user.username}</span>
+                return (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                    <PlayerAvatar username={killer?.user.username || '?'} avatarCardName={killer?.user.avatarCardName} size={20} />
+                    <span style={{ color: t.textSub, fontWeight: 600 }}>{killer?.user.username || '?'}</span>
+                    <span style={{ color: t.danger || '#f44336', fontSize: 11 }}>⚔</span>
+                    <PlayerAvatar username={p.user.username} avatarCardName={p.user.avatarCardName} size={20} />
+                    <span style={{ color: t.textMuted }}>{p.user.username}</span>
+                  </div>
+                )
               })}
             </div>
           </div>

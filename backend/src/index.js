@@ -38,14 +38,6 @@ const authLimiter = rateLimit({
   message: { error: 'Troppi tentativi, riprova tra qualche minuto.' },
 });
 
-// Anti-spam judge: 5 domande ogni 5 minuti per IP (ogni chiamata costa token Groq)
-const judgeLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  limit: 5,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Troppe domande al judge, riprova tra qualche minuto.' },
-});
 
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -71,7 +63,7 @@ app.use('/api/games', gameRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/judge', judgeLimiter, judgeRoutes);
+app.use('/api/judge', judgeRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
