@@ -336,4 +336,39 @@ Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · No
 
 **Animation & Feed polish (2026-06)**: Sistema animazioni globali in `index.css` (`ct-fade-up`, `ct-bar-fill`, `ct-section-open`, `ct-modal-in`, `ct-lift`, `ct-press`). Stagger su GiocaPage/EventsPage/JudgePage/GruppoPage; tab transition con `key={tab}`; collapsible open con `ct-section-open`; WinBar con `ct-bar-fill` (scaleX). **FeedPage** arricchita: `MiniClassifica` (top-3 stagione), `DeckSpotlight` (miglior mazzo ultimi 10gg, min 3 partite), `WeeklyActivity` (sparkline 7 giorni). Seed dev aggiornato con 6 partite recenti garantite.
 
-Robustezza: PrismaClient singleton, rate-limit login + judge, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
+**Security hardening (2026-06)**: SSRF fix import deck (`new URL().hostname`), input length limits (username ≤32, password ≤128, decklist ≤20k, notes ≤2000), `apiLimiter` 300 req/min su tutte le route autenticate, `helmet` (HTTP security headers), re-fetch ruolo dal DB ad ogni request (revoca immediata role changes), `npm audit fix` (brace-expansion, qs/express), try/catch su tutti gli handler async.
+
+Robustezza: PrismaClient singleton, rate-limit login + judge + API, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
+
+---
+
+## Roadmap futura
+
+### Alta priorità
+
+- **Cambio password autonomo**: `PATCH /api/auth/password` con `{currentPassword, newPassword}` — gli utenti non devono passare dall'admin per cambiare la password. Aggiungere anche invalidazione JWT: campo `passwordChangedAt` su User, controllo `token.iat < passwordChangedAt` in `auth.js`.
+- **Indice `GamePlayer.userId`**: aggiungere `@@index([userId])` nello schema Prisma — manca l'indice su una colonna usata massicciamente dalle query stats/achievements.
+- **Validazione username**: regex `/^[a-zA-Z0-9_.-]{2,32}$/` in register e admin create — attualmente ammette spazi, emoji e caratteri ambigui.
+- **Elimina `games.js` legacy**: `backend/src/routes/games.js` non è montato ma genera confusione. Va rimosso.
+- **Paginazione `GET /api/games`**: aggiungere `?limit=N&before=<gameId>` (cursor pagination) — senza paginazione con 500+ partite il payload diventa pesante; FeedPage e GruppoPage/Storico caricano comunque tutto e filtrano in JS.
+
+### Media priorità
+
+- **Cache in auth middleware**: `Map` in memoria con TTL 60s per il `findUnique` del ruolo — riduce il carico da 300 query/min a ~1/utente/min mantenendo la garanzia di revoca entro 60s.
+- **`role` enum in schema Prisma**: sostituire `String` con `enum Role { PLAYER ADMIN }` — aggiunge validazione a livello DB e type safety nel client Prisma.
+- **useRequireAdmin middleware negli eventi**: le 4 route admin in `events.js` usano `if (req.user.role !== 'ADMIN')` inline invece del middleware `requireAdmin` — inconsistente con il pattern usato altrove.
+- **Commander partner** (`commanderB String?`): alcuni mazzi EDH hanno due commander (Partner). Aggiungere campo opzionale nello schema, nel form di creazione mazzo e in DeckThumb.
+- **Ricerca globale**: `GET /api/search?q=` su username/deck name/commander — nessun modo attuale di trovare qualcosa senza navigare manualmente.
+- **Export personale giocatore**: `GET /api/me/export` — scarica le proprie partite e mazzi in JSON senza essere admin.
+- **Sentry error monitoring**: 3 righe di codice sul backend (Railway) per sapere quando una route inizia a restituire 500 senza aspettare segnalazioni degli utenti.
+- **Audit log azioni ADMIN**: `console.log` strutturato con `{action, adminId, targetId, timestamp, ip}` per le mutazioni admin (crea/modifica/elimina utenti, modifica partite altrui).
+- **Test di integrazione con supertest**: nessun test copre le route HTTP — aggiungere test per i path critici (auth, games CRUD, ownership check 403, rate limit).
+
+### Bassa priorità / future features
+
+- **Web Push notifications** (PWA): sostituire il polling 60s con notifiche native sul telefono anche con app chiusa. Backend: `web-push` npm + tabella `PushSubscription`. Richiede HTTPS (già su Railway/Vercel).
+- **Deck sharing pubblico**: route `/mazzo/:id/public` senza autenticazione per mostrare una lista a chi non è nel gruppo.
+- **Staging environment**: branch `dev` → Railway staging, così ogni push non va diretto in produzione.
+- **Dashboard.jsx legacy**: componente non raggiungibile dalla navigazione — da rimuovere o integrare in GruppoPage.
+- **`npm audit` esbuild/vitest**: le 5 vulnerabilità residue sono tutte nel dev server Vite (non produzione); il fix richiederebbe Vitest 4 incompatibile con Node 18 — rivalutare quando si aggiorna Node.
+- **Deck comparison**: tool per confrontare due mazzi (win rate incrociato, matchup diretto, differenza bracket) accessibile da DeckProfilePage.
