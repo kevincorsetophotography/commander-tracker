@@ -67,12 +67,18 @@ Su **desktop** c'è la barra in alto con le voci: Feed · Gioca · Eventi · Gru
 
 ## 3. Feed — la home
 
-![Feed](docs/img/mobile-feed.png)
+![Feed — benvenuto e classifica](docs/img/mobile-feed.png)
 
 Il Feed è la prima schermata dopo il login. Mostra tutto quello che conta in un colpo d'occhio:
 
 - **Card di benvenuto** — "Ciao, [nome]" con la stagione in corso, il tuo rank e win rate attuali. Se sei in streak compare anche quella.
 - **Prossimo evento** — banner verde con nome, data e numero di iscritti. Toccalo per aprire il dettaglio dell'evento.
+- **Stagione corrente** — mini-classifica con i top 3 qualificati e i rispettivi punti. Tocca **Vedi classifica** per aprire la tab Stagione in Gruppo.
+- **Deck Spotlight** — il mazzo più in forma degli ultimi 10 giorni (almeno 3 partite), con win rate e nome del proprietario. Toccalo per aprire il profilo del mazzo.
+- **Settimana** — partite giocate questa settimana con il confronto rispetto alla scorsa e un grafico a barre giorno per giorno.
+
+![Feed — Deck Spotlight e attività](docs/img/mobile-feed-cards.png)
+
 - **Attività recente** — le ultime partite del gruppo in ordine cronologico, con vincitore e partecipanti. Le notifiche non lette compaiono qui con un bordo colorato.
 
 ---
