@@ -9,8 +9,9 @@ import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
 import BracketBadge from '../components/BracketBadge'
 import GameSocial from '../components/GameSocial'
-import { listSeasons, computeStandings } from '../lib/seasons'
+import { listSeasons, computeStandings, seasonOf } from '../lib/seasons'
 import PlayerAvatar from '../components/PlayerAvatar'
+import SeasonRecap from '../components/SeasonRecap'
 
 // ─── piccoli helper ────────────────────────────────────────
 
@@ -125,6 +126,7 @@ export default function GruppoPage() {
   // Sezioni collassabili (stagione tab)
   const [showPrimati, setShowPrimati] = useState(true)
   const [showMeta, setShowMeta]       = useState(false)
+  const [showRecap, setShowRecap]     = useState(false)
 
   // Stagione
   const [seasonKey, setSeasonKey] = useState(null)
@@ -277,6 +279,7 @@ export default function GruppoPage() {
   const topPlayer  = playerStats[0]
 
   return (
+    <>
     <div>
       {/* Metriche globali */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
@@ -318,16 +321,36 @@ export default function GruppoPage() {
             <EmptyState icon="🏆" title="Nessuna stagione ancora" message="Registrate qualche partita per far partire la classifica stagionale." />
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                <select
-                  value={seasonKey || ''}
-                  onChange={e => setSeasonKey(e.target.value)}
-                  style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
-                >
-                  {seasons.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                </select>
-                <span style={{ fontSize: 12, color: t.textMuted }}>{season.total} partite · qualificato da {season.threshold} partite</span>
-              </div>
+              {(() => {
+                const currentSeasonKey = seasonOf(new Date()).key
+                const isCompleted = seasonKey !== currentSeasonKey
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+                    <select
+                      value={seasonKey || ''}
+                      onChange={e => { setSeasonKey(e.target.value); setShowRecap(false) }}
+                      style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                    >
+                      {seasons.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                    </select>
+                    <span style={{ fontSize: 12, color: t.textMuted, flex: 1 }}>{season.total} partite · qualificato da {season.threshold}</span>
+                    {isCompleted && (
+                      <button
+                        onClick={() => setShowRecap(true)}
+                        className="ct-press"
+                        style={{
+                          padding: '6px 12px', borderRadius: 20, border: `1px solid ${t.primaryBorder}`,
+                          background: t.primaryBg, color: t.primary,
+                          fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 5,
+                        }}
+                      >
+                        🏅 Infografica
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
 
               {season.champion && (
                 <div className="ct-fade-up" style={{
@@ -608,5 +631,15 @@ export default function GruppoPage() {
       )}
       </div>
     </div>
+    {showRecap && season && (
+      <SeasonRecap
+        season={season}
+        seasonKey={seasonKey}
+        seasons={seasons}
+        games={games}
+        onClose={() => setShowRecap(false)}
+      />
+    )}
+    </>
   )
 }
