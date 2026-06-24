@@ -46,24 +46,26 @@ async function main() {
     players.push({ user: u, deck: d })
   }
 
-  // ~28 partite negli ultimi ~5 mesi (copre 2 stagioni)
   const now = Date.now()
   const fiveMonths = 5 * 30 * 24 * 60 * 60 * 1000
   let made = 0
-  for (let g = 0; g < 28; g++) {
-    const size = pick([3, 4, 4, 4, 5])
-    const seated = shuffle(players).slice(0, size)
-    const playedAt = new Date(now - Math.random() * fiveMonths)
-    // piazzamenti 1..size in ordine casuale
-    const placements = shuffle([...Array(size).keys()].map(i => i + 1))
-    const rows = seated.map((s, i) => ({ s, placement: placements[i] }))
-    rows.sort((a, b) => a.placement - b.placement)
-    // eliminazioni: ogni perdente eliminato da uno con piazzamento migliore
-    const data = rows.map(({ s, placement }) => {
+
+  // winner: elemento di `seated` che vince (null = random)
+  const createGame = async (playedAt, seated, winner = null) => {
+    // Costruisco ordine: winner è sempre placement=1, gli altri shufflati dopo
+    let ordered
+    if (winner) {
+      const rest = shuffle(seated.filter(s => s !== winner))
+      ordered = [winner, ...rest]
+    } else {
+      ordered = shuffle(seated)
+    }
+    const data = ordered.map((s, i) => {
+      const placement = i + 1
       let eliminatedById = null
       if (placement > 1) {
-        const better = rows.filter(r => r.placement < placement)
-        eliminatedById = pick(better).s.user.id
+        const better = ordered.slice(0, i)
+        eliminatedById = pick(better).user.id
       }
       return { userId: s.user.id, deckId: s.deck.id, placement, isWinner: placement === 1, eliminatedById }
     })
@@ -73,7 +75,39 @@ async function main() {
     made++
   }
 
-  console.log(`Seed completato: 1 admin + ${players.length} giocatori, ${players.length} mazzi, ${made} partite.`)
+  // ~28 partite negli ultimi ~5 mesi (copre 2 stagioni)
+  for (let g = 0; g < 28; g++) {
+    const size = pick([3, 4, 4, 4, 5])
+    const seated = shuffle(players).slice(0, size)
+    const playedAt = new Date(now - Math.random() * fiveMonths)
+    await createGame(playedAt, seated)
+  }
+
+  // 6 partite recenti (ultimi 7 giorni) → attiva Deck Spotlight e WeeklyActivity
+  // Ramuh (The Ur-Dragon) vince 4 su 6 per essere in spotlight
+  const ramuh   = players[0]  // The Ur-Dragon
+  const shiva   = players[1]  // Atraxa
+  const ifrit   = players[2]  // Gishath
+  const bahamut = players[3]  // Yawgmoth
+  const leviath = players[4]  // Lathril
+  const titan   = players[5]  // Krenko
+
+  const daysAgo = (d) => new Date(now - d * 86400000)
+
+  // Giorno 7 fa — Ramuh vince
+  await createGame(daysAgo(7), [ramuh, shiva, ifrit, bahamut], ramuh)
+  // Giorno 5 fa — Ramuh vince
+  await createGame(daysAgo(5), [ramuh, leviath, titan, ifrit], ramuh)
+  // Giorno 4 fa — Shiva vince
+  await createGame(daysAgo(4), [shiva, ramuh, bahamut, titan], shiva)
+  // Giorno 3 fa — Ramuh vince
+  await createGame(daysAgo(3), [ramuh, shiva, leviath, ifrit, bahamut], ramuh)
+  // Giorno 2 fa — Titan vince
+  await createGame(daysAgo(2), [titan, ramuh, shiva, bahamut], titan)
+  // Giorno 1 fa — Ramuh vince
+  await createGame(daysAgo(1), [ramuh, ifrit, leviath, titan], ramuh)
+
+  console.log(`Seed completato: 1 admin + ${players.length} giocatori, ${players.length} mazzi, ${made} partite (di cui 6 recenti).`)
   console.log('Credenziali: admin/test e ogni giocatore con password "test".')
 }
 
