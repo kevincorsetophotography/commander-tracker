@@ -149,6 +149,8 @@ router.get('/:id', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   const { players, winnerId, winnerDeckId, notes, playedAt } = req.body;
+  if (notes && typeof notes === 'string' && notes.length > MAX_NOTES_LEN)
+    return res.status(400).json({ error: `Note troppo lunghe (max ${MAX_NOTES_LEN} caratteri)` });
   const validation = await validateGamePayload({ players, winnerId, winnerDeckId });
 
   if (validation.error) {
@@ -201,6 +203,8 @@ router.patch('/:id', auth, async (req, res) => {
   }
 
   const { players, winnerId, winnerDeckId, notes, playedAt } = req.body;
+  if (notes && typeof notes === 'string' && notes.length > MAX_NOTES_LEN)
+    return res.status(400).json({ error: `Note troppo lunghe (max ${MAX_NOTES_LEN} caratteri)` });
   const validation = await validateGamePayload({ players, winnerId, winnerDeckId });
 
   if (validation.error) {
@@ -262,6 +266,7 @@ router.delete('/:id', auth, async (req, res) => {
 // Emoji consentite per le reazioni (deve combaciare col frontend)
 const REACTION_EMOJI = ['👍', '🔥', '😂', '😮', '💀', '🎉', '🐸'];
 const MAX_COMMENT_LEN = 1000;
+const MAX_NOTES_LEN = 2000;
 
 // GET /api/games/:id/comments — thread completo (caricato on-demand)
 router.get('/:id/comments', auth, async (req, res) => {

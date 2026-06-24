@@ -1,6 +1,7 @@
 // Commanderne API — registrazione protetta da INVITE_CODE
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 require('dotenv').config();
 
 // Guard di sicurezza: il server non parte con un JWT_SECRET assente o debole
@@ -28,6 +29,9 @@ const app = express();
 // Dietro il proxy di Railway: necessario perché il rate limiter veda l'IP reale
 // del client (e non quello del proxy, condiviso da tutti).
 app.set('trust proxy', 1);
+
+// HTTP security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.)
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 // Anti brute-force su login/registrazione
 const authLimiter = rateLimit({

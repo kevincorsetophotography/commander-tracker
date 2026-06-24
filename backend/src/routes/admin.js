@@ -81,6 +81,10 @@ router.post('/users', async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: 'Username e password sono obbligatori' });
   }
+  if (typeof username !== 'string' || username.length > 32)
+    return res.status(400).json({ error: 'Username troppo lungo (max 32 caratteri)' });
+  if (typeof password !== 'string' || password.length > 128)
+    return res.status(400).json({ error: 'Password troppo lunga (max 128 caratteri)' });
 
   const hash = await bcrypt.hash(password, 10);
 
@@ -113,6 +117,7 @@ router.patch('/users/:id', async (req, res) => {
   const data = {};
 
   if (typeof username === 'string' && username.trim()) {
+    if (username.trim().length > 32) return res.status(400).json({ error: 'Username troppo lungo (max 32 caratteri)' });
     data.username = username.trim();
   }
 
@@ -121,6 +126,7 @@ router.patch('/users/:id', async (req, res) => {
   }
 
   if (typeof password === 'string' && password.trim()) {
+    if (password.length > 128) return res.status(400).json({ error: 'Password troppo lunga (max 128 caratteri)' });
     data.password = await bcrypt.hash(password, 10);
   }
 
