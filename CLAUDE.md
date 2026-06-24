@@ -22,6 +22,7 @@ App full-stack deployata: i membri registrano partite, mazzi, statistiche, event
 - `cd backend && npm run dev` → `scripts/dev.mjs`: avvia un **PostgreSQL embedded** (`embedded-postgres`) su **:5433**, fa `db push`, **semina** dati di test se vuoto, poi nodemon su **:3001**.
   - Il DB locale **deve essere UTF-8** (per le emoji). `dev.mjs` lo (ri)crea UTF-8 se serve: su Windows initdb usa WIN1252 di default, che fa crashare i salvataggi con emoji.
   - Credenziali seed: `admin/test`; giocatori `Ramuh, Shiva, Ifrit, Bahamut, Leviath, Titan` → password `test`.
+  - Il seed produce **34 partite**: 28 distribuite random sugli ultimi 5 mesi + **6 con date fisse** (1-7 giorni fa, Ramuh vince 4/6) — garantisce che `DeckSpotlight` e `WeeklyActivity` abbiano sempre dati in dev.
 - Frontend: `cd frontend && npx vite --host` (:5173). Punta a `http://localhost:3001/api` di default (`lib/api.js`, niente `.env` frontend in locale).
 - `.env` (backend, **gitignored**): `DATABASE_URL` (locale o Railway), `JWT_SECRET` (≥32 char), `PORT`, `FRONTEND_URL`, `INVITE_CODE`, `GROQ_API_KEY` (per il Judge Bot).
 
@@ -85,7 +86,7 @@ frontend/src/
     useCountUp.js     animazione numerica (MetricCard in Dashboard)
   pages/
     Login.jsx             /login — form login/register con inviteCode
-    FeedPage.jsx          / — home feed: snapshot stagione, prossimo evento, ultime partite + notifiche
+    FeedPage.jsx          / — home feed: snapshot stagione, classifica mini, deck spotlight, attività settimanale, ultime partite + notifiche
     GiocaPage.jsx         /gioca — landing "Gioca": CTA nuova partita, mazzi recenti, ultima partita
     GruppoPage.jsx        /gruppo — statistiche gruppo con 4 tab URL-based: Stagione (classifica + Primati + Meta), Giocatori, Mazzi, Storico
     DashboardPage.jsx     /dashboard — 6 tab stats LEGACY (ancora funzionante, non nel dock)
@@ -207,7 +208,7 @@ DELETE /api/admin/users/:id   (solo se no mazzi/partite)
 
 // JUDGE
 POST /api/judge               {question} → {answer, explanation, confidence, rulesUsed, cardsDetected, sources}
-                              NON esiste GET /api/judge (storico non esposto)
+GET  /api/judge               ?limit=N → ultime N JudgeQuestion del gruppo (storico pubblico, usato da JudgePage)
 ```
 
 ---
@@ -237,6 +238,9 @@ Punteggio: 1°=3, 2°=2, 3°=1, +1 per ogni partenza. Achievement stagionali sol
 ### FeedPage (`/`) — HOME
 - `SnapshotCard`: "Ciao [username]", stagione corrente, rank/win rate, streak se ≥2
 - `EventBanner`: prossimo evento con data e RSVP count → link `/evento/:id`
+- `MiniClassifica`: top-3 qualificati stagione corrente con avatar, punti, `ct-bar-fill`; richiede `api.statsPlayers()` per `avatarCardName`. "Vedi classifica" → `/gruppo` (tab Stagione). Nascosta se <2 qualificati.
+- `DeckSpotlight`: mazzo con miglior win rate negli **ultimi 10 giorni** (min 3 partite, finestra `Date.now() - 10*86400000`). Calcolato dal `games` array già caricato — nessuna chiamata extra. Nascosto se nessun candidato. Link → `/mazzo/:id`.
+- `WeeklyActivity`: contatore partite settimana corrente (lun–oggi) vs settimana precedente, sparkline 7 giorni CSS. Nascosta se entrambe le settimane = 0.
 - Feed misto: ultime 25 partite + notifiche non-evento, ordinate per data DESC, taglio a 30 item
 - `GameFeedItem`: 🏆 vittoria (verde) / ⚔ sconfitta con nome vincitore; date relative ("Oggi", "Ieri", "N gg fa")
 - `NotifFeedItem`: bordo `t.primaryBg` se non letta; salta `type === 'event'` (già nel banner)
@@ -318,6 +322,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - **Tornei — pod multiplayer = Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext`. Gli iscritti SENZA mazzi non possono entrare in un pod.
 - **Date locali, non UTC**: usare `getFullYear/Month/Date`, MAI `toISOString().slice(0,10)` (shifta col fuso → stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.
 - **Commit da PowerShell**: gli here-string `@'...'@` si rompono con **virgolette doppie** → niente `"` nei messaggi di commit.
+- **Classi animazione globali** (`frontend/src/index.css`): `ct-fade-up` (stagger con `animationDelay`), `ct-bar-fill` (scaleX 0→1 su mount, rimpiazza `transition:width` che non si anima al primo render), `ct-section-open` (collapsible open, opacity+translateY), `ct-modal-in` (spring cubic-bezier per overlay), `ct-lift:active` + `ct-press` (tap feedback mobile). Tutte disabilitate con `@media (prefers-reduced-motion: reduce)`. Tab transition trick: `<div key={tab} className="ct-fade-up">` — cambiare key smonta/rimonta il nodo riattivando l'animazione.
 
 ---
 
@@ -328,5 +333,7 @@ Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · No
 **UX/IA revision (2026-06)**: **FeedPage** (nuova home `/`), **GiocaPage** (`/gioca`), **GruppoPage** (`/gruppo` section-based), **progressive disclosure** PlayerProfilePage (6 sezioni, achievement in posizione 2) e DeckProfilePage (tab perf/lista + stima prezzo €), **storico Judge Bot** (`GET /api/judge`), **modal form eventi**, **deep-link notifiche** `/eventi?focus=:id`, **5-item dock** mobile.
 
 **Refactor UX (2026-06)**: **GruppoPage** ristrutturata con **4 tab URL-based** (Stagione/Giocatori/Mazzi/Storico); Primati compatti (`minmax(110px)`, 3 col mobile); **rinomina Tornei → Eventi** ovunque (dock, navbar, route canonica `/eventi`, heading, notifiche backend); `/tornei` → redirect retrocompatibile. **GUIDA_UTENTE.md** riscritta con screenshot mobile reali (20 immagini).
+
+**Animation & Feed polish (2026-06)**: Sistema animazioni globali in `index.css` (`ct-fade-up`, `ct-bar-fill`, `ct-section-open`, `ct-modal-in`, `ct-lift`, `ct-press`). Stagger su GiocaPage/EventsPage/JudgePage/GruppoPage; tab transition con `key={tab}`; collapsible open con `ct-section-open`; WinBar con `ct-bar-fill` (scaleX). **FeedPage** arricchita: `MiniClassifica` (top-3 stagione), `DeckSpotlight` (miglior mazzo ultimi 10gg, min 3 partite), `WeeklyActivity` (sparkline 7 giorni). Seed dev aggiornato con 6 partite recenti garantite.
 
 Robustezza: PrismaClient singleton, rate-limit login + judge, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
