@@ -228,12 +228,19 @@ function parseUsernameFromTitle(notif) {
   return null
 }
 
+const NOTIF_TYPE_COLOR = {
+  reaction:    'rgba(251,146,60,0.85)',
+  comment:     'rgba(96,165,250,0.85)',
+  achievement: 'rgba(250,204,21,0.85)',
+}
+
 function NotifFeedItem({ notif, t, navigate }) {
   const isUnread = !notif.read
   const isSocial = notif.type === 'comment' || notif.type === 'reaction'
   const avatarUser = notif.fromUser || (isSocial ? { username: parseUsernameFromTitle(notif), avatarCardName: null } : null)
   const badgeEmoji = notif.type === 'comment' ? '💬' : notif.type === 'reaction' ? notif.title.split(' ')[0] : null
   const fallbackIcon = notif.type === 'achievement' ? '🏅' : notif.type === 'event' ? '📅' : '📢'
+  const typeColor = NOTIF_TYPE_COLOR[notif.type]
 
   return (
     <div
@@ -241,6 +248,7 @@ function NotifFeedItem({ notif, t, navigate }) {
       style={{
         background: isUnread ? t.primaryBg : t.bgSurface,
         border: `1px solid ${isUnread ? t.primaryBorder : t.border}`,
+        borderLeft: typeColor ? `3px solid ${typeColor}` : undefined,
         borderRadius: 12,
         padding: '0.75rem 1rem',
         marginBottom: 8,
@@ -270,7 +278,10 @@ function NotifFeedItem({ notif, t, navigate }) {
         </span>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{
+          fontSize: 13, fontWeight: 600, color: t.text,
+          overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        }}>
           {notif.title}
         </div>
         {notif.body && (
@@ -279,7 +290,7 @@ function NotifFeedItem({ notif, t, navigate }) {
           </div>
         )}
       </div>
-      <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0 }}>
+      <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0, alignSelf: 'flex-start', marginTop: 2 }}>
         {relativeDate(notif.createdAt)}
       </span>
     </div>

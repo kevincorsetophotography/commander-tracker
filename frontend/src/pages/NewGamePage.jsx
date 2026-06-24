@@ -152,7 +152,7 @@ export default function NewGamePage() {
     marginBottom: 12,
     boxShadow: t.shadow,
   }
-  const sel = { padding: '9px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, background: t.inputBg, color: t.text, outline: 'none', cursor: 'pointer' }
+  const sel = { padding: '11px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, background: t.inputBg, color: t.text, outline: 'none', cursor: 'pointer', width: '100%', boxSizing: 'border-box' }
 
   return (
     <div>
@@ -187,29 +187,32 @@ export default function NewGamePage() {
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>Giocatori al tavolo</div>
         {slots.map((slot, i) => {
           const userDecks = slot.userId ? (byUser[slot.userId]?.decks || []) : []
+          const avatarEl = slot.userId && byUser[slot.userId] ? (
+            <PlayerAvatar
+              username={byUser[slot.userId].username}
+              avatarCardName={byUser[slot.userId].avatarCardName}
+              size={32}
+            />
+          ) : (
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
+              {i + 1}
+            </div>
+          )
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              {slot.userId && byUser[slot.userId] ? (
-                <PlayerAvatar
-                  username={byUser[slot.userId].username}
-                  avatarCardName={byUser[slot.userId].avatarCardName}
-                  size={28}
-                />
-              ) : (
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
-                  {i + 1}
-                </div>
-              )}
-              <select style={{ ...sel, flex: 1, minWidth: 120, opacity: podCtx ? 0.7 : 1 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)} disabled={!!podCtx}>
-                <option value="">Giocatore...</option>
-                {(podCtx ? podCtx.players.map(p => ({ id: p.userId, username: p.username })) : users).map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
-              </select>
-              <select style={{ ...sel, flex: 1, minWidth: 120 }} value={slot.deckId} onChange={e => updateSlot(i, 'deckId', e.target.value)} disabled={!slot.userId}>
-                <option value="">Mazzo...</option>
-                {userDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+              <div style={{ paddingTop: 10, flexShrink: 0 }}>{avatarEl}</div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <select style={{ ...sel, opacity: podCtx ? 0.7 : 1 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)} disabled={!!podCtx}>
+                  <option value="">Giocatore...</option>
+                  {(podCtx ? podCtx.players.map(p => ({ id: p.userId, username: p.username })) : users).map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                </select>
+                <select style={sel} value={slot.deckId} onChange={e => updateSlot(i, 'deckId', e.target.value)} disabled={!slot.userId}>
+                  <option value="">Mazzo...</option>
+                  {userDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
               {i >= 3 && !podCtx && (
-                <button onClick={() => removeSlot(i)} style={{ padding: '6px 11px', border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgMuted, cursor: 'pointer', fontSize: 14, color: t.textSub }}>×</button>
+                <button onClick={() => removeSlot(i)} style={{ marginTop: 10, padding: '8px 11px', border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgMuted, cursor: 'pointer', fontSize: 14, color: t.textSub, flexShrink: 0 }}>×</button>
               )}
             </div>
           )
