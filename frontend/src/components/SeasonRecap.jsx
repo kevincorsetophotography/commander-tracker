@@ -25,9 +25,10 @@ const C = {
 const W = 360, H = 450, SCALE = 3
 
 // ── helpers ────────────────────────────────────────────────────────────────────
-const ART = n => `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(n)}&format=image&version=art_crop`
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const ART = n => `${API_BASE}/scryfall/art?name=${encodeURIComponent(n)}`
 const b64 = blob => new Promise(r => { const x = new FileReader(); x.onload = () => r(x.result); x.readAsDataURL(blob) })
-const fetchDU = async url => { try { const r = await fetch(url, { mode: 'cors' }); return b64(await r.blob()) } catch { return null } }
+const fetchDU = async url => { try { const r = await fetch(url); if (!r.ok) return null; return b64(await r.blob()) } catch { return null } }
 const hue = (s = '') => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffffff, 0) % 360
 
 // ── data ───────────────────────────────────────────────────────────────────────

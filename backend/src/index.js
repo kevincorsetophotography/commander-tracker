@@ -21,6 +21,7 @@ const statsRoutes        = require('./routes/stats');
 const eventRoutes        = require('./routes/events');
 const notificationRoutes = require('./routes/notifications');
 const judgeRoutes        = require('./routes/judge');
+const scryfallRoutes     = require('./routes/scryfall');
 const { rateLimit } = require('express-rate-limit');
 const { loadComprehensiveRules } = require('./lib/judge');
 
@@ -77,6 +78,7 @@ app.use('/api/stats',         apiLimiter, statsRoutes);
 app.use('/api/events',        apiLimiter, eventRoutes);
 app.use('/api/notifications', apiLimiter, notificationRoutes);
 app.use('/api/judge',         judgeRoutes);
+app.use('/api/scryfall',      apiLimiter, scryfallRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

@@ -41,7 +41,7 @@ async function main() {
 
   const players = []
   for (const p of PLAYERS) {
-    const u = await prisma.user.create({ data: { username: p.username, password: hash, role: 'PLAYER' } })
+    const u = await prisma.user.create({ data: { username: p.username, password: hash, role: 'PLAYER', avatarCardName: p.commander } })
     const d = await prisma.deck.create({ data: { name: p.commander.split(',')[0], commander: p.commander, colors: p.colors, bracket: p.bracket, userId: u.id } })
     players.push({ user: u, deck: d })
   }
