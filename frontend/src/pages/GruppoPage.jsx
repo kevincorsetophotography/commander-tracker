@@ -347,10 +347,15 @@ export default function GruppoPage() {
               </div>
 
               {season.standings.map((s, i) => (
-                <div key={s.id} className="ct-lift" onClick={() => navigate(`/giocatore/${s.id}`)} style={{ ...card, cursor: 'pointer', opacity: s.qualified ? 1 : 0.62 }}>
+                <div key={s.id} className="ct-lift ct-fade-up" onClick={() => navigate(`/giocatore/${s.id}`)} style={{ ...card, cursor: 'pointer', opacity: s.qualified ? 1 : 0.62, animationDelay: `${Math.min(i, 7) * 45}ms` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 && s.qualified ? t.primary : t.textMuted, minWidth: 22 }}>{i + 1}°</span>
+                      <div style={{ minWidth: 28, textAlign: 'center', flexShrink: 0 }}>
+                        {i < 3 && s.qualified
+                          ? <span style={{ fontSize: 20, lineHeight: 1 }}>{['🥇', '🥈', '🥉'][i]}</span>
+                          : <span style={{ fontSize: 13, fontWeight: 700, color: t.textMuted }}>{i + 1}°</span>
+                        }
+                      </div>
                       <PlayerAvatar username={s.username} avatarCardName={playerStats.find(p => p.id === s.id)?.avatarCardName} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>

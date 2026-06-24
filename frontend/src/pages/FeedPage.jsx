@@ -42,6 +42,7 @@ function SnapshotCard({ snapshot, t, user, navigate }) {
   return (
     <div
       onClick={() => navigate('/gruppo')}
+      className="ct-fade-up"
       style={{
         background: t.bgSurface,
         border: `1px solid ${t.border}`,
@@ -103,6 +104,7 @@ function EventBanner({ event, t, navigate }) {
   return (
     <div
       onClick={() => navigate(`/evento/${event.id}`)}
+      className="ct-fade-up"
       style={{
         background: t.primaryBg,
         border: `1px solid ${t.primaryBorder}`,
@@ -111,6 +113,7 @@ function EventBanner({ event, t, navigate }) {
         marginBottom: 16,
         cursor: 'pointer',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        animationDelay: '60ms',
       }}
     >
       <div style={{ minWidth: 0 }}>
@@ -399,11 +402,17 @@ export default function FeedPage() {
           <div style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
             Attivita recente
           </div>
-          {feedItems.map(item =>
-            item.type === 'game'
-              ? <GameFeedItem key={`g-${item.data.id}`} game={item.data} user={user} t={t} navigate={navigate} />
-              : <NotifFeedItem key={`n-${item.data.id}`} notif={item.data} t={t} navigate={navigate} />
-          )}
+          {feedItems.map((item, index) => (
+            <div key={item.type === 'game' ? `g-${item.data.id}` : `n-${item.data.id}`}
+              className="ct-fade-up"
+              style={{ animationDelay: `${(Math.min(index, 8) * 40) + 100}ms` }}
+            >
+              {item.type === 'game'
+                ? <GameFeedItem game={item.data} user={user} t={t} navigate={navigate} />
+                : <NotifFeedItem notif={item.data} t={t} navigate={navigate} />
+              }
+            </div>
+          ))}
         </>
       ) : (
         <div style={{ textAlign: 'center', padding: '3rem 1rem', color: t.textMuted, fontSize: 14 }}>

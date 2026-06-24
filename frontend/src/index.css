@@ -116,18 +116,20 @@ body {
 .ct-skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(130,140,190,0.13);
+  background: rgba(130,140,190,0.15);
   border-radius: 8px;
 }
 .ct-skeleton::after {
   content: '';
   position: absolute;
   inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(130,140,190,0.20), transparent);
-  animation: ct-shimmer 1.4s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent 0%, rgba(200,210,255,0.30) 50%, transparent 100%);
+  animation: ct-shimmer 1.6s ease-in-out infinite;
 }
-@keyframes ct-shimmer { 100% { transform: translateX(100%); } }
+@keyframes ct-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
