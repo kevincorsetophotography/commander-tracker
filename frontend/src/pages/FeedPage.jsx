@@ -259,7 +259,7 @@ function DeckSpotlight({ spotlight, t, navigate }) {
             ✦ Deck Spotlight
           </span>
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-            ultime 4 sett.
+            ultimi 10 giorni
           </span>
         </div>
 
@@ -279,7 +279,7 @@ function DeckSpotlight({ spotlight, t, navigate }) {
               </div>
             )}
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-              di {spotlight.owner} · {spotlight.recentGames} partite recenti
+              di {spotlight.owner} · {spotlight.recentGames} partite (10 gg)
             </div>
           </div>
 
@@ -619,7 +619,7 @@ export default function FeedPage() {
   // ── deck spotlight (miglior deck ultime 4 sett., min 3 partite) ──
   const spotlight = useMemo(() => {
     if (!games.length) return null
-    const cutoff = Date.now() - 28 * 86400000
+    const cutoff = Date.now() - 10 * 86400000
     const map = {}
     for (const g of games) {
       if (new Date(g.playedAt) < cutoff) continue
