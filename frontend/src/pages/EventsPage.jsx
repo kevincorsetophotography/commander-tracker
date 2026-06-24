@@ -260,7 +260,7 @@ export default function EventsPage() {
           onClick={e => { if (e.target === e.currentTarget) resetForm() }}
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
         >
-          <div style={{ ...glass, borderRadius: 18, padding: '1.35rem 1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+          <div className="ct-modal-in" style={{ ...glass, borderRadius: 18, padding: '1.35rem 1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{editingId ? 'Modifica evento' : 'Nuovo evento'}</div>
               <button onClick={resetForm} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: t.textMuted, lineHeight: 1, padding: '0 4px' }}>×</button>

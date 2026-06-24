@@ -330,15 +330,20 @@ export default function GruppoPage() {
               </div>
 
               {season.champion && (
-                <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, borderColor: t.primaryBorder }}>
-                  <div style={{ fontSize: 34 }}>🏆</div>
+                <div className="ct-fade-up" style={{
+                  ...card, display: 'flex', alignItems: 'center', gap: 14,
+                  background: `linear-gradient(135deg, ${t.primaryBg} 0%, ${t.bgSurface} 60%)`,
+                  borderColor: t.primaryBorder,
+                  boxShadow: `${t.shadow}, 0 0 24px ${t.primary}22`,
+                }}>
+                  <div style={{ fontSize: 38, lineHeight: 1, filter: 'drop-shadow(0 2px 8px rgba(52,240,143,0.4))' }}>🏆</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>In testa alla stagione</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: t.text }}>{season.champion.username}</div>
+                    <div style={{ fontSize: 10, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>In testa alla stagione</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: t.text, lineHeight: 1.1, marginTop: 2 }}>{season.champion.username}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: t.primary, lineHeight: 1 }}>{season.champion.points}</div>
-                    <div style={{ fontSize: 11, color: t.textMuted }}>punti</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: t.primary, lineHeight: 1, filter: `drop-shadow(0 0 8px ${t.primary}60)` }}>{season.champion.points}</div>
+                    <div style={{ fontSize: 11, color: t.textMuted, letterSpacing: '0.04em' }}>punti</div>
                   </div>
                 </div>
               )}

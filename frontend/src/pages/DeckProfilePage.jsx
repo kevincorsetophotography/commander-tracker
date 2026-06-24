@@ -17,7 +17,7 @@ const CATEGORY_ORDER = ['Commander', 'Creature', 'Planeswalker', 'Istantanei', '
 function WinBar({ pct, t }) {
   return (
     <div style={{ height: 6, borderRadius: 3, background: t.bgMuted, overflow: 'hidden', marginTop: 6 }}>
-      <div style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3, transition: 'width 0.4s' }} />
+      <div className="ct-bar-fill" style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3 }} />
     </div>
   )
 }
@@ -183,7 +183,7 @@ export default function DeckProfilePage() {
 
       {/* ── TAB: PERFORMANCE ── */}
       {tab === 'perf' && (
-        <>
+        <div key="perf" className="ct-fade-up">
           {/* Statistiche chiave */}
           <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {stat('Partite', deck.games)}
@@ -209,7 +209,7 @@ export default function DeckProfilePage() {
             <>
               <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Matchup</div>
               {mine.map((m, i) => (
-                <div key={i} style={{ ...card, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={i} className="ct-fade-up" style={{ ...card, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, animationDelay: `${Math.min(i, 6) * 40}ms` }}>
                   <DeckThumb commander={commanderById[m.deckB.id]} w={48} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, color: t.text }}>{m.deckB.name}</div>
@@ -232,7 +232,7 @@ export default function DeckProfilePage() {
                   <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showTrend ? 'rotate(90deg)' : 'none' }}>▸</span>
                 </span>
               </div>
-              {showTrend && (() => {
+              {showTrend && (<div className="ct-section-open">{(() => {
                 const W = 600, H = 120, pad = 6, n = trend.length
                 const x = (i) => pad + (i / (n - 1)) * (W - pad * 2)
                 const y = (v) => pad + (1 - v / 100) * (H - pad * 2)
@@ -247,7 +247,7 @@ export default function DeckProfilePage() {
                     <circle cx={x(n - 1)} cy={y(trend[n - 1])} r="4" fill={t.primary} />
                   </svg>
                 )
-              })()}
+              })()}</div>)}
             </div>
           )}
 
@@ -273,12 +273,12 @@ export default function DeckProfilePage() {
               </div>
             )
           })}
-        </>
+        </div>
       )}
 
       {/* ── TAB: LISTA CARTE ── */}
       {tab === 'lista' && (
-        <div style={card}>
+        <div key="lista" className="ct-fade-up" style={card}>
           {!deckDetail?.decklist ? (
             <EmptyState icon="🃏" title="Nessuna decklist" message="Aggiungi una decklist dal profilo del mazzo per vederla qui." />
           ) : loadingList ? (

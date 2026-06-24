@@ -96,13 +96,16 @@ body {
 .ct-wordmark.dark  { background-image: linear-gradient(135deg, #34F08F, #8B5CF6); }
 .ct-wordmark.light { background-image: linear-gradient(135deg, #6C4AE0, #22C55E); }
 
-/* Lift al passaggio del mouse */
+/* Lift al passaggio del mouse / tap su mobile */
 .ct-lift {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
-.ct-lift:hover {
-  transform: translateY(-3px);
-}
+.ct-lift:hover  { transform: translateY(-3px); }
+.ct-lift:active { transform: scale(0.97); transition-duration: 0.08s; }
+
+/* Feedback pressione per pulsanti senza ct-lift */
+.ct-press { transition: transform 0.1s ease, opacity 0.1s ease; }
+.ct-press:active { transform: scale(0.96); opacity: 0.85; }
 
 /* Striscia scrollabile orizzontale (schede su mobile) senza scrollbar visibile */
 .ct-scroll-x {
@@ -158,7 +161,16 @@ body {
 }
 .ct-section-open { animation: ct-section-open 0.25s ease both; }
 
+/* Entrata modal (scala + fade) */
+@keyframes ct-modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ct-modal-in { animation: ct-modal-in 0.22s cubic-bezier(0.34,1.2,0.64,1) both; }
+
 /* Riduce motion per chi lo preferisce */
 @media (prefers-reduced-motion: reduce) {
-  .ct-aurora::before, .ct-aurora::after, .ct-fade-up, .ct-bar-fill, .ct-section-open { animation: none; }
+  .ct-aurora::before, .ct-aurora::after,
+  .ct-fade-up, .ct-bar-fill, .ct-section-open, .ct-modal-in { animation: none; }
+  .ct-lift:active, .ct-press:active { transform: none; }
 }

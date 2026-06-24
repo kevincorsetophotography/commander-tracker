@@ -52,7 +52,7 @@ export default function GamePage() {
     <div>
       {back}
 
-      <div style={card}>
+      <div className="ct-fade-up" style={card}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: t.text, textTransform: 'capitalize' }}>{date}</div>
