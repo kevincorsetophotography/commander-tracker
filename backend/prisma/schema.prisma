@@ -22,7 +22,8 @@ model User {
   createdEvents Event[]    @relation("EventCreator")
   eventRsvps  EventRsvp[]
   eventSeats  EventSeat[]
-  notifications Notification[]
+  notifications     Notification[] @relation("NotifRecipient")
+  sentNotifications Notification[] @relation("NotifSender")
   achievementUnlocks AchievementUnlock[]
   judgeQuestions JudgeQuestion[]
 }
@@ -156,15 +157,17 @@ model EventRsvp {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  type      String   // event | achievement | comment | reaction
-  title     String
-  body      String?
-  link      String?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
+  id         Int      @id @default(autoincrement())
+  type       String   // event | achievement | comment | reaction
+  title      String
+  body       String?
+  link       String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  fromUser   User?    @relation("NotifSender", fields: [fromUserId], references: [id], onDelete: SetNull)
+  fromUserId Int?
 
   @@index([userId, read])
 }

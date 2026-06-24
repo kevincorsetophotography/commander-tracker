@@ -11,6 +11,7 @@ router.get('/', auth, async (req, res) => {
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
       take: LIST_LIMIT,
+      include: { fromUser: { select: { id: true, username: true, avatarCardName: true } } },
     });
     res.json(notifications);
   } catch (error) {

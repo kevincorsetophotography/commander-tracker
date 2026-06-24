@@ -1,11 +1,11 @@
 const { ACHIEVEMENT_META, loadData, unlockedForUser } = require('./achievements');
 
 // Crea una notifica uguale per più destinatari (bulk). Ignora lista vuota.
-async function createNotifications(prisma, recipientIds, { type, title, body = null, link = null }) {
+async function createNotifications(prisma, recipientIds, { type, title, body = null, link = null, fromUserId = null }) {
   const ids = [...new Set(recipientIds)].filter(Boolean);
   if (ids.length === 0) return;
   await prisma.notification.createMany({
-    data: ids.map(userId => ({ userId, type, title, body, link })),
+    data: ids.map(userId => ({ userId, type, title, body, link, fromUserId })),
   });
 }
 

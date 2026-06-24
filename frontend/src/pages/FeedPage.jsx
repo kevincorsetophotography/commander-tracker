@@ -5,6 +5,7 @@ import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { seasonOf, computeStandings } from '../lib/seasons'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 // ─── helpers ──────────────────────────────────────────────
 
@@ -131,7 +132,7 @@ function EventBanner({ event, t, navigate }) {
 function GameFeedItem({ game, user, t, navigate }) {
   const me = game.players.find(p => p.user.id === user?.id)
   const winner = game.players.find(p => p.isWinner)
-  const iWon = me?.isWinner
+  const iWon = !!me?.isWinner
   const iPlayed = !!me
 
   const others = game.players
@@ -140,48 +141,99 @@ function GameFeedItem({ game, user, t, navigate }) {
     .join(', ')
   const allPlayers = game.players.map(p => p.user.username).join(', ')
 
-  let icon, title, sub, titleColor
-  if (iWon) {
-    icon = '🏆'; title = 'Hai vinto!'; sub = others ? `Contro ${others}` : ''; titleColor = '#4caf50'
-  } else if (iPlayed) {
-    icon = '⚔'; title = `Ha vinto ${winner?.user?.username || '?'}`; sub = others ? `Con ${others}` : ''; titleColor = t.text
-  } else {
-    icon = '⚔'; title = `${winner?.user?.username || '?'} ha vinto`; sub = allPlayers; titleColor = t.text
-  }
+  const winnerDeck = winner?.deck?.name || null
+  const winnerCommander = winner?.deck?.commander
+    ? winner.deck.commander.split('//')[0].trim()
+    : null
+
+  const accentColor = iWon ? t.win : iPlayed ? t.primary : t.border
 
   return (
     <div
       onClick={() => navigate(`/partita/${game.id}`)}
+      className="ct-lift"
       style={{
-        background: t.bgSurface,
-        border: `1px solid ${t.border}`,
+        background: iWon ? t.winBg : t.bgSurface,
+        border: `1px solid ${iWon ? t.win + '55' : t.border}`,
+        borderLeft: `3px solid ${accentColor}`,
         borderRadius: 12,
-        padding: '0.85rem 1rem',
+        padding: '0.8rem 1rem 0.8rem 0.9rem',
         marginBottom: 8,
         cursor: 'pointer',
-        display: 'flex', alignItems: 'flex-start', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 11,
       }}
     >
-      <span style={{ fontSize: 20, lineHeight: '24px', flexShrink: 0 }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: titleColor }}>{title}</div>
-        {sub && (
-          <div style={{ fontSize: 12, color: t.textSub, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {sub}
-          </div>
+      {/* Avatar del vincitore */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <PlayerAvatar
+          username={winner?.user?.username}
+          avatarCardName={winner?.user?.avatarCardName}
+          size={42}
+          highlight={iWon}
+        />
+        {iWon && (
+          <span style={{
+            position: 'absolute', bottom: -3, right: -4,
+            fontSize: 13, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
+          }}>🏆</span>
         )}
       </div>
-      <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0, marginTop: 2 }}>
+
+      {/* Testo */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Riga titolo */}
+        <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>
+          {iWon
+            ? <span style={{ color: t.win }}>Hai vinto!</span>
+            : <>
+                <span style={{ color: iPlayed ? t.primary : t.text }}>
+                  {winner?.user?.username || '?'}
+                </span>
+                <span style={{ color: t.textSub, fontWeight: 400 }}> ha vinto</span>
+              </>
+          }
+        </div>
+
+        {/* Mazzo del vincitore */}
+        {winnerDeck && (
+          <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            🎴 {winnerCommander || winnerDeck}
+          </div>
+        )}
+
+        {/* Partecipanti */}
+        <div style={{ fontSize: 11, color: t.textSub, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {iWon
+            ? (others ? `Con ${others}` : '')
+            : iPlayed
+              ? (others ? `Con ${others}` : '')
+              : allPlayers
+          }
+        </div>
+      </div>
+
+      {/* Data */}
+      <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0, alignSelf: 'flex-start', marginTop: 2 }}>
         {relativeDate(game.playedAt)}
       </span>
     </div>
   )
 }
 
+function parseUsernameFromTitle(notif) {
+  try {
+    if (notif.type === 'comment') return notif.title.split(' ha commentato')[0].replace(/^💬\s*/, '')
+    if (notif.type === 'reaction') return notif.title.split(' ')[1]
+  } catch { /* ignore */ }
+  return null
+}
+
 function NotifFeedItem({ notif, t, navigate }) {
-  const icons = { achievement: '🏅', comment: '💬', reaction: '👍' }
-  const icon = icons[notif.type] || '📢'
   const isUnread = !notif.read
+  const isSocial = notif.type === 'comment' || notif.type === 'reaction'
+  const avatarUser = notif.fromUser || (isSocial ? { username: parseUsernameFromTitle(notif), avatarCardName: null } : null)
+  const badgeEmoji = notif.type === 'comment' ? '💬' : notif.type === 'reaction' ? notif.title.split(' ')[0] : null
+  const fallbackIcon = notif.type === 'achievement' ? '🏅' : notif.type === 'event' ? '📅' : '📢'
 
   return (
     <div
@@ -190,13 +242,33 @@ function NotifFeedItem({ notif, t, navigate }) {
         background: isUnread ? t.primaryBg : t.bgSurface,
         border: `1px solid ${isUnread ? t.primaryBorder : t.border}`,
         borderRadius: 12,
-        padding: '0.85rem 1rem',
+        padding: '0.75rem 1rem',
         marginBottom: 8,
         cursor: notif.link ? 'pointer' : 'default',
-        display: 'flex', alignItems: 'flex-start', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 10,
       }}
     >
-      <span style={{ fontSize: 20, lineHeight: '24px', flexShrink: 0 }}>{icon}</span>
+      {avatarUser ? (
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <PlayerAvatar
+            username={avatarUser.username}
+            avatarCardName={avatarUser.avatarCardName}
+            size={36}
+          />
+          {badgeEmoji && (
+            <span style={{
+              position: 'absolute', bottom: -2, right: -4,
+              fontSize: 12, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+            }}>
+              {badgeEmoji}
+            </span>
+          )}
+        </div>
+      ) : (
+        <span style={{ fontSize: 22, lineHeight: '36px', flexShrink: 0, width: 36, textAlign: 'center' }}>
+          {fallbackIcon}
+        </span>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {notif.title}
@@ -207,7 +279,7 @@ function NotifFeedItem({ notif, t, navigate }) {
           </div>
         )}
       </div>
-      <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0, marginTop: 2 }}>
+      <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0 }}>
         {relativeDate(notif.createdAt)}
       </span>
     </div>
@@ -227,9 +299,12 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([api.getGames(), api.getEvents(), api.getNotifications()])
-      .then(([g, e, n]) => { setGames(g); setEvents(e); setNotifications(n) })
-      .catch(() => {})
+    Promise.allSettled([api.getGames(), api.getEvents(), api.getNotifications()])
+      .then(([g, e, n]) => {
+        if (g.status === 'fulfilled') setGames(g.value)
+        if (e.status === 'fulfilled') setEvents(e.value)
+        if (n.status === 'fulfilled') setNotifications(n.value)
+      })
       .finally(() => setLoading(false))
   }, [])
 

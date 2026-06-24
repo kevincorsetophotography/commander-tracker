@@ -23,7 +23,38 @@ function WinBar({ pct, t }) {
 }
 
 
-function MetricCard({ label, value, t }) {
+const METRIC_ICONS = {
+  partite: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="4" width="8" height="14" rx="1.5" transform="rotate(-18 12 18)"/>
+      <rect x="8" y="4" width="8" height="14" rx="1.5" transform="rotate(18 12 18)"/>
+      <rect x="8" y="3" width="8" height="15" rx="1.5"/>
+    </svg>
+  ),
+  giocatori: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+      <path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  ),
+  mazzi: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="20" height="14" rx="2"/>
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+      <line x1="12" y1="12" x2="12" y2="17"/>
+      <line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/>
+    </svg>
+  ),
+  top: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+  ),
+}
+
+function MetricCard({ label, value, icon, t }) {
   const shown = useCountUp(value)
   return (
     <div style={{
@@ -35,7 +66,10 @@ function MetricCard({ label, value, t }) {
       position: 'relative', overflow: 'hidden',
     }}>
       <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />
-      <div style={{ fontSize: 11, color: t.textSub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}</div>
+        {icon && <span style={{ color: t.primary, opacity: 0.7 }}>{icon}</span>}
+      </div>
       <div style={{ fontSize: 26, fontWeight: 800, color: t.text, lineHeight: 1 }}>{shown}</div>
     </div>
   )
@@ -246,10 +280,10 @@ export default function GruppoPage() {
     <div>
       {/* Metriche globali */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
-        <MetricCard label="Partite totali"   value={totalGames}          t={t} />
-        <MetricCard label="Giocatori"        value={playerStats.length}  t={t} />
-        <MetricCard label="Mazzi"            value={deckStats.length}    t={t} />
-        <MetricCard label="Top player"       value={topPlayer?.username || '—'} t={t} />
+        <MetricCard label="Partite totali"   value={totalGames}          icon={METRIC_ICONS.partite}   t={t} />
+        <MetricCard label="Giocatori"        value={playerStats.length}  icon={METRIC_ICONS.giocatori} t={t} />
+        <MetricCard label="Mazzi"            value={deckStats.length}    icon={METRIC_ICONS.mazzi}     t={t} />
+        <MetricCard label="Top player"       value={topPlayer?.username || '—'} icon={METRIC_ICONS.top} t={t} />
       </div>
 
       {/* Tab bar */}

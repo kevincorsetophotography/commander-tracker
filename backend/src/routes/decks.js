@@ -13,7 +13,7 @@ const parseDeckId = (value) => {
 router.get('/', auth, async (req, res) => {
   const decks = await prisma.deck.findMany({
     where:   { user: { role: 'PLAYER' } },
-    include: { user: { select: { id: true, username: true } } },
+    include: { user: { select: { id: true, username: true, avatarCardName: true } } },
     orderBy: [{ userId: 'asc' }, { name: 'asc' }]
   });
   res.json(decks);

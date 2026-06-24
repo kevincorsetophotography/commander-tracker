@@ -306,6 +306,7 @@ router.post('/:id/comments', auth, async (req, res) => {
       title: `💬 ${req.user.username} ha commentato una tua partita`,
       body: body.length > 80 ? body.slice(0, 80) + '…' : body,
       link: `/partita/${gameId}`,
+      fromUserId: req.user.id,
     });
 
     res.json(comment);
@@ -360,6 +361,7 @@ router.post('/:id/reactions', auth, async (req, res) => {
         type: 'reaction',
         title: `${emoji} ${req.user.username} ha reagito a una tua partita`,
         link: `/partita/${gameId}`,
+        fromUserId: req.user.id,
       });
     }
 

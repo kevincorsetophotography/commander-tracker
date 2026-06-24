@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useFeedback } from '../hooks/useFeedback'
 import { fireConfetti } from '../lib/confetti'
+import PlayerAvatar from '../components/PlayerAvatar'
 
 const EMPTY_SLOT = { userId: '', deckId: '' }
 
@@ -40,7 +41,7 @@ export default function NewGamePage() {
 
   // Raggruppa mazzi per utente
   const byUser = allDecks.reduce((acc, d) => {
-    if (!acc[d.userId]) acc[d.userId] = { username: d.user.username, decks: [] }
+    if (!acc[d.userId]) acc[d.userId] = { username: d.user.username, avatarCardName: d.user.avatarCardName || null, decks: [] }
     acc[d.userId].decks.push(d)
     return acc
   }, {})
@@ -188,9 +189,17 @@ export default function NewGamePage() {
           const userDecks = slot.userId ? (byUser[slot.userId]?.decks || []) : []
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
-                {i + 1}
-              </div>
+              {slot.userId && byUser[slot.userId] ? (
+                <PlayerAvatar
+                  username={byUser[slot.userId].username}
+                  avatarCardName={byUser[slot.userId].avatarCardName}
+                  size={28}
+                />
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
+                  {i + 1}
+                </div>
+              )}
               <select style={{ ...sel, flex: 1, minWidth: 120, opacity: podCtx ? 0.7 : 1 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)} disabled={!!podCtx}>
                 <option value="">Giocatore...</option>
                 {(podCtx ? podCtx.players.map(p => ({ id: p.userId, username: p.username })) : users).map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
