@@ -70,6 +70,7 @@ export default function GiocaPage() {
 
       {/* Hero CTA — Registra Partita */}
       <button
+        className="ct-fade-up"
         onClick={() => navigate('/nuova-partita')}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -95,8 +96,9 @@ export default function GiocaPage() {
 
       {/* Judge Bot secondario */}
       <button
+        className="ct-fade-up"
         onClick={() => navigate('/giudice')}
-        style={{
+        style={{ animationDelay: '60ms',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', textAlign: 'left', marginBottom: 28,
           background: t.bgSurface, color: t.text,
@@ -119,7 +121,7 @@ export default function GiocaPage() {
 
       {/* Ultimi mazzi usati */}
       {recentDecks.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
+        <div className="ct-fade-up" style={{ marginBottom: 24, animationDelay: '120ms' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
             Ultimi mazzi usati
           </div>
@@ -156,7 +158,7 @@ export default function GiocaPage() {
 
       {/* Prossimo evento */}
       {nextEvent && (
-        <div style={{ marginTop: 24 }}>
+        <div className="ct-fade-up" style={{ marginTop: 24, animationDelay: '180ms' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
             Prossimo evento
           </div>
@@ -193,7 +195,7 @@ export default function GiocaPage() {
         const me = lastGame.players.find(p => p.user.id === user?.id)
         const iWon = !!me?.isWinner
         return (
-          <div style={{ marginTop: 24 }}>
+          <div className="ct-fade-up" style={{ marginTop: 24, animationDelay: '240ms' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
               Ultima partita
             </div>

@@ -165,7 +165,7 @@ export default function EventsPage() {
   const btnSmall = { padding: '5px 12px', background: t.bgMuted, color: t.textSub, border: `0.5px solid ${t.border}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
   const btnDanger = { padding: '5px 12px', background: t.dangerBg, color: t.danger, border: `0.5px solid ${t.dangerBorder}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
 
-  const renderEvent = (ev, faded = false) => {
+  const renderEvent = (ev, faded = false, idx = 0) => {
     const d = new Date(ev.startsAt)
     const cd = countdown(ev.startsAt)
     const going = ev.rsvps?.some(r => r.userId === user?.id)
@@ -175,8 +175,9 @@ export default function EventsPage() {
     const time = ev.allDay ? null : d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 
     return (
-      <div key={ev.id} id={`evento-${ev.id}`} style={{
+      <div key={ev.id} id={`evento-${ev.id}`} className="ct-fade-up" style={{
         ...glass, borderRadius: 16, padding: '1rem 1.1rem', marginBottom: 12, opacity: faded ? 0.62 : 1,
+        animationDelay: `${Math.min(idx, 5) * 60}ms`,
         outline: highlightId === ev.id ? `2px solid ${t.primary}` : 'none',
         boxShadow: highlightId === ev.id ? `0 0 0 4px ${t.primaryBg}` : (glass.boxShadow || 'none'),
         transition: 'outline 0.3s, box-shadow 0.3s',
@@ -316,13 +317,13 @@ export default function EventsPage() {
           {upcoming.length > 0 && (
             <>
               <div style={{ fontSize: 13, fontWeight: 700, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '4px 0 10px' }}>Prossimi</div>
-              {upcoming.map(ev => renderEvent(ev, false))}
+              {upcoming.map((ev, i) => renderEvent(ev, false, i))}
             </>
           )}
           {past.length > 0 && (
             <>
               <div style={{ fontSize: 13, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '18px 0 10px' }}>Passati</div>
-              {past.map(ev => renderEvent(ev, true))}
+              {past.map((ev, i) => renderEvent(ev, true, i))}
             </>
           )}
         </>

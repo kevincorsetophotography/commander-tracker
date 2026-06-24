@@ -29,7 +29,7 @@ function ordinal(n) {
 function WinBar({ pct, t }) {
   return (
     <div style={{ height: 5, borderRadius: 3, background: t.bgMuted, overflow: 'hidden', marginTop: 8 }}>
-      <div style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3, transition: 'width 0.6s ease' }} />
+      <div className="ct-bar-fill" style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3 }} />
     </div>
   )
 }

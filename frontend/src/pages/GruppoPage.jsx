@@ -17,7 +17,7 @@ import PlayerAvatar from '../components/PlayerAvatar'
 function WinBar({ pct, t }) {
   return (
     <div style={{ height: 6, borderRadius: 3, background: t.bgMuted, overflow: 'hidden', marginTop: 6 }}>
-      <div style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3, transition: 'width 0.4s' }} />
+      <div className="ct-bar-fill" style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3 }} />
     </div>
   )
 }
@@ -310,6 +310,7 @@ export default function GruppoPage() {
         })}
       </div>
 
+      <div key={tab} className="ct-fade-up">
       {/* ══════════ TAB: STAGIONE ══════════ */}
       {tab === 'stagione' && (
         <div>
@@ -457,7 +458,7 @@ export default function GruppoPage() {
             <EmptyState icon="👥" title="Nessun giocatore" message="Nessuna partita registrata ancora." />
           ) : (
             playerStats.map((p, i) => (
-              <div key={p.id} className="ct-lift" onClick={() => navigate(`/giocatore/${p.id}`)} style={{ ...card, cursor: 'pointer' }}>
+              <div key={p.id} className="ct-lift ct-fade-up" onClick={() => navigate(`/giocatore/${p.id}`)} style={{ ...card, cursor: 'pointer', animationDelay: `${Math.min(i, 7) * 45}ms` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 ? t.primary : t.textMuted, minWidth: 22, textAlign: 'right' }}>{i + 1}°</span>
                   <PlayerAvatar username={p.username} avatarCardName={p.avatarCardName} size={36} />
@@ -484,7 +485,7 @@ export default function GruppoPage() {
             <EmptyState icon="🃏" title="Nessun mazzo" message="Nessun mazzo registrato ancora." />
           ) : (
             [...deckStats].sort((a, b) => b.winRate - a.winRate || b.wins - a.wins).map((d, i) => (
-              <div key={d.id} className="ct-lift" onClick={() => navigate(`/mazzo/${d.id}`)} style={{ ...card, cursor: 'pointer' }}>
+              <div key={d.id} className="ct-lift ct-fade-up" onClick={() => navigate(`/mazzo/${d.id}`)} style={{ ...card, cursor: 'pointer', animationDelay: `${Math.min(i, 7) * 45}ms` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <DeckThumb commander={d.commander} w={38} round preview={false} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -600,6 +601,7 @@ export default function GruppoPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

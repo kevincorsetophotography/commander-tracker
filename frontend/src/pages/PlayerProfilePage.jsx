@@ -27,7 +27,7 @@ const artUrl = (name) =>
 function WinBar({ pct, t }) {
   return (
     <div style={{ height: 6, borderRadius: 3, background: t.bgMuted, overflow: 'hidden', marginTop: 6 }}>
-      <div style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3, transition: 'width 0.4s' }} />
+      <div className="ct-bar-fill" style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3 }} />
     </div>
   )
 }
@@ -535,7 +535,7 @@ export default function PlayerProfilePage() {
           </>
         )}
         {achOpen && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginTop: 12 }}>
+          <div className="ct-section-open" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginTop: 12 }}>
             {achievements.map(achTile)}
           </div>
         )}
@@ -748,7 +748,7 @@ export default function PlayerProfilePage() {
             </span>
           </div>
           {showRivalita && h2h && (
-            <div style={{ marginTop: 14 }}>
+            <div className="ct-section-open" style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, color: t.textSub }}>vs</span>
                 <select
@@ -804,7 +804,7 @@ export default function PlayerProfilePage() {
             </span>
           </div>
           {showStats && (
-            <div style={{ marginTop: 14 }}>
+            <div className="ct-section-open" style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
                 {stat('Vittorie', wins, `${total - wins} sconfitte`)}
                 {stat('Nemesi', nemesis ? nemesis[0] : '—', nemesis ? `ti ha battuto ${nemesis[1]} volte` : 'nessuna')}

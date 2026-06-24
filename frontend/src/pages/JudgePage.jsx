@@ -270,8 +270,10 @@ export default function JudgePage() {
             Domande recenti del gruppo
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {history.map(item => (
-              <HistoryItem key={item.id} item={item} t={t} />
+            {history.map((item, i) => (
+              <div key={item.id} className="ct-fade-up" style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}>
+                <HistoryItem item={item} t={t} />
+              </div>
             ))}
           </div>
         </div>

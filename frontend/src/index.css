@@ -142,7 +142,23 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(130,140,190,0.50); background-clip: content-box; }
 
+/* Riempimento barra win rate */
+@keyframes ct-bar-fill {
+  from { transform: scaleX(0); }
+}
+.ct-bar-fill {
+  transform-origin: left center;
+  animation: ct-bar-fill 0.5s ease both;
+}
+
+/* Apertura sezione collassabile */
+@keyframes ct-section-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ct-section-open { animation: ct-section-open 0.25s ease both; }
+
 /* Riduce motion per chi lo preferisce */
 @media (prefers-reduced-motion: reduce) {
-  .ct-aurora::before, .ct-aurora::after, .ct-fade-up { animation: none; }
+  .ct-aurora::before, .ct-aurora::after, .ct-fade-up, .ct-bar-fill, .ct-section-open { animation: none; }
 }
