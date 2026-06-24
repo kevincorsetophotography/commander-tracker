@@ -637,6 +637,7 @@ export default function GruppoPage() {
         seasonKey={seasonKey}
         seasons={seasons}
         games={games}
+        playerStats={playerStats}
         onClose={() => setShowRecap(false)}
       />
     )}
