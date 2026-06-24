@@ -102,7 +102,7 @@ function Brand({ logoSize = 42, titleSize = 14, compact = false }) {
 }
 
 // Avatar + username, riusato in alto a destra.
-function UserChip({ titleSize = 13, avatar = 26 }) {
+function UserChip({ titleSize = 13, avatar = 26, hideLabel = false }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { t } = useTheme()
@@ -113,9 +113,11 @@ function UserChip({ titleSize = 13, avatar = 26 }) {
       style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, cursor: 'pointer' }}
     >
       <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} size={avatar} highlight />
-      <span style={{ fontSize: titleSize, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {user?.username}
-      </span>
+      {!hideLabel && (
+        <span style={{ fontSize: titleSize, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {user?.username}
+        </span>
+      )}
     </span>
   )
 }
@@ -221,28 +223,23 @@ function Layout() {
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {isMobile ? (
-          /* ── HEADER MOBILE (brand grande) ── */
-          <div style={{ ...navBar, padding: '0 0.5rem', paddingTop: 'env(safe-area-inset-top)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '8px 0' }}>
-              {/* su schermi molto stretti è il brand a cedere, non username/azioni */}
+          /* ── HEADER MOBILE (singola riga) ── */
+          <div style={{ ...navBar, padding: '0 0.75rem', paddingTop: 'env(safe-area-inset-top)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0' }}>
               <div style={{ minWidth: 0, overflow: 'hidden', flexShrink: 1 }}>
-                <Brand logoSize={34} titleSize={13} />
+                <Brand logoSize={30} titleSize={12} />
               </div>
-              {/* A destra: nome utente sopra, azioni sotto */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                <UserChip titleSize={12.5} avatar={22} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <NotificationBell />
-                  {user?.role === 'ADMIN' && (
-                    <NavLink to="/admin" style={({ isActive }) => ({
-                      padding: '6px 10px', borderRadius: 10, textDecoration: 'none', fontSize: 12, fontWeight: 600,
-                      background: isActive ? t.primary : t.bgSurfaceAlt, color: isActive ? t.primaryFg : t.textSub,
-                      border: `1px solid ${t.border}`,
-                    })}>Admin</NavLink>
-                  )}
-                  <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
-                  <IconButton onClick={logout} title="Esci">Esci</IconButton>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <NotificationBell />
+                {user?.role === 'ADMIN' && (
+                  <NavLink to="/admin" style={({ isActive }) => ({
+                    padding: '6px 10px', borderRadius: 10, textDecoration: 'none', fontSize: 12, fontWeight: 600,
+                    background: isActive ? t.primary : t.bgSurfaceAlt, color: isActive ? t.primaryFg : t.textSub,
+                    border: `1px solid ${t.border}`,
+                  })}>Admin</NavLink>
+                )}
+                <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
+                <UserChip avatar={26} hideLabel />
               </div>
             </div>
           </div>

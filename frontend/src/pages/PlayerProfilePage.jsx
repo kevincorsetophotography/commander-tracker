@@ -47,7 +47,7 @@ export default function PlayerProfilePage() {
   const pid = Number.parseInt(id, 10)
   const navigate = useNavigate()
   const { t } = useTheme()
-  const { user, updateUser } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const isMobile = useIsMobile()
   const { toast, confirm } = useFeedback()
   const isOwnProfile = user?.id === pid
@@ -876,6 +876,22 @@ export default function PlayerProfilePage() {
             </div>
           )
         })
+      )}
+
+      {/* ── LOGOUT ── */}
+      {isOwnProfile && (
+        <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${t.border}`, textAlign: 'center' }}>
+          <button
+            onClick={logout}
+            style={{
+              padding: '10px 28px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted,
+              transition: 'all 0.18s ease',
+            }}
+          >
+            Esci dall'account
+          </button>
+        </div>
       )}
 
       {/* ── AVATAR PICKER MODAL ── */}
