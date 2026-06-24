@@ -92,7 +92,22 @@ function TopBar({ n }) {
 
 // ── SLIDE 1 ─────────────────────────────────────────────────────────────────────
 // Budget altezza: TopBar 42px | GLine+margin 11px | Title 64px | Champion(flex) | Podio 64px | Stats 54px | Footer 27px = 262px fissi
-function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers, deckCount }) {
+function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers, deckCount, topDecks }) {
+  function DeckChip({ playerId, col, size = 'sm' }) {
+    const deck = topDecks?.[playerId]
+    const art  = imgUrls?.[`bd_${playerId}`]
+    const w = size === 'lg' ? 28 : 22, h = 16
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+        {art
+          ? <img src={art} alt="" style={{ width: w, height: h, borderRadius: 3, objectFit: 'cover', objectPosition: 'center 20%', flexShrink: 0, border: `1px solid ${col}50` }} />
+          : <div style={{ width: w, height: h, borderRadius: 3, background: `${col}22`, flexShrink: 0 }} />}
+        <div style={{ fontSize: size === 'lg' ? 8.5 : 8, fontWeight: 700, color: col, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          {deck?.name || '—'}
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={{
       width: W, height: H, overflow: 'hidden',
@@ -104,51 +119,58 @@ function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers,
       <div style={{ margin: '0 16px 10px' }}><GLine op={0.5} /></div>
 
       {/* Title block */}
-      <div style={{ textAlign: 'center', padding: '0 16px 9px' }}>
+      <div style={{ textAlign: 'center', padding: '0 16px 7px' }}>
         <div style={{ fontSize: 9, fontWeight: 800, color: C.green, letterSpacing: '0.32em', textTransform: 'uppercase', marginBottom: 5 }}>RECAP STAGIONE</div>
         <div style={{ fontSize: 24, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</div>
-        <div style={{ fontSize: 8.5, color: C.sub, marginTop: 7, fontStyle: 'italic' }}>La stagione è appena finita. E questa è la nostra leggenda.</div>
+        <div style={{ fontSize: 8.5, color: C.sub, marginTop: 5, fontStyle: 'italic' }}>La stagione è appena finita. E questa è la nostra leggenda.</div>
       </div>
 
-      {/* Champion card — flex: 1, occupa lo spazio rimasto */}
+      {/* Champion card — flex: 1 */}
       <div style={{ padding: '0 14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ fontSize: 26, textAlign: 'center', lineHeight: 1, marginBottom: -11, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 10px rgba(245,197,66,0.95))' }}>👑</div>
         <div style={{
-          borderRadius: 16, padding: '14px 16px 15px',
+          borderRadius: 16, padding: '12px 16px 12px',
           background: 'linear-gradient(150deg, rgba(52,240,143,0.08) 0%, rgba(52,240,143,0.025) 50%, rgba(139,92,246,0.07) 100%)',
           border: `2px solid ${C.green}`,
           boxShadow: C.glowG,
         }}>
-          {/* "CAMPIONE STAGIONALE" — etichetta ben leggibile */}
-          <div style={{ fontSize: 8.5, fontWeight: 800, color: C.green, letterSpacing: '0.28em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 11 }}>CAMPIONE STAGIONALE</div>
+          <div style={{ fontSize: 8.5, fontWeight: 800, color: C.green, letterSpacing: '0.28em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 9 }}>CAMPIONE STAGIONALE</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Avatar src={imgUrls[`p_${champion?.id}`]} name={champion?.username || '?'} size={60} ring={C.green} />
+            <Avatar src={imgUrls[`p_${champion?.id}`]} name={champion?.username || '?'} size={50} ring={C.green} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 27, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {champion?.username || '—'}
               </div>
-              {/* stat sotto il nome — più leggibili */}
-              <div style={{ fontSize: 10, color: C.sub, marginTop: 5 }}>
+              <div style={{ fontSize: 10, color: C.sub, marginTop: 4 }}>
                 {champion?.wins || 0} vittorie · {champion?.games ? Math.round(champion.wins / champion.games * 100) : 0}% win rate
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 52, fontWeight: 900, color: C.green, lineHeight: 1, textShadow: '0 0 24px rgba(52,240,143,0.75)' }}>{champion?.points ?? 0}</div>
-              {/* "PUNTI" — ben leggibile */}
+              <div style={{ fontSize: 42, fontWeight: 900, color: C.green, lineHeight: 1, textShadow: '0 0 24px rgba(52,240,143,0.75)' }}>{champion?.points ?? 0}</div>
               <div style={{ fontSize: 9, color: C.sub, textTransform: 'uppercase', letterSpacing: '0.16em', marginTop: 3 }}>PUNTI</div>
             </div>
+          </div>
+          {/* Best deck del campione */}
+          <div style={{ marginTop: 7 }}>
+            <DeckChip playerId={champion?.id} col={C.green} size="lg" />
           </div>
         </div>
       </div>
 
       {/* Podio */}
-      <div style={{ display: 'flex', gap: 8, padding: '8px 14px 6px' }}>
+      <div style={{ display: 'flex', gap: 8, padding: '7px 14px 5px' }}>
         {[{ p: second, col: C.silver, n: '2°' }, { p: third, col: C.bronze, n: '3°' }].map(({ p, col, n }) => (
-          <div key={n} style={{ flex: 1, borderRadius: 12, padding: '10px 12px', background: C.card, borderTop: `2px solid ${col}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontSize: 21, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 24 }}>{n}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p?.username || '—'}</div>
-              <div style={{ fontSize: 9.5, color: C.sub, marginTop: 2 }}>{p?.points ?? 0} pt · {p?.wins ?? 0} vitt.</div>
+          <div key={n} style={{ flex: 1, borderRadius: 12, padding: '9px 11px 8px', background: C.card, borderTop: `2px solid ${col}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 21, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 24 }}>{n}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p?.username || '—'}</div>
+                <div style={{ fontSize: 9.5, color: C.sub, marginTop: 2 }}>{p?.points ?? 0} pt · {p?.wins ?? 0} vitt.</div>
+              </div>
+            </div>
+            {/* Best deck del giocatore */}
+            <div style={{ marginTop: 7 }}>
+              <DeckChip playerId={p?.id} col={col} size="sm" />
             </div>
           </div>
         ))}
@@ -339,10 +361,33 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
     return Math.round(sg.reduce((s, g) => s + g.players.length, 0) / sg.length / playerStats.length * 100)
   }, [sg, playerStats])
 
+  const topDecks = useMemo(() => {
+    if (!sg.length) return {}
+    const result = {}
+    for (const player of top3) {
+      if (!player) continue
+      const dk = {}
+      for (const g of sg) {
+        for (const gp of g.players) {
+          if (gp.user.id !== player.id) continue
+          const d = gp.deck
+          if (!dk[d.id]) dk[d.id] = { id: d.id, name: d.name, commander: d.commander, wins: 0, games: 0 }
+          dk[d.id].games++
+          if (gp.isWinner) dk[d.id].wins++
+        }
+      }
+      result[player.id] = Object.values(dk).sort((a, b) => b.wins - a.wins || b.games - a.games)[0] || null
+    }
+    return result
+  }, [sg, top3])
+
   useEffect(() => {
     setLoading(true); setImgUrls({}); setQrDataUrl(null)
     const toLoad = {}
-    for (const s of top3) { const ps = statsMap[s.id]; if (ps?.avatarCardName) toLoad[`p_${s.id}`] = ART(ps.avatarCardName) }
+    for (const s of top3) {
+      const ps = statsMap[s.id]; if (ps?.avatarCardName) toLoad[`p_${s.id}`] = ART(ps.avatarCardName)
+      const bd = topDecks[s.id]; if (bd?.commander) toLoad[`bd_${s.id}`] = ART(bd.commander)
+    }
     if (spotlight?.commander) toLoad.deck = ART(spotlight.commander)
     Promise.allSettled([
       Promise.all(Object.entries(toLoad).map(([k, url]) => fetchDU(url).then(du => du ? [k, du] : null).catch(() => null)))
@@ -365,7 +410,7 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
   }
 
   const busy = dlState !== null || loading
-  const s1 = { champion: top3[0], second: top3[1], third: top3[2], label: seasonLabel, imgUrls, total: sg.length, uniquePlayers, deckCount }
+  const s1 = { champion: top3[0], second: top3[1], third: top3[2], label: seasonLabel, imgUrls, total: sg.length, uniquePlayers, deckCount, topDecks }
   const s2 = { total: sg.length, uniquePlayers, deckCount, avgParticipation, topStreak, totalKills }
   const s3 = { mostWins, mostGames, topKiller, bestWinRate, topStreak, mostConsistent, spotlight, imgUrls, qrDataUrl }
   const info = [
