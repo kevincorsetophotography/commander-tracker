@@ -95,6 +95,9 @@ router.patch('/:id', auth, async (req, res) => {
 
   // Valida la decklist se viene fornita una lista non vuota
   if (typeof decklist === 'string' && decklist.trim()) {
+    if (decklist.length > DECK_MAX_CHARS) {
+      return res.status(400).json({ error: `Decklist troppo lunga (max ${DECK_MAX_CHARS} caratteri)` });
+    }
     const result = await validateDecklist(decklist);
     if (!result.valid) {
       return res.status(400).json({ error: result.errors.join(' · ') });
@@ -123,13 +126,20 @@ router.patch('/:id', auth, async (req, res) => {
   }
 });
 
+const DECK_MAX_CHARS = 20_000;
+
 // POST /api/decks/import — importa una lista da Archidekt o Moxfield via URL
 router.post('/import', auth, async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL richiesto' });
 
+  // Prevenzione SSRF: verifica l'hostname esatto invece di testare la stringa grezza
+  let parsed;
+  try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'URL non valido' }); }
+  const host = parsed.hostname.toLowerCase();
+
   try {
-    if (/archidekt\.com/i.test(url)) {
+    if (host === 'archidekt.com' || host.endsWith('.archidekt.com')) {
       const m = url.match(/decks\/(\d+)/);
       if (!m) return res.status(400).json({ error: 'URL Archidekt non valido' });
       const r = await fetch(`https://archidekt.com/api/decks/${m[1]}/`, {
@@ -151,7 +161,7 @@ router.post('/import', auth, async (req, res) => {
       return res.json({ commander, decklist, name: data.name || null });
     }
 
-    if (/moxfield\.com/i.test(url)) {
+    if (host === 'moxfield.com' || host.endsWith('.moxfield.com')) {
       const m = url.match(/decks\/([A-Za-z0-9_-]+)/);
       if (!m) return res.status(400).json({ error: 'URL Moxfield non valido' });
       const r = await fetch(`https://api.moxfield.com/v2/decks/all/${m[1]}`, {

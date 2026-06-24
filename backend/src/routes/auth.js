@@ -23,6 +23,10 @@ router.post('/register', async (req, res) => {
   const { username, password, inviteCode } = req.body;
   if (!username || !password)
     return res.status(400).json({ error: 'username e password richiesti' });
+  if (typeof username !== 'string' || username.length > 32)
+    return res.status(400).json({ error: 'Username troppo lungo (max 32 caratteri)' });
+  if (typeof password !== 'string' || password.length > 128)
+    return res.status(400).json({ error: 'Password troppo lunga (max 128 caratteri)' });
 
   const expected = process.env.INVITE_CODE;
   if (!expected) {

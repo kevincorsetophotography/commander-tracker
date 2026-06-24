@@ -38,6 +38,15 @@ const authLimiter = rateLimit({
   message: { error: 'Troppi tentativi, riprova tra qualche minuto.' },
 });
 
+// Limite generale sulle API autenticate (anti-scraping, anti-flood)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Troppo traffico, rallenta un po\'.' },
+});
+
 
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -56,14 +65,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.use('/api/auth',  authLimiter, authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/decks', deckRoutes);
-app.use('/api/games', gameRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/judge', judgeRoutes);
+app.use('/api/auth',          authLimiter, authRoutes);
+app.use('/api/admin',         apiLimiter, adminRoutes);
+app.use('/api/decks',         apiLimiter, deckRoutes);
+app.use('/api/games',         apiLimiter, gameRoutes);
+app.use('/api/stats',         apiLimiter, statsRoutes);
+app.use('/api/events',        apiLimiter, eventRoutes);
+app.use('/api/notifications', apiLimiter, notificationRoutes);
+app.use('/api/judge',         judgeRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
