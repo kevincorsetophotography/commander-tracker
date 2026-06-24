@@ -161,11 +161,12 @@ function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers,
       <div style={{ display: 'flex', gap: 8, padding: '7px 14px 5px' }}>
         {[{ p: second, col: C.silver, n: '2°' }, { p: third, col: C.bronze, n: '3°' }].map(({ p, col, n }) => (
           <div key={n} style={{ flex: 1, borderRadius: 12, padding: '9px 11px 8px', background: C.card, borderTop: `2px solid ${col}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ fontSize: 21, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 24 }}>{n}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ fontSize: 19, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 20, flexShrink: 0 }}>{n}</div>
+              <Avatar src={imgUrls[`p_${p?.id}`]} name={p?.username || '?'} size={24} ring={col} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p?.username || '—'}</div>
-                <div style={{ fontSize: 9.5, color: C.sub, marginTop: 2 }}>{p?.points ?? 0} pt · {p?.wins ?? 0} vitt.</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p?.username || '—'}</div>
+                <div style={{ fontSize: 9, color: C.sub, marginTop: 2 }}>{p?.points ?? 0} pt · {p?.wins ?? 0} vitt.</div>
               </div>
             </div>
             {/* Best deck del giocatore */}
@@ -385,8 +386,12 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
     setLoading(true); setImgUrls({}); setQrDataUrl(null)
     const toLoad = {}
     for (const s of top3) {
-      const ps = statsMap[s.id]; if (ps?.avatarCardName) toLoad[`p_${s.id}`] = ART(ps.avatarCardName)
-      const bd = topDecks[s.id]; if (bd?.commander) toLoad[`bd_${s.id}`] = ART(bd.commander)
+      const ps = statsMap[s.id]
+      const bd = topDecks[s.id]
+      // Fallback: se il giocatore non ha un avatarCardName, usa il commander del suo mazzo migliore
+      const avatarCard = ps?.avatarCardName || bd?.commander
+      if (avatarCard) toLoad[`p_${s.id}`] = ART(avatarCard)
+      if (bd?.commander) toLoad[`bd_${s.id}`] = ART(bd.commander)
     }
     if (spotlight?.commander) toLoad.deck = ART(spotlight.commander)
     Promise.allSettled([
