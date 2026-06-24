@@ -19,12 +19,14 @@ export default function GiocaPage() {
   const navigate = useNavigate()
   const [games, setGames] = useState([])
   const [decks, setDecks] = useState([])
+  const [events, setEvents] = useState([])
 
   useEffect(() => {
-    Promise.allSettled([api.getGames(), api.getDecks()])
-      .then(([g, d]) => {
+    Promise.allSettled([api.getGames(), api.getDecks(), api.getEvents()])
+      .then(([g, d, e]) => {
         if (g.status === 'fulfilled') setGames(g.value)
         if (d.status === 'fulfilled') setDecks(d.value)
+        if (e.status === 'fulfilled') setEvents(e.value)
       })
   }, [])
 
@@ -48,6 +50,20 @@ export default function GiocaPage() {
   })()
 
   const lastGame = games.find(g => g.players.some(p => p.user.id === user?.id))
+
+  const nextEvent = (() => {
+    const now = Date.now()
+    return events
+      .filter(e => new Date(e.startsAt).getTime() + 5 * 3600000 > now)
+      .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))[0] || null
+  })()
+
+  const eventCountdown = (startsAt) => {
+    const diff = Math.ceil((new Date(startsAt) - Date.now()) / 86400000)
+    if (diff <= 0) return 'Oggi'
+    if (diff === 1) return 'Domani'
+    return `tra ${diff} giorni`
+  }
 
   return (
     <div style={{ maxWidth: 520, margin: '0 auto' }}>
@@ -138,13 +154,46 @@ export default function GiocaPage() {
         </div>
       )}
 
+      {/* Prossimo evento */}
+      {nextEvent && (
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            Prossimo evento
+          </div>
+          <button
+            onClick={() => navigate(`/evento/${nextEvent.id}`)}
+            style={{
+              width: '100%', textAlign: 'left', padding: '0.9rem 1rem',
+              background: t.primaryBg, border: `1px solid ${t.primaryBorder}`,
+              borderRadius: 14, cursor: 'pointer', boxShadow: t.shadow,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {nextEvent.title}
+              </div>
+              <div style={{ fontSize: 11, color: t.textSub, marginTop: 3 }}>
+                {new Date(nextEvent.startsAt).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })}
+                {nextEvent.rsvps?.length > 0 ? ` · ${nextEvent.rsvps.length} iscritti` : ''}
+              </div>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: t.primary, flexShrink: 0,
+              background: t.primaryBg, border: `1px solid ${t.primaryBorder}`,
+              borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+              {eventCountdown(nextEvent.startsAt)}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Ultima partita */}
       {lastGame && (() => {
         const winner = lastGame.players.find(p => p.isWinner)
         const me = lastGame.players.find(p => p.user.id === user?.id)
         const iWon = !!me?.isWinner
         return (
-          <div>
+          <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
               Ultima partita
             </div>
