@@ -7,12 +7,12 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 const PLAYERS = [
-  { username: 'Ramuh',   commander: 'The Ur-Dragon',            colors: 'WUBRG', bracket: 3 },
-  { username: 'Shiva',   commander: "Atraxa, Praetors' Voice",  colors: 'WUBG',  bracket: 4 },
-  { username: 'Ifrit',   commander: "Gishath, Sun's Avatar",    colors: 'RGW',   bracket: 2 },
-  { username: 'Bahamut', commander: 'Yawgmoth, Thran Physician',colors: 'B',     bracket: 4 },
-  { username: 'Leviath', commander: 'Lathril, Blade of the Elves', colors: 'BG', bracket: 2 },
-  { username: 'Titan',   commander: 'Krenko, Mob Boss',         colors: 'R',     bracket: 1 },
+  { username: 'Ramuh',   commander: 'The Ur-Dragon',            colors: 'WUBRG', bracket: 3, avatar: 'Ugin, the Spirit Dragon' },
+  { username: 'Shiva',   commander: "Atraxa, Praetors' Voice",  colors: 'WUBG',  bracket: 4, avatar: 'Jace, the Mind Sculptor' },
+  { username: 'Ifrit',   commander: "Gishath, Sun's Avatar",    colors: 'RGW',   bracket: 2, avatar: 'Chandra, Torch of Defiance' },
+  { username: 'Bahamut', commander: 'Yawgmoth, Thran Physician',colors: 'B',     bracket: 4, avatar: 'Liliana of the Veil' },
+  { username: 'Leviath', commander: 'Lathril, Blade of the Elves', colors: 'BG', bracket: 2, avatar: 'Nissa, Who Shakes the World' },
+  { username: 'Titan',   commander: 'Krenko, Mob Boss',         colors: 'R',     bracket: 1, avatar: 'Koth of the Hammer' },
 ]
 
 const NOTES = [
@@ -41,7 +41,7 @@ async function main() {
 
   const players = []
   for (const p of PLAYERS) {
-    const u = await prisma.user.create({ data: { username: p.username, password: hash, role: 'PLAYER', avatarCardName: p.commander } })
+    const u = await prisma.user.create({ data: { username: p.username, password: hash, role: 'PLAYER', avatarCardName: p.avatar } })
     const d = await prisma.deck.create({ data: { name: p.commander.split(',')[0], commander: p.commander, colors: p.colors, bracket: p.bracket, userId: u.id } })
     players.push({ user: u, deck: d })
   }
