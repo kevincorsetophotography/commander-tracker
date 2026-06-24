@@ -71,18 +71,18 @@ function GLine({ col = '#34F08F', op = 0.45 }) {
   return <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${col}${h}, transparent)` }} />
 }
 
-// slide top bar: counter + logo
+// TopBar: ~40px totali (padding 9+7 + logo 24px)
 function TopBar({ n }) {
   return (
-    <div style={{ padding: '10px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 10, fontWeight: 800, color: C.green, letterSpacing: '0.04em' }}>
+    <div style={{ padding: '9px 16px 7px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color: C.green, letterSpacing: '0.04em' }}>
         {String(n).padStart(2, '0')}<span style={{ color: C.muted, fontWeight: 600 }}>/03</span>
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <img src="/logo.png" alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <img src="/logo.png" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
         <div>
-          <div style={{ fontSize: 6.5, fontWeight: 900, color: C.green, letterSpacing: '0.2em', lineHeight: 1 }}>COMMANDERONE</div>
-          <div style={{ fontSize: 5, color: C.muted, letterSpacing: '0.16em', marginTop: 1 }}>VILLASTELLONE</div>
+          <div style={{ fontSize: 8, fontWeight: 900, color: C.green, letterSpacing: '0.18em', lineHeight: 1 }}>COMMANDERONE</div>
+          <div style={{ fontSize: 6.5, color: C.muted, letterSpacing: '0.14em', marginTop: 1.5 }}>VILLASTELLONE</div>
         </div>
       </div>
       <div style={{ width: 44 }} />
@@ -90,7 +90,8 @@ function TopBar({ n }) {
   )
 }
 
-// ── SLIDE 1 ────────────────────────────────────────────────────────────────────
+// ── SLIDE 1 ─────────────────────────────────────────────────────────────────────
+// Budget altezza: TopBar 42px | GLine+margin 11px | Title 64px | Champion(flex) | Podio 64px | Stats 54px | Footer 27px = 262px fissi
 function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers, deckCount }) {
   return (
     <div style={{
@@ -102,86 +103,90 @@ function Slide1({ champion, second, third, label, imgUrls, total, uniquePlayers,
       <TopBar n={1} />
       <div style={{ margin: '0 16px 10px' }}><GLine op={0.5} /></div>
 
-      {/* Season title block */}
-      <div style={{ textAlign: 'center', padding: '0 16px 12px' }}>
-        <div style={{ fontSize: 8.5, fontWeight: 800, color: C.green, letterSpacing: '0.32em', textTransform: 'uppercase', marginBottom: 5 }}>RECAP STAGIONE</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</div>
-        <div style={{ fontSize: 7.5, color: C.sub, marginTop: 6, fontStyle: 'italic' }}>La stagione è appena finita. E questa è la nostra leggenda.</div>
+      {/* Title block ~64px */}
+      <div style={{ textAlign: 'center', padding: '0 16px 14px' }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: C.green, letterSpacing: '0.32em', textTransform: 'uppercase', marginBottom: 5 }}>RECAP STAGIONE</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>{label}</div>
+        <div style={{ fontSize: 8.5, color: C.sub, marginTop: 7, fontStyle: 'italic' }}>La stagione è appena finita. E questa è la nostra leggenda.</div>
       </div>
 
-      {/* Champion card — hero element */}
+      {/* Champion card — flex: 1, occupa lo spazio rimasto */}
       <div style={{ padding: '0 14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ fontSize: 24, textAlign: 'center', lineHeight: 1, marginBottom: -10, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 10px rgba(245,197,66,0.95))' }}>👑</div>
+        <div style={{ fontSize: 26, textAlign: 'center', lineHeight: 1, marginBottom: -11, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 10px rgba(245,197,66,0.95))' }}>👑</div>
         <div style={{
-          borderRadius: 16, padding: '14px 16px 16px',
+          borderRadius: 16, padding: '14px 16px 15px',
           background: 'linear-gradient(150deg, rgba(52,240,143,0.08) 0%, rgba(52,240,143,0.025) 50%, rgba(139,92,246,0.07) 100%)',
           border: `2px solid ${C.green}`,
           boxShadow: C.glowG,
         }}>
-          <div style={{ fontSize: 7, fontWeight: 800, color: C.green, letterSpacing: '0.3em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 12 }}>CAMPIONE STAGIONALE</div>
+          {/* "CAMPIONE STAGIONALE" — etichetta ben leggibile */}
+          <div style={{ fontSize: 8.5, fontWeight: 800, color: C.green, letterSpacing: '0.28em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 11 }}>CAMPIONE STAGIONALE</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Avatar src={imgUrls[`p_${champion?.id}`]} name={champion?.username || '?'} size={60} ring={C.green} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 26, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: 27, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {champion?.username || '—'}
               </div>
-              <div style={{ fontSize: 9, color: C.sub, marginTop: 5, letterSpacing: '0.02em' }}>
+              {/* stat sotto il nome — più leggibili */}
+              <div style={{ fontSize: 10, color: C.sub, marginTop: 5 }}>
                 {champion?.wins || 0} vittorie · {champion?.games ? Math.round(champion.wins / champion.games * 100) : 0}% win rate
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{ fontSize: 52, fontWeight: 900, color: C.green, lineHeight: 1, textShadow: '0 0 24px rgba(52,240,143,0.75)' }}>{champion?.points ?? 0}</div>
-              <div style={{ fontSize: 7, color: C.sub, textTransform: 'uppercase', letterSpacing: '0.16em', marginTop: 2 }}>PUNTI</div>
+              {/* "PUNTI" — ben leggibile */}
+              <div style={{ fontSize: 9, color: C.sub, textTransform: 'uppercase', letterSpacing: '0.16em', marginTop: 3 }}>PUNTI</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Podio */}
+      {/* Podio ~64px */}
       <div style={{ display: 'flex', gap: 8, padding: '10px 14px 8px' }}>
         {[{ p: second, col: C.silver, n: '2°' }, { p: third, col: C.bronze, n: '3°' }].map(({ p, col, n }) => (
           <div key={n} style={{ flex: 1, borderRadius: 12, padding: '10px 12px', background: C.card, borderTop: `2px solid ${col}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 22 }}>{n}</div>
+            <div style={{ fontSize: 21, fontWeight: 900, color: col, lineHeight: 1, textShadow: `0 0 12px ${col}90`, minWidth: 24 }}>{n}</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p?.username || '—'}</div>
-              <div style={{ fontSize: 8.5, color: C.sub, marginTop: 2 }}>{p?.points ?? 0} pt · {p?.wins ?? 0} vitt.</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p?.username || '—'}</div>
+              <div style={{ fontSize: 9.5, color: C.sub, marginTop: 2 }}>{p?.points ?? 0} pt · {p?.wins ?? 0} vitt.</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Stats footer */}
+      {/* Stats row ~54px */}
       <div style={{ padding: '0 16px 8px' }}>
         <GLine col={C.muted} op={0.35} />
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0 8px' }}>
           {[{ icon: '⚔️', v: total, l: 'PARTITE' }, { icon: '👥', v: uniquePlayers, l: 'GIOCATORI' }, { icon: '🃏', v: deckCount, l: 'DECK' }].map(({ icon, v, l }) => (
             <div key={l} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 4 }}>{icon}</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>{v}</div>
-              <div style={{ fontSize: 7, color: C.muted, letterSpacing: '0.14em', marginTop: 3 }}>{l}</div>
+              <div style={{ fontSize: 17, lineHeight: 1, marginBottom: 4 }}>{icon}</div>
+              <div style={{ fontSize: 21, fontWeight: 900, color: C.text, lineHeight: 1 }}>{v}</div>
+              <div style={{ fontSize: 8.5, color: C.muted, letterSpacing: '0.12em', marginTop: 3 }}>{l}</div>
             </div>
           ))}
         </div>
         <GLine col={C.muted} op={0.25} />
       </div>
 
-      {/* Footer message */}
-      <div style={{ padding: '6px 16px 12px', textAlign: 'center', fontSize: 8, letterSpacing: '0.05em', color: C.sub }}>
+      {/* Footer ~27px */}
+      <div style={{ padding: '5px 16px 12px', textAlign: 'center', fontSize: 9, letterSpacing: '0.04em', color: C.sub }}>
         GRAZIE A TUTTI I GIOCATORI PER QUESTA STAGIONE&nbsp;<span style={{ color: C.green, fontWeight: 800 }}>INCREDIBILE</span>!
       </div>
     </div>
   )
 }
 
-// ── SLIDE 2 ────────────────────────────────────────────────────────────────────
+// ── SLIDE 2 ─────────────────────────────────────────────────────────────────────
+// Budget: TopBar 42px | GLine 7px | Title 72px | Grid(flex) | Footer 47px = 168px fissi; grid ~282px
 function Slide2({ total, uniquePlayers, deckCount, avgParticipation, topStreak, totalKills }) {
   const stats = [
-    { val: total,                label: 'PARTITE\nDISPUTATE',      col: C.green,  icon: '⚔️' },
-    { val: uniquePlayers,        label: 'GIOCATORI\nATTIVI',        col: C.purple, icon: '👥' },
-    { val: deckCount,             label: 'DECK\nREGISTRATI',        col: C.cyan,   icon: '🃏' },
-    { val: `${avgParticipation}%`, label: 'PARTECIPAZIONE\nMEDIA', col: C.cyan,   icon: '📊' },
-    { val: topStreak?.best || 0, label: 'STREAK\nRECORD',          col: C.orange, icon: '🔥' },
-    { val: totalKills,           label: 'ELIMINAZIONI\nTOTALI',    col: C.purple, icon: '💀' },
+    { val: total,                  label: 'PARTITE\nDISPUTATE',       col: C.green,  icon: '⚔️' },
+    { val: uniquePlayers,          label: 'GIOCATORI\nATTIVI',         col: C.purple, icon: '👥' },
+    { val: deckCount,               label: 'DECK\nREGISTRATI',         col: C.cyan,   icon: '🃏' },
+    { val: `${avgParticipation}%`, label: 'PARTECIPAZIONE\nMEDIA',    col: C.cyan,   icon: '📊' },
+    { val: topStreak?.best || 0,   label: 'STREAK\nRECORD',           col: C.orange, icon: '🔥' },
+    { val: totalKills,             label: 'ELIMINAZIONI\nTOTALI',     col: C.purple, icon: '💀' },
   ]
   return (
     <div style={{
@@ -193,34 +198,35 @@ function Slide2({ total, uniquePlayers, deckCount, avgParticipation, topStreak, 
       <TopBar n={2} />
       <div style={{ margin: '0 16px 6px' }}><GLine op={0.5} /></div>
 
-      {/* Title — anchor visivo della slide */}
-      <div style={{ textAlign: 'center', padding: '4px 16px 12px' }}>
-        <div style={{ fontSize: 9.5, fontWeight: 600, color: C.sub, letterSpacing: '0.32em', textTransform: 'uppercase', lineHeight: 1, marginBottom: 2 }}>LA STAGIONE</div>
-        <div style={{ fontSize: 42, fontWeight: 900, color: C.green, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1, textShadow: '0 0 36px rgba(52,240,143,0.6)' }}>IN NUMERI</div>
+      {/* Title ~72px */}
+      <div style={{ textAlign: 'center', padding: '2px 16px 14px' }}>
+        <div style={{ fontSize: 10, fontWeight: 600, color: C.sub, letterSpacing: '0.3em', textTransform: 'uppercase', lineHeight: 1, marginBottom: 3 }}>LA STAGIONE</div>
+        <div style={{ fontSize: 44, fontWeight: 900, color: C.green, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1, textShadow: '0 0 36px rgba(52,240,143,0.6)' }}>IN NUMERI</div>
       </div>
 
-      {/* Grid 2×3 — il cuore della slide */}
+      {/* Grid 2×3 — cuore della slide */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, padding: '0 12px' }}>
         {stats.map(({ val, label, col, icon }) => (
           <div key={label} style={{
             borderRadius: 12, padding: '0 10px',
             background: C.card,
-            border: `1.5px solid ${col}40`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0,
+            border: `1.5px solid ${col}45`,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           }}>
-            <div style={{ fontSize: 22, lineHeight: 1, marginBottom: 6 }}>{icon}</div>
-            <div style={{ fontSize: 34, fontWeight: 900, color: C.text, lineHeight: 1 }}>{val}</div>
-            <div style={{ fontSize: 6.5, fontWeight: 700, color: col, letterSpacing: '0.14em', textAlign: 'center', textTransform: 'uppercase', lineHeight: 1.4, marginTop: 5, whiteSpace: 'pre-line' }}>{label}</div>
+            <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 7 }}>{icon}</div>
+            <div style={{ fontSize: 36, fontWeight: 900, color: C.text, lineHeight: 1 }}>{val}</div>
+            {/* Label — minimo 8px per leggibilità */}
+            <div style={{ fontSize: 8, fontWeight: 700, color: col, letterSpacing: '0.12em', textAlign: 'center', textTransform: 'uppercase', lineHeight: 1.4, marginTop: 6, whiteSpace: 'pre-line' }}>{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Footer decorativo */}
+      {/* Footer decorativo ~47px */}
       <div style={{ padding: '14px 16px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ height: 1, flex: 1, background: 'linear-gradient(90deg, transparent, rgba(52,240,143,0.5))' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 9, fontWeight: 900, color: C.green, letterSpacing: '0.26em' }}>COMMANDERONE</div>
-          <div style={{ fontSize: 6, color: C.muted, letterSpacing: '0.2em', marginTop: 1 }}>VILLASTELLONE</div>
+          <div style={{ fontSize: 9.5, fontWeight: 900, color: C.green, letterSpacing: '0.26em' }}>COMMANDERONE</div>
+          <div style={{ fontSize: 7, color: C.muted, letterSpacing: '0.18em', marginTop: 2 }}>VILLASTELLONE</div>
         </div>
         <div style={{ height: 1, flex: 1, background: 'linear-gradient(90deg, rgba(52,240,143,0.5), transparent)' }} />
       </div>
@@ -228,16 +234,17 @@ function Slide2({ total, uniquePlayers, deckCount, avgParticipation, topStreak, 
   )
 }
 
-// ── SLIDE 3 ────────────────────────────────────────────────────────────────────
+// ── SLIDE 3 ─────────────────────────────────────────────────────────────────────
+// Budget: TopBar 42px | GLine 7px | Title 47px | Awards 180px | Deck 72px | TY 39px | Footer(auto) 63px = 450px
 function Slide3({ mostWins, mostGames, topKiller, bestWinRate, topStreak, mostConsistent, spotlight, imgUrls, qrDataUrl }) {
   const wr = p => p?.games ? Math.round(p.wins / p.games * 100) : 0
   const awards = [
-    { icon: '🏆', col: C.gold,   label: 'PIÙ VITTORIE',  name: mostWins?.username || '—',      stat: `${mostWins?.wins || 0} vitt.` },
-    { icon: '🎯', col: C.cyan,   label: 'PIÙ PRESENTE',  name: mostGames?.username || '—',     stat: `${mostGames?.games || 0} gg` },
-    { icon: '📈', col: C.green,  label: 'MIGLIOR WIN',   name: bestWinRate?.username || '—',   stat: `${wr(bestWinRate)}%` },
-    { icon: '⚔️', col: C.pink,   label: 'PIÙ SPIETATO',  name: topKiller?.[0] || '—',         stat: `${topKiller?.[1] || 0} kill` },
-    { icon: '🔥', col: C.orange, label: 'STREAK',        name: topStreak?.username || '—',     stat: `${topStreak?.best || 0} consec.` },
-    { icon: '💎', col: C.purple, label: 'PIÙ COSTANTE',  name: mostConsistent?.username || '—', stat: `${(mostConsistent?.avg || 0).toFixed(1)} avg` },
+    { icon: '🏆', col: C.gold,   label: 'PIÙ VITTORIE', name: mostWins?.username || '—',       stat: `${mostWins?.wins || 0} vitt.` },
+    { icon: '🎯', col: C.cyan,   label: 'PIÙ PRESENTE', name: mostGames?.username || '—',      stat: `${mostGames?.games || 0} gg` },
+    { icon: '📈', col: C.green,  label: 'MIGLIOR WIN',  name: bestWinRate?.username || '—',    stat: `${wr(bestWinRate)}%` },
+    { icon: '⚔️', col: C.pink,   label: 'PIÙ SPIETATO', name: topKiller?.[0] || '—',          stat: `${topKiller?.[1] || 0} kill` },
+    { icon: '🔥', col: C.orange, label: 'STREAK',       name: topStreak?.username || '—',      stat: `${topStreak?.best || 0} vitt. di fila` },
+    { icon: '💎', col: C.purple, label: 'PIÙ COSTANTE', name: mostConsistent?.username || '—', stat: `${(mostConsistent?.avg || 0).toFixed(1)} pt/gg` },
   ]
   return (
     <div style={{
@@ -247,57 +254,61 @@ function Slide3({ mostWins, mostGames, topKiller, bestWinRate, topStreak, mostCo
       display: 'flex', flexDirection: 'column',
     }}>
       <TopBar n={3} />
-      <div style={{ margin: '0 16px 8px' }}><GLine op={0.5} /></div>
+      <div style={{ margin: '0 16px 6px' }}><GLine op={0.5} /></div>
 
-      {/* Title — compatto per lasciare spazio agli award */}
-      <div style={{ textAlign: 'center', padding: '0 16px 10px' }}>
-        <div style={{ fontSize: 24, fontWeight: 900, color: C.text, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>HALL OF FAME</div>
-        <div style={{ fontSize: 7.5, fontWeight: 700, color: C.green, letterSpacing: '0.24em', textTransform: 'uppercase', marginTop: 4 }}>I PROTAGONISTI DELLA STAGIONE</div>
+      {/* Title ~47px */}
+      <div style={{ textAlign: 'center', padding: '0 16px 8px' }}>
+        <div style={{ fontSize: 25, fontWeight: 900, color: C.text, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1 }}>HALL OF FAME</div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: C.green, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: 5 }}>I PROTAGONISTI DELLA STAGIONE</div>
       </div>
 
-      {/* Award tiles 3×2 — content principale */}
+      {/* Award tiles 3×2 — ~180px (2 righe da 87px + gap 6px) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '0 12px' }}>
         {awards.map(({ icon, col, label, name, stat }) => (
-          <div key={label} style={{ borderRadius: 11, padding: '10px 6px 9px', textAlign: 'center', background: C.card, border: `1.5px solid ${col}40` }}>
-            {/* icon circle */}
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: `${col}1A`, border: `1.5px solid ${col}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px', fontSize: 15, lineHeight: 1 }}>{icon}</div>
-            <div style={{ fontSize: 6.5, fontWeight: 800, color: col, letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.2 }}>{label}</div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: C.text, marginTop: 3, lineHeight: 1 }}>{name}</div>
-            <div style={{ fontSize: 8, color: C.sub, marginTop: 3 }}>{stat}</div>
+          <div key={label} style={{ borderRadius: 11, padding: '9px 5px 8px', textAlign: 'center', background: C.card, border: `1.5px solid ${col}45` }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${col}1A`, border: `1.5px solid ${col}60`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 5px', fontSize: 14, lineHeight: 1 }}>{icon}</div>
+            {/* categoria — 7.5px ben leggibile */}
+            <div style={{ fontSize: 7.5, fontWeight: 800, color: col, letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.2 }}>{label}</div>
+            {/* vincitore — hero del tile */}
+            <div style={{ fontSize: 13, fontWeight: 900, color: C.text, marginTop: 3, lineHeight: 1 }}>{name}</div>
+            <div style={{ fontSize: 9, color: C.sub, marginTop: 3 }}>{stat}</div>
           </div>
         ))}
       </div>
 
-      {/* Deck della stagione */}
+      {/* Deck della stagione — ~72px (margin 8 + height 64) */}
       {spotlight && (
-        <div style={{ margin: '8px 12px 0', borderRadius: 11, overflow: 'hidden', border: `1.5px solid rgba(52,240,143,0.45)`, height: 56, position: 'relative', flexShrink: 0, boxShadow: '0 0 18px rgba(52,240,143,0.18)' }}>
-          {imgUrls?.deck && <img src={imgUrls.deck} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%', opacity: 0.5 }} />}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(7,8,15,0.92) 40%, rgba(7,8,15,0.3))', padding: '0 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div style={{ fontSize: 6.5, fontWeight: 800, color: C.green, letterSpacing: '0.22em', textTransform: 'uppercase' }}>🃏 DECK DELLA STAGIONE</div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1, marginTop: 2 }}>{spotlight.name}</div>
+        <div style={{ margin: '8px 12px 0', borderRadius: 11, overflow: 'hidden', border: `1.5px solid rgba(52,240,143,0.5)`, height: 64, position: 'relative', flexShrink: 0, boxShadow: '0 0 20px rgba(52,240,143,0.22)' }}>
+          {/* art_crop più visibile: opacity 0.72, overlay leggero che copre solo la zona testo */}
+          {imgUrls?.deck && <img src={imgUrls.deck} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%', opacity: 0.72 }} />}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(7,8,15,0.88) 34%, rgba(7,8,15,0.05) 70%)' }}>
+            <div style={{ padding: '0 14px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: 8, fontWeight: 800, color: C.green, letterSpacing: '0.2em', textTransform: 'uppercase' }}>🃏 DECK DELLA STAGIONE</div>
+              <div style={{ fontSize: 17, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1, marginTop: 3 }}>{spotlight.name}</div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Thank you */}
-      <div style={{ textAlign: 'center', padding: '10px 16px 6px' }}>
-        <div style={{ fontSize: 13, fontWeight: 900, color: C.green, fontStyle: 'italic', textShadow: '0 0 20px rgba(52,240,143,0.6)', letterSpacing: '0.02em' }}>GRAZIE A TUTTA LA COMMUNITY!</div>
-        <div style={{ fontSize: 8, color: C.sub, marginTop: 3, letterSpacing: '0.06em' }}>Ci vediamo alla prossima stagione!</div>
+      {/* Thank you ~39px */}
+      <div style={{ textAlign: 'center', padding: '8px 16px 4px' }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: C.green, fontStyle: 'italic', textShadow: '0 0 20px rgba(52,240,143,0.6)', letterSpacing: '0.02em' }}>GRAZIE A TUTTA LA COMMUNITY!</div>
+        <div style={{ fontSize: 9.5, color: C.sub, marginTop: 4, letterSpacing: '0.05em' }}>Ci vediamo alla prossima stagione!</div>
       </div>
 
-      {/* Footer QR */}
+      {/* Footer QR — spinto a fondo da marginTop:auto */}
       <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="/logo.png" alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+          <img src="/logo.png" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
           <div>
-            <div style={{ fontSize: 8, fontWeight: 900, color: C.green, letterSpacing: '0.18em' }}>COMMANDERONE</div>
-            <div style={{ fontSize: 5.5, color: C.muted, letterSpacing: '0.16em', marginTop: 1 }}>VILLASTELLONE</div>
+            <div style={{ fontSize: 9, fontWeight: 900, color: C.green, letterSpacing: '0.18em' }}>COMMANDERONE</div>
+            <div style={{ fontSize: 7, color: C.muted, letterSpacing: '0.14em', marginTop: 1.5 }}>VILLASTELLONE</div>
           </div>
         </div>
         {qrDataUrl && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-            <div style={{ fontSize: 6.5, color: C.green, fontWeight: 700, letterSpacing: '0.1em' }}>SCOPRI DI PIÙ</div>
-            <img src={qrDataUrl} alt="QR" style={{ width: 44, height: 44, borderRadius: 7, imageRendering: 'pixelated' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <div style={{ fontSize: 8, color: C.green, fontWeight: 700, letterSpacing: '0.1em' }}>SCOPRI DI PIÙ</div>
+            <img src={qrDataUrl} alt="QR" style={{ width: 50, height: 50, borderRadius: 8, imageRendering: 'pixelated' }} />
           </div>
         )}
       </div>
@@ -332,7 +343,6 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
   useEffect(() => {
     setLoading(true); setImgUrls({}); setQrDataUrl(null)
     const toLoad = {}
-    // usa chiave "p_<id>" per le immagini avatar dei giocatori top3
     for (const s of top3) { const ps = statsMap[s.id]; if (ps?.avatarCardName) toLoad[`p_${s.id}`] = ART(ps.avatarCardName) }
     if (spotlight?.commander) toLoad.deck = ART(spotlight.commander)
     Promise.allSettled([
@@ -369,7 +379,6 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: '16px 12px 40px' }}>
       <div onClick={e => e.stopPropagation()} className="ct-modal-in" style={{ maxWidth: 400, margin: '0 auto' }}>
 
-        {/* Toolbar */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 900, color: t.text }}>Carousel Instagram</div>
