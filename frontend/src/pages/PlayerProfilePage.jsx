@@ -15,7 +15,7 @@ import ArchetypeBadge from '../components/ArchetypeBadge'
 import { getAchievements } from '../lib/achievements'
 import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
-import { fetchCommanderColors } from '../lib/scryfall'
+import { fetchCommanderColors, getCardPrintings } from '../lib/scryfall'
 import { seasonOf, computeStandings } from '../lib/seasons'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
@@ -65,10 +65,14 @@ export default function PlayerProfilePage() {
   const [showStats, setShowStats]       = useState(false)
 
   // ── Avatar ──
-  const [avatarCard, setAvatarCard]   = useState(null)
-  const [pickerOpen, setPickerOpen]   = useState(false)
-  const [pickerInput, setPickerInput] = useState('')
-  const [savingAvatar, setSavingAvatar] = useState(false)
+  const [avatarCard, setAvatarCard]           = useState(null)
+  const [avatarScryfallId, setAvatarScryfallId] = useState(null)
+  const [pickerOpen, setPickerOpen]           = useState(false)
+  const [pickerInput, setPickerInput]         = useState('')
+  const [printings, setPrintings]             = useState([])
+  const [loadingPrintings, setLoadingPrintings] = useState(false)
+  const [selectedPrintingId, setSelectedPrintingId] = useState(null)
+  const [savingAvatar, setSavingAvatar]       = useState(false)
 
   // ── Gestione mazzi (solo profilo proprio) ──
   const [myFullDecks, setMyFullDecks]         = useState([])
@@ -112,9 +116,11 @@ export default function PlayerProfilePage() {
     if (loading) return
     if (isOwnProfile) {
       setAvatarCard(user?.avatarCardName ?? null)
+      setAvatarScryfallId(user?.avatarScryfallId ?? null)
     } else {
       const p = players.find(pl => pl.id === pid)
       setAvatarCard(p?.avatarCardName ?? null)
+      setAvatarScryfallId(p?.avatarScryfallId ?? null)
     }
   }, [loading, players, pid, isOwnProfile, user])
 
@@ -298,14 +304,33 @@ export default function PlayerProfilePage() {
   }
 
   // ── Avatar ──
+  const fetchPrintings = async (name) => {
+    if (!name) return
+    setLoadingPrintings(true)
+    setPrintings([])
+    try {
+      const results = await getCardPrintings(name)
+      setPrintings(results)
+      if (results.length === 1) setSelectedPrintingId(results[0].id)
+    } catch { toast('Errore nel caricamento delle stampe', 'error') }
+    finally { setLoadingPrintings(false) }
+  }
+  const openPicker = async () => {
+    setPickerInput(avatarCard || '')
+    setSelectedPrintingId(avatarScryfallId || null)
+    setPrintings([])
+    setPickerOpen(true)
+    if (avatarCard) fetchPrintings(avatarCard)
+  }
   const saveAvatar = async () => {
     const name = pickerInput.trim()
-    if (!name) return
+    if (!name || !selectedPrintingId) return
     setSavingAvatar(true)
     try {
-      await api.updateProfile({ avatarCardName: name })
+      await api.updateProfile({ avatarCardName: name, avatarScryfallId: selectedPrintingId })
       setAvatarCard(name)
-      updateUser({ avatarCardName: name })
+      setAvatarScryfallId(selectedPrintingId)
+      updateUser({ avatarCardName: name, avatarScryfallId: selectedPrintingId })
       setPickerOpen(false)
       toast('Avatar aggiornato', 'success')
     } catch { toast("Errore nel salvataggio dell'avatar", 'error') }
@@ -314,9 +339,10 @@ export default function PlayerProfilePage() {
   const removeAvatar = async () => {
     setSavingAvatar(true)
     try {
-      await api.updateProfile({ avatarCardName: null })
+      await api.updateProfile({ avatarCardName: null, avatarScryfallId: null })
       setAvatarCard(null)
-      updateUser({ avatarCardName: null })
+      setAvatarScryfallId(null)
+      updateUser({ avatarCardName: null, avatarScryfallId: null })
       setPickerOpen(false)
       toast('Avatar rimosso', 'success')
     } catch { toast('Errore nella rimozione', 'error') }
@@ -353,8 +379,12 @@ export default function PlayerProfilePage() {
   const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData } = profile
 
   // Hero card: avatar scelto, altrimenti commander del mazzo migliore
-  const heroCard = avatarCard || myDecks.find(d => d.commander)?.commander || null
-  const hasArt   = !!heroCard
+  const heroCard    = avatarCard || myDecks.find(d => d.commander)?.commander || null
+  const hasArt      = !!heroCard
+  const cdnArt      = (id) => `https://cards.scryfall.io/art_crop/front/${id[0]}/${id[1]}/${id}.jpg`
+  const heroImgSrc  = avatarScryfallId ? cdnArt(avatarScryfallId) : (avatarCard ? artUrl(avatarCard) : null)
+  const fallbackSrc = !heroImgSrc && heroCard ? artUrl(heroCard) : null
+  const bgSrc       = heroImgSrc || fallbackSrc
 
   const stat = (label, value, sub) => (
     <div style={{ flex: 1, minWidth: 120 }}>
@@ -418,9 +448,9 @@ export default function PlayerProfilePage() {
       {/* ── HERO BANNER ── */}
       <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', marginBottom: 12, minHeight: 130, boxShadow: t.shadow }}>
         {/* sfondo art sfocato */}
-        {hasArt && (
+        {bgSrc && (
           <img
-            src={artUrl(heroCard)}
+            src={bgSrc}
             alt=""
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 25%', filter: 'blur(14px) brightness(0.35)', transform: 'scale(1.15)', pointerEvents: 'none' }}
           />
@@ -442,10 +472,10 @@ export default function PlayerProfilePage() {
               border: `2.5px solid ${hasArt ? 'rgba(255,255,255,0.40)' : t.primaryBorder}`,
               background: t.primaryBg,
             }}>
-              {avatarCard
-                ? <img src={artUrl(avatarCard)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} onError={() => setAvatarCard(null)} />
-                : heroCard
-                  ? <img src={artUrl(heroCard)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
+              {heroImgSrc
+                ? <img src={heroImgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} onError={() => { setAvatarCard(null); setAvatarScryfallId(null) }} />
+                : fallbackSrc
+                  ? <img src={fallbackSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
                   : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: t.primary }}>
                       {player.username.substring(0, 2).toUpperCase()}
                     </div>
@@ -453,7 +483,7 @@ export default function PlayerProfilePage() {
             </div>
             {isOwnProfile && (
               <button
-                onClick={() => { setPickerInput(avatarCard || ''); setPickerOpen(true) }}
+                onClick={openPicker}
                 title="Cambia avatar"
                 style={{
                   position: 'absolute', bottom: -1, right: -1,
@@ -901,37 +931,73 @@ export default function PlayerProfilePage() {
           onClick={() => setPickerOpen(false)}
         >
           <div
-            style={{ background: t.bgSurface, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid ${t.border}`, borderRadius: 18, padding: 24, maxWidth: 380, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
+            style={{ background: t.bgSurface, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid ${t.border}`, borderRadius: 18, padding: 20, maxWidth: 400, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>Scegli il tuo avatar</div>
-            <div style={{ fontSize: 12, color: t.textSub, marginBottom: 16 }}>
-              Cerca qualsiasi carta Magic — la sua illustrazione diventerà il tuo avatar.
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 3 }}>Scegli il tuo avatar</div>
+            <div style={{ fontSize: 12, color: t.textSub, marginBottom: 14 }}>
+              Cerca una carta Magic e scegli la stampa che preferisci.
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <CommanderInput
-                value={pickerInput}
-                onChange={(name) => setPickerInput(name)}
-                placeholder="Cerca una carta Magic..."
-                style={{ ...inputSt, fontSize: 13 }}
-              />
-            </div>
-            {pickerInput.trim() && (
-              <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
-                <img
-                  src={artUrl(pickerInput.trim())}
-                  alt={pickerInput}
-                  style={{ width: '100%', maxWidth: 260, height: 120, objectFit: 'cover', objectPosition: 'center 20%', borderRadius: 10, display: 'block', transition: 'opacity 0.2s' }}
-                  onError={e => { e.currentTarget.style.opacity = '0.15' }}
-                  onLoad={e => { e.currentTarget.style.opacity = '1' }}
+
+            {/* Ricerca */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <div style={{ flex: 1 }}>
+                <CommanderInput
+                  value={pickerInput}
+                  onChange={(name) => { setPickerInput(name); setPrintings([]); setSelectedPrintingId(null) }}
+                  placeholder="Cerca una carta Magic..."
+                  style={{ ...inputSt, fontSize: 13 }}
                 />
               </div>
+              <button
+                onClick={() => fetchPrintings(pickerInput.trim())}
+                disabled={!pickerInput.trim() || loadingPrintings}
+                style={{ padding: '9px 14px', borderRadius: 10, border: `1px solid ${t.primary}`, background: t.primaryBg, color: t.primary, fontWeight: 700, fontSize: 13, cursor: pickerInput.trim() && !loadingPrintings ? 'pointer' : 'default', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >{loadingPrintings ? '…' : 'Cerca →'}</button>
+            </div>
+
+            {/* Griglia stampe */}
+            {printings.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: t.textSub, marginBottom: 8 }}>
+                  {printings.length} stampa{printings.length !== 1 ? '' : 'e'} — clicca per selezionare
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                  {printings.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPrintingId(p.id)}
+                      style={{
+                        padding: 0, borderRadius: 8, overflow: 'hidden', cursor: 'pointer',
+                        background: 'transparent', outline: 'none',
+                        border: `2px solid ${selectedPrintingId === p.id ? t.primary : t.border}`,
+                        boxShadow: selectedPrintingId === p.id ? `0 0 0 2px ${t.primaryBorder}` : 'none',
+                        transition: 'border-color 0.12s',
+                      }}
+                    >
+                      <img src={p.artCropUrl} alt={p.setName} style={{ width: '100%', height: 68, objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} />
+                      <div style={{ fontSize: 9, color: t.textSub, padding: '3px 5px', background: t.bgMuted, lineHeight: 1.3, textAlign: 'left' }}>
+                        <div style={{ fontWeight: 700, color: t.textSub }}>{p.setCode}</div>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {printings.length === 0 && !loadingPrintings && pickerInput.trim() && (
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: t.textMuted, marginBottom: 14 }}>
+                Clicca "Cerca →" per vedere le stampe disponibili
+              </div>
+            )}
+
+            {/* Azioni */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button
                 style={{ ...btnPrimary, flex: 1, minWidth: 0 }}
                 onClick={saveAvatar}
-                disabled={!pickerInput.trim() || savingAvatar}
+                disabled={!pickerInput.trim() || !selectedPrintingId || savingAvatar}
               >
                 {savingAvatar ? 'Salvataggio...' : 'Usa come avatar'}
               </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -385,7 +385,7 @@ export default function GruppoPage() {
                           : <span style={{ fontSize: 13, fontWeight: 700, color: t.textMuted }}>{i + 1}°</span>
                         }
                       </div>
-                      <PlayerAvatar username={s.username} avatarCardName={playerStats.find(p => p.id === s.id)?.avatarCardName} />
+                      <PlayerAvatar username={s.username} avatarCardName={playerStats.find(p => p.id === s.id)?.avatarCardName} avatarScryfallId={playerStats.find(p => p.id === s.id)?.avatarScryfallId} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                           {s.username}
@@ -489,7 +489,7 @@ export default function GruppoPage() {
               <div key={p.id} className="ct-lift ct-fade-up" onClick={() => navigate(`/giocatore/${p.id}`)} style={{ ...card, cursor: 'pointer', animationDelay: `${Math.min(i, 7) * 45}ms` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: i === 0 ? t.primary : t.textMuted, minWidth: 22, textAlign: 'right' }}>{i + 1}°</span>
-                  <PlayerAvatar username={p.username} avatarCardName={p.avatarCardName} size={36} />
+                  <PlayerAvatar username={p.username} avatarCardName={p.avatarCardName} avatarScryfallId={p.avatarScryfallId} size={36} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: t.text, fontSize: 15 }}>{p.username}</div>
                     <div style={{ fontSize: 12, color: t.textSub }}>{p.games} partite · {p.wins} vittorie</div>

@@ -16,6 +16,26 @@ export async function autocompleteCardName(query) {
   }
 }
 
+// Tutte le stampe uniche per arte di una carta (per il picker avatar)
+export async function getCardPrintings(name) {
+  try {
+    const q = `!"${name}"`
+    const r = await fetch(`${BASE}/cards/search?q=${encodeURIComponent(q)}&unique=art&order=released`)
+    if (!r.ok) return []
+    const data = await r.json()
+    return (data.data || []).map(card => ({
+      id:         card.id,
+      setName:    card.set_name,
+      setCode:    (card.set || '').toUpperCase(),
+      year:       card.released_at?.slice(0, 4) || '',
+      artist:     card.artist || '',
+      artCropUrl: card.image_uris?.art_crop || card.card_faces?.[0]?.image_uris?.art_crop || null,
+    })).filter(c => c.artCropUrl)
+  } catch {
+    return []
+  }
+}
+
 export async function fetchCommanderColors(name) {
   try {
     const res = await fetch(`${BASE}/cards/named?fuzzy=${encodeURIComponent(name)}`)

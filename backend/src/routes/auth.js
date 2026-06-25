@@ -16,6 +16,7 @@ const publicUser = (user) => ({
   username: user.username,
   role: user.role,
   avatarCardName: user.avatarCardName ?? null,
+  avatarScryfallId: user.avatarScryfallId ?? null,
 });
 
 // POST /api/auth/register
@@ -65,13 +66,21 @@ router.post('/login', async (req, res) => {
 
 // PATCH /api/auth/profile — aggiorna avatar (autenticato)
 router.patch('/profile', auth, async (req, res) => {
-  const { avatarCardName } = req.body;
+  const { avatarCardName, avatarScryfallId } = req.body;
+  if (avatarScryfallId !== undefined && avatarScryfallId !== null) {
+    if (typeof avatarScryfallId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(avatarScryfallId)) {
+      return res.status(400).json({ error: 'avatarScryfallId non valido' });
+    }
+  }
   try {
     const updated = await prisma.user.update({
       where: { id: req.user.id },
-      data: { avatarCardName: avatarCardName ?? null },
+      data: {
+        avatarCardName: avatarCardName ?? null,
+        avatarScryfallId: avatarScryfallId ?? null,
+      },
     });
-    res.json({ ok: true, avatarCardName: updated.avatarCardName });
+    res.json({ ok: true, avatarCardName: updated.avatarCardName, avatarScryfallId: updated.avatarScryfallId });
   } catch (e) {
     console.error('update profile error', e);
     res.status(500).json({ error: 'Errore aggiornamento profilo' });

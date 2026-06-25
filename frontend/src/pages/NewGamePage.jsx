@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -41,7 +41,7 @@ export default function NewGamePage() {
 
   // Raggruppa mazzi per utente
   const byUser = allDecks.reduce((acc, d) => {
-    if (!acc[d.userId]) acc[d.userId] = { username: d.user.username, avatarCardName: d.user.avatarCardName || null, decks: [] }
+    if (!acc[d.userId]) acc[d.userId] = { username: d.user.username, avatarCardName: d.user.avatarCardName || null, avatarScryfallId: d.user.avatarScryfallId || null, decks: [] }
     acc[d.userId].decks.push(d)
     return acc
   }, {})
@@ -190,7 +190,7 @@ export default function NewGamePage() {
           const avatarEl = slot.userId && byUser[slot.userId] ? (
             <PlayerAvatar
               username={byUser[slot.userId].username}
-              avatarCardName={byUser[slot.userId].avatarCardName}
+              avatarCardName={byUser[slot.userId].avatarCardName} avatarScryfallId={byUser[slot.userId].avatarScryfallId}
               size={32}
             />
           ) : (

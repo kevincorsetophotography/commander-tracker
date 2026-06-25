@@ -12,8 +12,9 @@ model User {
   username       String       @unique
   password       String       // bcrypt hash
   role           String       @default("PLAYER")
-  avatarCardName String?
-  createdAt      DateTime     @default(now())
+  avatarCardName   String?
+  avatarScryfallId String?    // UUID stampa Scryfall specifica scelta dall'utente
+  createdAt        DateTime   @default(now())
   decks       Deck[]
   gamePlayers GamePlayer[]
   createdGames Game[]      @relation("GameCreator")

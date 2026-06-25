@@ -1,13 +1,21 @@
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
 
-const artUrl = (name) =>
+const cdnArt = (id) =>
+  `https://cards.scryfall.io/art_crop/front/${id[0]}/${id[1]}/${id}.jpg`
+
+const scryfallArt = (name) =>
   `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
 
-export default function PlayerAvatar({ username, avatarCardName, size = 32, highlight = false }) {
+export default function PlayerAvatar({ username, avatarCardName, avatarScryfallId, size = 32, highlight = false }) {
   const { t } = useTheme()
   const [imgError, setImgError] = useState(false)
-  const showImg = !!avatarCardName && !imgError
+
+  const imgSrc = avatarScryfallId
+    ? cdnArt(avatarScryfallId)
+    : (avatarCardName ? scryfallArt(avatarCardName) : null)
+
+  const showImg = !!imgSrc && !imgError
 
   return (
     <div style={{
@@ -19,7 +27,7 @@ export default function PlayerAvatar({ username, avatarCardName, size = 32, high
     }}>
       {showImg
         ? <img
-            src={artUrl(avatarCardName)}
+            src={imgSrc}
             alt={username}
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }}
             onError={() => setImgError(true)}

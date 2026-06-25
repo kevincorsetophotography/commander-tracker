@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
 const { makePods, makePairings, standings1v1, rankStandings, swissPairings } = require('../lib/tournament');
@@ -49,7 +49,7 @@ const parseEventId = (value) => {
 
 const eventInclude = {
   createdBy: { select: { id: true, username: true } },
-  rsvps: { select: { userId: true, user: { select: { username: true, avatarCardName: true } } } }
+  rsvps: { select: { userId: true, user: { select: { username: true, avatarCardName: true, avatarScryfallId: true } } } }
 };
 
 // Dettaglio completo: + turni → tavoli → posti (con username)
@@ -63,7 +63,7 @@ const eventDetailInclude = {
         include: {
           seats: {
             orderBy: { seat: 'asc' },
-            include: { user: { select: { id: true, username: true, avatarCardName: true } } },
+            include: { user: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } } },
           },
           game: {
             select: {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -83,7 +83,7 @@ export default function GamePage() {
                   {medal(p.placement)}
                 </span>
               )}
-              <PlayerAvatar username={p.user.username} avatarCardName={p.user.avatarCardName} size={36} highlight={p.isWinner} />
+              <PlayerAvatar username={p.user.username} avatarCardName={p.user.avatarCardName} avatarScryfallId={p.user.avatarScryfallId} size={36} highlight={p.isWinner} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: p.isWinner ? 800 : 600, color: p.isWinner ? t.win : t.text }}>{p.user.username}</div>
                 <div style={{ fontSize: 11, color: t.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -104,10 +104,10 @@ export default function GamePage() {
                 const killer = game.players.find(x => x.user.id === p.eliminatedById)
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                    <PlayerAvatar username={killer?.user.username || '?'} avatarCardName={killer?.user.avatarCardName} size={20} />
+                    <PlayerAvatar username={killer?.user.username || '?'} avatarCardName={killer?.user.avatarCardName} avatarScryfallId={killer?.user.avatarScryfallId} size={20} />
                     <span style={{ color: t.textSub, fontWeight: 600 }}>{killer?.user.username || '?'}</span>
                     <span style={{ color: t.danger || '#f44336', fontSize: 11 }}>⚔</span>
-                    <PlayerAvatar username={p.user.username} avatarCardName={p.user.avatarCardName} size={20} />
+                    <PlayerAvatar username={p.user.username} avatarCardName={p.user.avatarCardName} avatarScryfallId={p.user.avatarScryfallId} size={20} />
                     <span style={{ color: t.textMuted }}>{p.user.username}</span>
                   </div>
                 )

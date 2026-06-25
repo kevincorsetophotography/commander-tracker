@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -163,7 +163,7 @@ export default function GameSocial({ game, defaultOpen = false }) {
             const canDelete = user?.id === c.user.id || user?.role === 'ADMIN'
             return (
               <div key={c.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
-                <PlayerAvatar username={c.user.username} avatarCardName={c.user.avatarCardName} size={22} />
+                <PlayerAvatar username={c.user.username} avatarCardName={c.user.avatarCardName} avatarScryfallId={c.user.avatarScryfallId} size={22} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 12, color: t.textSub }}>
                     <span style={{ fontWeight: 600, color: t.text }}>{c.user.username}</span>

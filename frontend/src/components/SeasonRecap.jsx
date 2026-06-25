@@ -389,9 +389,12 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
     for (const s of top3) {
       const ps = statsMap[s.id]
       const bd = topDecks[s.id]
-      // Fallback: se il giocatore non ha un avatarCardName, usa il commander del suo mazzo migliore
-      const avatarCard = ps?.avatarCardName || bd?.commander
-      if (avatarCard) toLoad[`p_${s.id}`] = ART(avatarCard)
+      if (ps?.avatarScryfallId) {
+        toLoad[`p_${s.id}`] = `${API_BASE}/scryfall/art?id=${ps.avatarScryfallId}`
+      } else {
+        const avatarCard = ps?.avatarCardName || bd?.commander
+        if (avatarCard) toLoad[`p_${s.id}`] = ART(avatarCard)
+      }
       if (bd?.commander) toLoad[`bd_${s.id}`] = ART(bd.commander)
     }
     if (spotlight?.commander) toLoad.deck = ART(spotlight.commander)

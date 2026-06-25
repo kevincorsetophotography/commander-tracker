@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -96,7 +96,7 @@ export default function EventDetailPage() {
 
         {isBye ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: t.textSub }}>
-            <PlayerAvatar username={tbl.seats[0].user.username} avatarCardName={tbl.seats[0].user.avatarCardName} size={26} highlight={tbl.seats[0].user.id === user?.id} />
+            <PlayerAvatar username={tbl.seats[0].user.username} avatarCardName={tbl.seats[0].user.avatarCardName} avatarScryfallId={tbl.seats[0].user.avatarScryfallId} size={26} highlight={tbl.seats[0].user.id === user?.id} />
             {tbl.seats[0].user.username} · passa il turno
           </div>
         ) : is1v1 ? (() => {
@@ -109,7 +109,7 @@ export default function EventDetailPage() {
           const stepBtn = { width: 24, height: 24, borderRadius: 6, border: `1px solid ${t.border}`, background: t.bgSurface, color: t.text, cursor: 'pointer', fontSize: 15, lineHeight: 1 }
           const player = (s, win) => (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontWeight: win ? 800 : 600, color: win ? t.win : (s.user.id === user?.id ? t.text : t.textSub) }}>
-              <PlayerAvatar username={s.user.username} avatarCardName={s.user.avatarCardName} size={26} highlight={s.user.id === user?.id} />{s.user.username}{win ? ' 🏆' : ''}
+              <PlayerAvatar username={s.user.username} avatarCardName={s.user.avatarCardName} avatarScryfallId={s.user.avatarScryfallId} size={26} highlight={s.user.id === user?.id} />{s.user.username}{win ? ' 🏆' : ''}
             </span>
           )
           return (
@@ -145,7 +145,7 @@ export default function EventDetailPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {tbl.seats.map(s => (
                 <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: s.user.id === user?.id ? t.text : t.textSub, background: t.bgSurface, border: `0.5px solid ${t.border}`, borderRadius: 20, padding: '3px 10px 3px 3px' }}>
-                  <PlayerAvatar username={s.user.username} avatarCardName={s.user.avatarCardName} size={22} highlight={s.user.id === user?.id} />{s.user.username}
+                  <PlayerAvatar username={s.user.username} avatarCardName={s.user.avatarCardName} avatarScryfallId={s.user.avatarScryfallId} size={22} highlight={s.user.id === user?.id} />{s.user.username}
                 </span>
               ))}
             </div>
@@ -230,7 +230,7 @@ export default function EventDetailPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {registrants.map(r => (
               <span key={r.userId} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: r.userId === user?.id ? t.text : t.textSub, background: t.bgMuted, borderRadius: 20, padding: '3px 10px 3px 3px' }}>
-                <PlayerAvatar username={r.user.username} avatarCardName={r.user.avatarCardName} size={22} highlight={r.userId === user?.id} />{r.user.username}
+                <PlayerAvatar username={r.user.username} avatarCardName={r.user.avatarCardName} avatarScryfallId={r.user.avatarScryfallId} size={22} highlight={r.userId === user?.id} />{r.user.username}
               </span>
             ))}
           </div>
@@ -299,7 +299,7 @@ export default function EventDetailPage() {
                     background: s.userId === user?.id ? (t.primaryBg || t.bgMuted) : 'transparent',
                   }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: i === 0 ? '#E8B84B' : t.textMuted, minWidth: 22 }}>{i + 1}°</span>
-                    <PlayerAvatar username={s.username} avatarCardName={event.rsvps?.find(r => r.userId === s.userId)?.user?.avatarCardName ?? null} size={24} highlight={s.userId === user?.id} />
+                    <PlayerAvatar username={s.username} avatarCardName={event.rsvps?.find(r => r.userId === s.userId)?.user?.avatarCardName ?? null} avatarScryfallId={event.rsvps?.find(r => r.userId === s.userId)?.user?.avatarScryfallId ?? null} size={24} highlight={s.userId === user?.id} />
                     <span style={{ fontSize: 14, fontWeight: 600, color: t.text, flex: 1, minWidth: 0 }}>{s.username}</span>
                     <span style={{ fontSize: 12, color: t.textMuted }}>{s.wins}V · {s.draws}N · {s.losses}P{s.byes ? ` · ${s.byes} bye` : ''}</span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: t.text, minWidth: 28, textAlign: 'right' }}>{s.points}</span>

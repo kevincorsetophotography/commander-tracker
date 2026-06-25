@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { createNotifications, gameParticipantIds, checkAchievements } = require('../lib/notify');
 
@@ -116,7 +116,7 @@ const gameInclude = {
   createdBy: { select: { id: true, username: true } },
   players: {
     include: {
-      user: { select: { id: true, username: true, avatarCardName: true } },
+      user: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } },
       deck: true
     }
   },
@@ -277,7 +277,7 @@ router.get('/:id/comments', auth, async (req, res) => {
     const comments = await prisma.comment.findMany({
       where: { gameId },
       orderBy: { createdAt: 'asc' },
-      include: { user: { select: { id: true, username: true, avatarCardName: true } } }
+      include: { user: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } } }
     });
     res.json(comments);
   } catch (error) {
@@ -301,7 +301,7 @@ router.post('/:id/comments', auth, async (req, res) => {
 
     const comment = await prisma.comment.create({
       data: { gameId, userId: req.user.id, body },
-      include: { user: { select: { id: true, username: true, avatarCardName: true } } }
+      include: { user: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } } }
     });
 
     // Notifica gli altri partecipanti alla partita

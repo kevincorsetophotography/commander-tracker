@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const prisma = require('../lib/prisma');
 const { askJudge } = require('../lib/judge');
@@ -55,7 +55,7 @@ router.get('/', auth, async (req, res) => {
       take: 30,
       select: {
         id: true, question: true, answer: true, confidence: true, createdAt: true,
-        user: { select: { username: true, avatarCardName: true } }
+        user: { select: { username: true, avatarCardName: true, avatarScryfallId: true } }
       }
     });
     res.json(questions);

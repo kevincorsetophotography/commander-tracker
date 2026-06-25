@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 function RedirectWithSearch({ to }) {
@@ -112,7 +112,7 @@ function UserChip({ titleSize = 13, avatar = 26, hideLabel = false }) {
       title="Vai al tuo profilo"
       style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, cursor: 'pointer' }}
     >
-      <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} size={avatar} highlight />
+      <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} avatarScryfallId={user?.avatarScryfallId} size={avatar} highlight />
       {!hideLabel && (
         <span style={{ fontSize: titleSize, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {user?.username}

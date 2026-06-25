@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -183,7 +183,7 @@ function MiniClassifica({ standings, t, navigate }) {
             }}
           >
             <span style={{ fontSize: 20, minWidth: 26, textAlign: 'center', flexShrink: 0 }}>{MEDALS[i]}</span>
-            <PlayerAvatar username={s.username} avatarCardName={s.avatarCardName} size={32} />
+            <PlayerAvatar username={s.username} avatarCardName={s.avatarCardName} avatarScryfallId={s.avatarScryfallId} size={32} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{s.username}</div>
               <div style={{ height: 3, borderRadius: 2, background: t.bgMuted, marginTop: 5, overflow: 'hidden' }}>
@@ -404,7 +404,7 @@ function GameFeedItem({ game, user, t, navigate }) {
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <PlayerAvatar
           username={winner?.user?.username}
-          avatarCardName={winner?.user?.avatarCardName}
+          avatarCardName={winner?.user?.avatarCardName} avatarScryfallId={winner?.user?.avatarScryfallId}
           size={42}
           highlight={iWon}
         />
@@ -467,7 +467,7 @@ const NOTIF_TYPE_COLOR = {
 function NotifFeedItem({ notif, t, navigate }) {
   const isUnread = !notif.read
   const isSocial = notif.type === 'comment' || notif.type === 'reaction'
-  const avatarUser = notif.fromUser || (isSocial ? { username: parseUsernameFromTitle(notif), avatarCardName: null } : null)
+  const avatarUser = notif.fromUser || (isSocial ? { username: parseUsernameFromTitle(notif), avatarCardName: null, avatarScryfallId: null } : null)
   const badgeEmoji = notif.type === 'comment' ? '💬' : notif.type === 'reaction' ? notif.title.split(' ')[0] : null
   const fallbackIcon = notif.type === 'achievement' ? '🏅' : notif.type === 'event' ? '📅' : '📢'
   const typeColor = NOTIF_TYPE_COLOR[notif.type]
@@ -490,7 +490,7 @@ function NotifFeedItem({ notif, t, navigate }) {
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <PlayerAvatar
             username={avatarUser.username}
-            avatarCardName={avatarUser.avatarCardName}
+            avatarCardName={avatarUser.avatarCardName} avatarScryfallId={avatarUser.avatarScryfallId}
             size={36}
           />
           {badgeEmoji && (
@@ -612,7 +612,8 @@ export default function FeedPage() {
       .slice(0, 3)
       .map(s => ({
         ...s,
-        avatarCardName: playerStats.find(p => p.id === s.id)?.avatarCardName || null,
+        avatarCardName:   playerStats.find(p => p.id === s.id)?.avatarCardName || null,
+        avatarScryfallId: playerStats.find(p => p.id === s.id)?.avatarScryfallId || null,
       }))
   }, [games, playerStats])
 

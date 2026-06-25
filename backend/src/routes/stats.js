@@ -27,13 +27,15 @@ router.get('/players', auth, async (req, res) => {
         id: true,
         username: true,
         avatarCardName: true,
+        avatarScryfallId: true,
         gamePlayers: { select: { isWinner: true } }
       }
     });
     const stats = players.map(p => ({
       id:             p.id,
       username:       p.username,
-      avatarCardName: p.avatarCardName ?? null,
+      avatarCardName:   p.avatarCardName ?? null,
+      avatarScryfallId: p.avatarScryfallId ?? null,
       games:          p.gamePlayers.length,
       wins:           p.gamePlayers.filter(gp => gp.isWinner).length,
       winRate:        p.gamePlayers.length > 0

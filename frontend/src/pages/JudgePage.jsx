@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -52,7 +52,7 @@ function HistoryItem({ item, t }) {
           display: 'flex', alignItems: 'center', gap: 10,
         }}
       >
-        <PlayerAvatar username={item.user.username} avatarCardName={item.user.avatarCardName || null} size={32} />
+        <PlayerAvatar username={item.user.username} avatarCardName={item.user.avatarCardName || null} avatarScryfallId={item.user.avatarScryfallId || null} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: t.text, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.question}
@@ -110,7 +110,7 @@ export default function JudgePage() {
       setHistory(prev => [{
         id: Date.now(), question: q, answer: data.answer,
         confidence: data.confidence, createdAt: new Date().toISOString(),
-        user: { username: user?.username || 'Tu', avatarCardName: user?.avatarCardName || null }
+        user: { username: user?.username || 'Tu', avatarCardName: user?.avatarCardName || null, avatarScryfallId: user?.avatarScryfallId || null }
       }, ...prev.slice(0, 29)])
     } catch (err) {
       setError(err.error || 'Errore durante la consulenza. Riprova.')

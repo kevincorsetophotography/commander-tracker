@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const auth = require('../middleware/auth');
 const prisma = require('../lib/prisma');
 
@@ -11,7 +11,7 @@ router.get('/', auth, async (req, res) => {
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
       take: LIST_LIMIT,
-      include: { fromUser: { select: { id: true, username: true, avatarCardName: true } } },
+      include: { fromUser: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } } },
     });
     res.json(notifications);
   } catch (error) {

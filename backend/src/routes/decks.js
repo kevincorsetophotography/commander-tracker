@@ -1,4 +1,4 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { validateDecklist } = require('../lib/decklist');
 const { checkAchievements } = require('../lib/notify');
@@ -13,7 +13,7 @@ const parseDeckId = (value) => {
 router.get('/', auth, async (req, res) => {
   const decks = await prisma.deck.findMany({
     where:   { user: { role: 'PLAYER' } },
-    include: { user: { select: { id: true, username: true, avatarCardName: true } } },
+    include: { user: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } } },
     orderBy: [{ userId: 'asc' }, { name: 'asc' }]
   });
   res.json(decks);
