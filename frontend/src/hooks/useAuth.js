@@ -1,4 +1,4 @@
-import { createContext, createElement, useContext, useMemo, useState } from 'react';
+import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api';
 
 const AuthContext = createContext(null);
@@ -44,6 +44,17 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('ct_user');
     setUser(null);
   };
+
+  // Il token JWT dura 30gg; se scade a metà sessione l'API risponde 401
+  // e qui forziamo il logout con un messaggio invece di un errore criptico.
+  useEffect(() => {
+    const onExpired = () => {
+      sessionStorage.setItem('ct_session_expired', '1');
+      logout();
+    };
+    window.addEventListener('ct:session-expired', onExpired);
+    return () => window.removeEventListener('ct:session-expired', onExpired);
+  }, []);
 
   const updateUser = (partialUser) => {
     setUser(prev => {

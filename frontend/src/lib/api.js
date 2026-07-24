@@ -24,6 +24,10 @@ const req = async (method, path, body) => {
   });
   const payload = await parseResponse(res);
 
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    window.dispatchEvent(new CustomEvent('ct:session-expired'));
+  }
+
   if (!res.ok) {
     throw payload || { error: 'Errore di rete' };
   }

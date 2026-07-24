@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
@@ -14,6 +14,13 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [focusField, setFocusField] = useState('')
+
+  useEffect(() => {
+    if (sessionStorage.getItem('ct_session_expired')) {
+      sessionStorage.removeItem('ct_session_expired')
+      setError('Sessione scaduta, accedi di nuovo')
+    }
+  }, [])
 
   const submit = async (e) => {
     e.preventDefault()
