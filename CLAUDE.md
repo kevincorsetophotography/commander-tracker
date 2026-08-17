@@ -69,8 +69,8 @@ frontend/src/
                       Dock: Feed(/) | Gioca(/gioca) | Eventi(/eventi) | Gruppo(/gruppo) | Io(/giocatore/:id)
                       Desktop navbar: Feed | Gioca | Eventi | Gruppo | Mazzi | [Admin]
                       /tornei → /eventi redirect (retrocompatibilità deep-link)
-                      RootRoute: "/" mostra LandingPage se non autenticato, Layout (Feed) se loggato —
-                      nessun altro path cambia, i deep-link non autenticati continuano a redirigere a /login
+                      /info → LandingPage, pubblica e scollegata dal portale (nessun redirect in base al
+                      login): "/" resta sempre il portale (Feed se loggato, redirect a /login altrimenti)
   lib/
     api.js            client fetch (Authorization Bearer) — espone tutti i metodi API
     achievements.js   26 achievement: definizioni + computeUnlocked (mirror backend)
@@ -87,10 +87,13 @@ frontend/src/
     useIsMobile.js    boolean (≤768px)
     useCountUp.js     animazione numerica (MetricCard in Dashboard)
   pages/
-    LandingPage.jsx        "/" quando NON autenticato — landing pubblica (marketing/community): hero, chi siamo,
-                           cosa facciamo, modo di giocare, proxy friendly, rule 0, mood, quando e dove, foto (gallery
-                           con lightbox), footer, link "Accedi" (in alto a destra nella nav) verso /login per i soci
-                           già registrati. Stile scoped in LandingPage.css (prefisso lp-), palette dark hard-coded
+    LandingPage.jsx        /info — landing pubblica (marketing/community), scollegata dal portale: nessun redirect
+                           né dipendenza da useAuth, accessibile a chiunque indipendentemente dal login. hero, chi
+                           siamo, cosa facciamo, modo di giocare, proxy friendly, rule 0, mood, quando e dove, foto
+                           (gallery con lightbox), footer, link "Accedi" (in alto a destra nella nav) verso /login per
+                           i soci già registrati (e viceversa: Login.jsx ha un link "Chi siamo" verso /info). Scroll
+                           interno animato (smoothScrollTo con offset per la nav sticky, rispetta prefers-reduced-
+                           motion). Stile scoped in LandingPage.css (prefisso lp-), palette dark hard-coded
                            (coerente con lib/theme.js dark) indipendente dal toggle tema del portale. Dettagli a tema
                            Magic: ManaRow (pip WUBRG in hero/footer), rarity-dot colorato sulle card "Cosa facciamo",
                            watermark di simboli tenue sulle sezioni alt, decorazioni d'angolo (dado/carte, nascoste
@@ -353,7 +356,7 @@ Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · No
 
 **Security hardening (2026-06)**: SSRF fix import deck (`new URL().hostname`), input length limits (username ≤32, password ≤128, decklist ≤20k, notes ≤2000), `apiLimiter` 300 req/min su tutte le route autenticate, `helmet` (HTTP security headers), re-fetch ruolo dal DB ad ogni request (revoca immediata role changes), `npm audit fix` (brace-expansion, qs/express), try/catch su tutti gli handler async.
 
-**Landing page pubblica (2026-08)**: `LandingPage.jsx` + `LandingPage.css` — presentazione ufficiale della community su `/` per i visitatori non autenticati (chi siamo, cosa facciamo, modo di giocare, proxy friendly 100%, Rule 0, mood, quando e dove con link Google Maps, gallery foto con lightbox, footer). Nessuna funzionalità del portale toccata: routing invariato per utenti loggati e per i deep-link non autenticati (`RootRoute` in `App.jsx` sceglie Landing vs Layout solo su `/` in base ad `useAuth`). Reveal-on-scroll via `IntersectionObserver` con timeout di sicurezza (2.5s) per non lasciare mai contenuto invisibile. SEO/OG in `index.html` + override runtime in `LandingPage.jsx`.
+**Landing page pubblica (2026-08)**: `LandingPage.jsx` + `LandingPage.css` — presentazione ufficiale della community su `/info` (chi siamo, cosa facciamo, modo di giocare, proxy friendly 100%, Rule 0, mood, quando e dove con link Google Maps, gallery foto reali con lightbox, footer). Rotta pubblica indipendente, scollegata dal portale: `/` resta sempre e solo il portale (Feed se loggato, redirect a `/login` altrimenti), nessuna funzionalità esistente toccata. Link incrociati "Accedi" (landing → `/login`) e "Chi siamo" (Login → `/info`). Reveal-on-scroll via `IntersectionObserver` con timeout di sicurezza (2.5s), scroll interno animato con offset nav sticky. SEO/OG in `index.html` + override runtime in `LandingPage.jsx`.
 
 Robustezza: PrismaClient singleton, rate-limit login + judge + API, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
 

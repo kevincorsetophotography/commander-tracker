@@ -66,7 +66,7 @@ export default function Login() {
             <div style={{ fontSize: 12, color: t.textMuted, letterSpacing: '0.22em', fontWeight: 600, marginTop: 2 }}>VILLASTELLONE</div>
           </div>
           <Link
-            to="/"
+            to="/info"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none',
               fontSize: 12.5, fontWeight: 600, color: t.textSub,

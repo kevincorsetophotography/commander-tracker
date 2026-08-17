@@ -300,14 +300,6 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/login" replace />
 }
 
-// La root "/" è pubblica per i visitatori (landing) ma resta il Feed per chi è loggato:
-// nessun path del portale cambia, i deep-link (notifiche, /partita/:id, ecc.) continuano
-// a redirigere a /login come prima per gli utenti non autenticati.
-function RootRoute() {
-  const { user } = useAuth()
-  return user ? <PrivateRoute><Layout /></PrivateRoute> : <LandingPage />
-}
-
 export default function App() {
   return (
     <ThemeProvider>
@@ -316,7 +308,8 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/"      element={<RootRoute />} />
+              {/* Landing pubblica, scollegata dal portale: nessun redirect in base al login. */}
+              <Route path="/info"  element={<LandingPage />} />
               <Route path="/*"     element={<PrivateRoute><Layout /></PrivateRoute>} />
             </Routes>
           </BrowserRouter>
