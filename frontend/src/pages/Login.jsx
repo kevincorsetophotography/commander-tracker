@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 
@@ -65,6 +65,17 @@ export default function Login() {
             <div className={`ct-wordmark ${dark ? 'dark' : 'light'}`} style={{ fontWeight: 900, fontSize: 24, letterSpacing: '0.05em' }}>COMMANDERONE</div>
             <div style={{ fontSize: 12, color: t.textMuted, letterSpacing: '0.22em', fontWeight: 600, marginTop: 2 }}>VILLASTELLONE</div>
           </div>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none',
+              fontSize: 12.5, fontWeight: 600, color: t.textSub,
+              padding: '5px 12px', borderRadius: 999, border: `1px solid ${t.border}`,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+            Chi siamo
+          </Link>
         </div>
 
         {/* Card */}

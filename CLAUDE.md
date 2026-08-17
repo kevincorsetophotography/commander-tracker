@@ -69,6 +69,8 @@ frontend/src/
                       Dock: Feed(/) | Gioca(/gioca) | Eventi(/eventi) | Gruppo(/gruppo) | Io(/giocatore/:id)
                       Desktop navbar: Feed | Gioca | Eventi | Gruppo | Mazzi | [Admin]
                       /tornei → /eventi redirect (retrocompatibilità deep-link)
+                      RootRoute: "/" mostra LandingPage se non autenticato, Layout (Feed) se loggato —
+                      nessun altro path cambia, i deep-link non autenticati continuano a redirigere a /login
   lib/
     api.js            client fetch (Authorization Bearer) — espone tutti i metodi API
     achievements.js   26 achievement: definizioni + computeUnlocked (mirror backend)
@@ -85,8 +87,21 @@ frontend/src/
     useIsMobile.js    boolean (≤768px)
     useCountUp.js     animazione numerica (MetricCard in Dashboard)
   pages/
+    LandingPage.jsx        "/" quando NON autenticato — landing pubblica (marketing/community): hero, chi siamo,
+                           cosa facciamo, modo di giocare, proxy friendly, rule 0, mood, quando e dove, foto (gallery
+                           con lightbox), footer, link "Accedi" (in alto a destra nella nav) verso /login per i soci
+                           già registrati. Stile scoped in LandingPage.css (prefisso lp-), palette dark hard-coded
+                           (coerente con lib/theme.js dark) indipendente dal toggle tema del portale. Dettagli a tema
+                           Magic: ManaRow (pip WUBRG in hero/footer), rarity-dot colorato sulle card "Cosa facciamo",
+                           watermark di simboli tenue sulle sezioni alt, decorazioni d'angolo (dado/carte, nascoste
+                           sotto 720px).
+                           Foto reali: file in frontend/public/Foto Commanderone/ (nome con spazio, referenziato come
+                           /Foto%20Commanderone/... in GALLERY_SLOTS), aspect-ratio tile 3:2 (foto paesaggio). Per
+                           aggiungerne altre: copiare il file lì e aggiungere una riga a GALLERY_SLOTS — finché un
+                           file non esiste, il tile mostra un placeholder "Foto in arrivo" invece di un'icona rotta.
+                           Instagram: valorizzare INSTAGRAM_URL in cima al file per far comparire il link in footer.
     Login.jsx             /login — form login/register con inviteCode
-    FeedPage.jsx          / — home feed: snapshot stagione, classifica mini, deck spotlight, attività settimanale, ultime partite + notifiche
+    FeedPage.jsx          / (autenticato) — home feed: snapshot stagione, classifica mini, deck spotlight, attività settimanale, ultime partite + notifiche
     GiocaPage.jsx         /gioca — landing "Gioca": CTA nuova partita, mazzi recenti, ultima partita
     GruppoPage.jsx        /gruppo — statistiche gruppo con 4 tab URL-based: Stagione (classifica + Primati + Meta), Giocatori, Mazzi, Storico
     DashboardPage.jsx     /dashboard — 6 tab stats LEGACY (ancora funzionante, non nel dock)
@@ -337,6 +352,8 @@ Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · No
 **Animation & Feed polish (2026-06)**: Sistema animazioni globali in `index.css` (`ct-fade-up`, `ct-bar-fill`, `ct-section-open`, `ct-modal-in`, `ct-lift`, `ct-press`). Stagger su GiocaPage/EventsPage/JudgePage/GruppoPage; tab transition con `key={tab}`; collapsible open con `ct-section-open`; WinBar con `ct-bar-fill` (scaleX). **FeedPage** arricchita: `MiniClassifica` (top-3 stagione), `DeckSpotlight` (miglior mazzo ultimi 10gg, min 3 partite), `WeeklyActivity` (sparkline 7 giorni). Seed dev aggiornato con 6 partite recenti garantite.
 
 **Security hardening (2026-06)**: SSRF fix import deck (`new URL().hostname`), input length limits (username ≤32, password ≤128, decklist ≤20k, notes ≤2000), `apiLimiter` 300 req/min su tutte le route autenticate, `helmet` (HTTP security headers), re-fetch ruolo dal DB ad ogni request (revoca immediata role changes), `npm audit fix` (brace-expansion, qs/express), try/catch su tutti gli handler async.
+
+**Landing page pubblica (2026-08)**: `LandingPage.jsx` + `LandingPage.css` — presentazione ufficiale della community su `/` per i visitatori non autenticati (chi siamo, cosa facciamo, modo di giocare, proxy friendly 100%, Rule 0, mood, quando e dove con link Google Maps, gallery foto con lightbox, footer). Nessuna funzionalità del portale toccata: routing invariato per utenti loggati e per i deep-link non autenticati (`RootRoute` in `App.jsx` sceglie Landing vs Layout solo su `/` in base ad `useAuth`). Reveal-on-scroll via `IntersectionObserver` con timeout di sicurezza (2.5s) per non lasciare mai contenuto invisibile. SEO/OG in `index.html` + override runtime in `LandingPage.jsx`.
 
 Robustezza: PrismaClient singleton, rate-limit login + judge + API, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
 
