@@ -318,12 +318,9 @@ function Layout() {
           /* ── HEADER MOBILE v2: brand · campanella · avatar (menu account) ── */
           <div style={{ ...navBar, padding: '0 0.85rem', paddingTop: 'env(safe-area-inset-top)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 60 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, overflow: 'hidden' }}>
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.primary, boxShadow: `0 0 10px ${t.primary}`, flexShrink: 0 }} />
-                <div style={{ lineHeight: 1.15, minWidth: 0 }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: t.text, letterSpacing: '-0.01em' }}>Commanderone</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textSub, letterSpacing: '0.14em' }}>VILLASTELLONE</div>
-                </div>
+              {/* Logo + scritta come su main (wordmark sfumato); cede per primo se lo spazio manca */}
+              <div style={{ minWidth: 0, overflow: 'hidden', flexShrink: 1 }}>
+                <Brand logoSize={34} titleSize={13} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                 <NotificationBell />

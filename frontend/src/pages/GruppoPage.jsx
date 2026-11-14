@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
-import { useCountUp } from '../hooks/useCountUp'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
@@ -12,6 +11,8 @@ import GameSocial from '../components/GameSocial'
 import { listSeasons, computeStandings, seasonOf } from '../lib/seasons'
 import PlayerAvatar from '../components/PlayerAvatar'
 import SeasonRecap from '../components/SeasonRecap'
+import NumberFlow from '@number-flow/react'
+import { Icon, ManaPips, Segmented, bento } from '../components/ui'
 
 // ─── piccoli helper ────────────────────────────────────────
 
@@ -24,79 +25,47 @@ function WinBar({ pct, t }) {
 }
 
 
-const METRIC_ICONS = {
-  partite: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="8" y="4" width="8" height="14" rx="1.5" transform="rotate(-18 12 18)"/>
-      <rect x="8" y="4" width="8" height="14" rx="1.5" transform="rotate(18 12 18)"/>
-      <rect x="8" y="3" width="8" height="15" rx="1.5"/>
-    </svg>
-  ),
-  giocatori: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-      <path d="M16 3.13a4 4 0 010 7.75"/>
-    </svg>
-  ),
-  mazzi: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2"/>
-      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-      <line x1="12" y1="12" x2="12" y2="17"/>
-      <line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/>
-    </svg>
-  ),
-  top: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-    </svg>
-  ),
-}
-
 function MetricCard({ label, value, icon, t }) {
-  const shown = useCountUp(value)
+  const isNum = typeof value === 'number'
   return (
-    <div style={{
-      background: t.bgSurface,
-      backdropFilter: 'blur(14px) saturate(150%)',
-      WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-      borderRadius: 16, padding: '1rem 1.15rem',
-      border: `1px solid ${t.border}`, boxShadow: t.shadow,
-      position: 'relative', overflow: 'hidden',
-    }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>{label}</div>
-        {icon && <span style={{ color: t.primary, opacity: 0.7 }}>{icon}</span>}
+    <div style={bento(t, { padding: '0.9rem 1rem', minWidth: 0 })}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 800 }}>{label}</div>
+        {icon && <span style={{ color: t.primary, display: 'flex' }}><Icon name={icon} size={18} /></span>}
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: t.text, lineHeight: 1 }}>{shown}</div>
+      <div style={{ fontSize: isNum ? 30 : 22, fontWeight: 900, color: t.text, lineHeight: 1.1, wordBreak: 'break-word', fontVariantNumeric: 'tabular-nums' }}>
+        {isNum ? <NumberFlow value={value} /> : value}
+      </div>
     </div>
   )
 }
 
-function SectionHeader({ icon, title, collapsible, open, onToggle, t }) {
+function SectionHeader({ icon, title, collapsible, open, onToggle, t, right }) {
   return (
-    <div
+    <button
       onClick={collapsible ? onToggle : undefined}
+      aria-expanded={collapsible ? open : undefined}
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 12, marginTop: 28,
-        cursor: collapsible ? 'pointer' : 'default',
-        userSelect: 'none',
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        margin: '26px 0 12px', padding: '4px 0', minHeight: 44, background: 'none', border: 'none',
+        cursor: collapsible ? 'pointer' : 'default', color: t.text, textAlign: 'left',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 18 }}>{icon}</span>
-        <span style={{ fontSize: 16, fontWeight: 800, color: t.text }}>{title}</span>
-      </div>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <span style={{ color: t.primary, display: 'flex' }}><Icon name={icon} size={20} /></span>
+        <span style={{ fontSize: 18, fontWeight: 800 }}>{title}</span>
+      </span>
+      {right}
       {collapsible && (
-        <span style={{ fontSize: 12, color: t.textMuted, transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none' }}>▼</span>
+        <span style={{ color: t.textSub, display: 'flex', transition: 'transform 0.2s', transform: open ? 'rotate(90deg)' : 'none' }}><Icon name="chevron" size={20} /></span>
       )}
-    </div>
+    </button>
   )
 }
+
+const PODIUM_COLORS = ['#F5C518', '#C9D1E0', '#D9915A']
+const COLOR_LBL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
+const MANA_BAR = { W: '#F8F6D8', U: '#3B82F6', B: '#6B5B7B', R: '#EF4444', G: '#16A34A' }
 
 // ─── main ──────────────────────────────────────────────────
 
@@ -281,36 +250,19 @@ export default function GruppoPage() {
   return (
     <>
     <div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginBottom: 14 }}>Gruppo</div>
+
       {/* Metriche globali */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
-        <MetricCard label="Partite totali"   value={totalGames}          icon={METRIC_ICONS.partite}   t={t} />
-        <MetricCard label="Giocatori"        value={playerStats.length}  icon={METRIC_ICONS.giocatori} t={t} />
-        <MetricCard label="Mazzi"            value={deckStats.length}    icon={METRIC_ICONS.mazzi}     t={t} />
-        <MetricCard label="Top player"       value={topPlayer?.username || '—'} icon={METRIC_ICONS.top} t={t} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <MetricCard label="Partite"    value={totalGames}          icon="swords" t={t} />
+        <MetricCard label="Giocatori"  value={playerStats.length}  icon="groups" t={t} />
+        <MetricCard label="Mazzi"      value={deckStats.length}    icon="cards"  t={t} />
+        <MetricCard label="Top player" value={topPlayer?.username || '—'} icon="crown" t={t} />
       </div>
 
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: `1px solid ${t.border}`, paddingBottom: 0 }}>
-        {TABS.map(({ key, label }) => {
-          const active = tab === key
-          return (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              style={{
-                padding: '8px 14px',
-                border: 'none', borderBottom: active ? `2px solid ${t.primary}` : '2px solid transparent',
-                background: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: active ? 700 : 500,
-                color: active ? t.primary : t.textSub,
-                marginBottom: -1, borderRadius: 0,
-                transition: 'color 0.15s',
-              }}
-            >
-              {label}
-            </button>
-          )
-        })}
+      {/* Tab */}
+      <div style={{ marginBottom: 18 }}>
+        <Segmented t={t} value={tab} onChange={setTab} options={TABS.map(x => ({ value: x.key, label: x.label }))} />
       </div>
 
       <div key={tab} className="ct-fade-up">
@@ -325,110 +277,145 @@ export default function GruppoPage() {
                 const currentSeasonKey = seasonOf(new Date()).key
                 const isCompleted = seasonKey !== currentSeasonKey
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                    <select
-                      value={seasonKey || ''}
-                      onChange={e => { setSeasonKey(e.target.value); setShowRecap(false) }}
-                      style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 14, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
-                    >
-                      {seasons.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                    </select>
-                    <span style={{ fontSize: 12, color: t.textMuted, flex: 1 }}>{season.total} partite · qualificato da {season.threshold}</span>
-                    {isCompleted && (
-                      <button
-                        onClick={() => setShowRecap(true)}
-                        className="ct-press"
-                        style={{
-                          padding: '6px 12px', borderRadius: 20, border: `1px solid ${t.primaryBorder}`,
-                          background: t.primaryBg, color: t.primary,
-                          fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 5,
-                        }}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 14px', borderRadius: 14, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text, fontSize: 15, fontWeight: 700 }}>
+                      <span style={{ color: t.primary, display: 'flex' }}><Icon name="trophy" size={17} /></span>
+                      {seasons.find(x => x.key === seasonKey)?.label}
+                      {!isCompleted && <span style={{ fontSize: 12, fontWeight: 700, color: t.primary }}>· in corso</span>}
+                      <span style={{ color: t.textSub, display: 'flex', transform: 'rotate(90deg)' }}><Icon name="chevron" size={16} /></span>
+                      <select
+                        aria-label="Stagione"
+                        value={seasonKey || ''}
+                        onChange={e => { setSeasonKey(e.target.value); setShowRecap(false) }}
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}
                       >
-                        🏅 Infografica
+                        {seasons.map(x => <option key={x.key} value={x.key}>{x.label}</option>)}
+                      </select>
+                    </label>
+                    {isCompleted && (
+                      <button onClick={() => setShowRecap(true)} className="ct-press" style={{
+                        minHeight: 44, padding: '0 14px', borderRadius: 14, border: `1px solid ${t.primaryBorder}`,
+                        background: t.primaryBg, color: t.primary, fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}>
+                        <Icon name="medal" size={17} /> Infografica
                       </button>
                     )}
                   </div>
                 )
               })()}
 
-              {season.champion && (
-                <div className="ct-fade-up" style={{
-                  ...card, display: 'flex', alignItems: 'center', gap: 14,
-                  background: `linear-gradient(135deg, ${t.primaryBg} 0%, ${t.bgSurface} 60%)`,
-                  borderColor: t.primaryBorder,
-                  boxShadow: `${t.shadow}, 0 0 24px ${t.primary}22`,
-                }}>
-                  <div style={{ fontSize: 38, lineHeight: 1, filter: 'drop-shadow(0 2px 8px rgba(52,240,143,0.4))' }}>🏆</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>In testa alla stagione</div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: t.text, lineHeight: 1.1, marginTop: 2 }}>{season.champion.username}</div>
+              {/* Podio (primi 3 qualificati) */}
+              {(() => {
+                const top = season.standings.filter(x => x.qualified).slice(0, 3)
+                if (top.length < 2) return null
+                const order = top.length === 3 ? [top[1], top[0], top[2]] : [top[1], top[0]]
+                const avatar = (id) => playerStats.find(p => p.id === id) || {}
+                return (
+                  <div className="ct-fade-up" style={bento(t, { padding: '1rem 0.75rem', marginBottom: 14 })}>
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${order.length}, 1fr)`, gap: 8, alignItems: 'end' }}>
+                      {order.map(x => {
+                        const rank = top.indexOf(x)
+                        const first = rank === 0
+                        const av = avatar(x.id)
+                        return (
+                          <div key={x.id} onClick={() => navigate(`/giocatore/${x.id}`)} className="ct-press" style={{
+                            cursor: 'pointer', textAlign: 'center', minWidth: 0, borderRadius: 18,
+                            padding: first ? '14px 6px 14px' : '10px 6px 12px',
+                            background: first ? t.primaryBg : t.bgSurfaceAlt,
+                            border: `1px solid ${first ? t.primaryBorder : t.border}`,
+                            boxShadow: first && t.glow !== 'none' ? t.glow : 'none',
+                          }}>
+                            {first && <div style={{ color: PODIUM_COLORS[0], display: 'flex', justifyContent: 'center', marginBottom: 4 }}><Icon name="crown" size={20} /></div>}
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <PlayerAvatar username={x.username} avatarCardName={av.avatarCardName} avatarScryfallId={av.avatarScryfallId} size={first ? 64 : 50} highlight={x.id === user?.id} />
+                              <span style={{
+                                position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)', minWidth: 24, height: 24, borderRadius: 999,
+                                background: PODIUM_COLORS[rank], color: '#1a1a2e', fontSize: 13, fontWeight: 900,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${t.bgPage}`,
+                              }}>{rank + 1}</span>
+                            </div>
+                            <div style={{ fontSize: first ? 16 : 14, fontWeight: 800, color: t.text, marginTop: 10, wordBreak: 'break-word', lineHeight: 1.2 }}>{x.username}</div>
+                            <div style={{ fontSize: first ? 24 : 19, fontWeight: 900, color: first ? t.primary : t.text, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+                              <NumberFlow value={x.points} /><span style={{ fontSize: 12, fontWeight: 700, color: t.textSub, marginLeft: 3 }}>pt</span>
+                            </div>
+                            <div style={{ fontSize: 12, color: t.textSub, lineHeight: 1.35 }}>{x.games} partite<br />{x.wins} vittorie</div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: t.primary, lineHeight: 1, filter: `drop-shadow(0 0 8px ${t.primary}60)` }}>{season.champion.points}</div>
-                    <div style={{ fontSize: 11, color: t.textMuted, letterSpacing: '0.04em' }}>punti</div>
-                  </div>
-                </div>
-              )}
+                )
+              })()}
 
-              <div style={{ fontSize: 11.5, color: t.textMuted, margin: '4px 4px 10px' }}>
-                Punteggio: 1° = 3 · 2° = 2 · 3° = 1 · +1 presenza a ogni partita
+              <div style={{ fontSize: 13, color: t.textSub, margin: '2px 2px 10px', lineHeight: 1.45 }}>
+                Punti: 1° = 3 · 2° = 2 · 3° = 1 · +1 per ogni partita giocata. Qualificato chi gioca almeno {season.threshold} delle {season.total} partite (30%).
               </div>
 
-              {season.standings.map((s, i) => (
-                <div key={s.id} className="ct-lift ct-fade-up" onClick={() => navigate(`/giocatore/${s.id}`)} style={{ ...card, cursor: 'pointer', opacity: s.qualified ? 1 : 0.62, animationDelay: `${Math.min(i, 7) * 45}ms` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                      <div style={{ minWidth: 28, textAlign: 'center', flexShrink: 0 }}>
-                        {i < 3 && s.qualified
-                          ? <span style={{ fontSize: 20, lineHeight: 1 }}>{['🥇', '🥈', '🥉'][i]}</span>
-                          : <span style={{ fontSize: 13, fontWeight: 700, color: t.textMuted }}>{i + 1}°</span>
-                        }
+              {season.standings.map((s, i) => {
+                const me = s.id === user?.id
+                const av = playerStats.find(p => p.id === s.id) || {}
+                const rankColor = i < 3 && s.qualified ? PODIUM_COLORS[i] : t.textSub
+                return (
+                  <div key={s.id} className="ct-lift ct-fade-up" onClick={() => navigate(`/giocatore/${s.id}`)} style={bento(t, {
+                    cursor: 'pointer', padding: '0.75rem 0.85rem', marginBottom: 8, animationDelay: `${Math.min(i, 7) * 40}ms`,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: me ? t.primaryBg : t.bgSurface, border: `1px solid ${me ? t.primaryBorder : t.border}`,
+                  })}>
+                    <span style={{ width: 26, flexShrink: 0, textAlign: 'center', fontSize: 16, fontWeight: 900, color: rankColor, fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span>
+                    <PlayerAvatar username={s.username} avatarCardName={av.avatarCardName} avatarScryfallId={av.avatarScryfallId} size={40} highlight={me} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>{s.username}</span>
+                        {me && <span style={{ fontSize: 12, fontWeight: 800, color: t.primaryFg, background: t.primary, padding: '1px 6px', borderRadius: 6 }}>Tu</span>}
                       </div>
-                      <PlayerAvatar username={s.username} avatarCardName={playerStats.find(p => p.id === s.id)?.avatarCardName} avatarScryfallId={playerStats.find(p => p.id === s.id)?.avatarScryfallId} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {s.username}
-                          {!s.qualified && <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 600, border: `1px solid ${t.border}`, borderRadius: 6, padding: '1px 5px' }}>non qualif.</span>}
-                        </div>
-                        <div style={{ fontSize: 12, color: t.textSub }}>{s.games} partite · {s.wins} vittorie</div>
+                      <div style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}>
+                        {s.games} partite · {s.wins} vittorie · {s.games ? Math.round(s.wins / s.games * 100) : 0}%
                       </div>
+                      <span style={{
+                        display: 'inline-block', marginTop: 5, fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                        color: s.qualified ? t.win : t.textSub, background: s.qualified ? t.winBg : 'transparent',
+                        border: `1px solid ${s.qualified ? t.primaryBorder : t.border}`,
+                      }}>{s.qualified ? 'Qualificato' : `Non qualificato · ${s.games}/${season.threshold}`}</span>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: t.text }}>{s.points}</div>
-                      <div style={{ fontSize: 11, color: t.textMuted }}>punti</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: i === 0 && s.qualified ? t.primary : t.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                        <NumberFlow value={s.points} />
+                      </div>
+                      <div style={{ fontSize: 12, color: t.textSub }}>punti</div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </>
           )}
 
           {/* ── PRIMATI ── */}
-          <SectionHeader icon="🥇" title="Primati" collapsible open={showPrimati} onToggle={() => setShowPrimati(v => !v)} t={t} />
+          <SectionHeader icon="medal" title="Primati" collapsible open={showPrimati} onToggle={() => setShowPrimati(v => !v)} t={t} />
           {showPrimati && (
             !records ? (
               <EmptyState icon="🏆" title="Nessun primato ancora" message="Servono partite registrate per calcolare record e statistiche del gruppo." />
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8 }}>
+              <div className="ct-section-open" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
                 {[
-                  { icon: '👑', label: 'Re del mese',      value: records.kingOfMonth?.[0] || '—',                        sub: records.kingOfMonth ? `${records.kingOfMonth[1]} vittorie` : 'nessuna partita' },
-                  { icon: '🔥', label: 'Streak record',     value: records.longestStreak ? `${records.longestStreak.best}×` : '—', sub: records.longestStreak?.username || '' },
-                  { icon: '🏅', label: 'Più vittorie',      value: records.mostWins?.username || '—',                      sub: records.mostWins ? `${records.mostWins.wins} vinte` : '' },
-                  { icon: '📈', label: 'Miglior win rate',  value: records.bestRate ? `${records.bestRate.winRate}%` : '—', sub: records.bestRate?.username || 'min 5 partite' },
-                  { icon: '🎴', label: 'Mazzo più forte',   value: records.topDeck?.name || '—',                           sub: records.topDeck ? `${records.topDeck.winRate}%` : 'min 3 partite' },
-                  { icon: '🎲', label: 'Più presenze',      value: records.mostGames?.username || '—',                     sub: records.mostGames ? `${records.mostGames.games} partite` : '' },
-                  { icon: '🪑', label: 'Tavolo record',     value: `${records.biggestTable.players.length} giocatori`,     sub: new Date(records.biggestTable.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) },
-                  { icon: '🛡️', label: 'Re sopravv.',       value: records.survivalKing?.username || '—',                  sub: records.survivalKing ? `avg ${records.survivalKing.avg.toFixed(1)}°` : 'serve ordine uscita' },
-                  { icon: '🪦', label: 'Sfortunato',        value: records.unluckiest?.username || '—',                    sub: records.unluckiest ? `${records.unluckiest.firstOuts}× 1° elim.` : 'serve ordine uscita' },
-                  { icon: '⚔️', label: 'Più spietato',      value: records.mostRuthless?.[0] || '—',                      sub: records.mostRuthless ? `${records.mostRuthless[1]} elim.` : 'serve kill tracking' },
-                  { icon: '🎯', label: 'Bersaglio',         value: records.biggestTarget?.[0] || '—',                     sub: records.biggestTarget ? `eliminato ${records.biggestTarget[1]}×` : 'serve kill tracking' },
+                  { icon: 'crown',  label: 'Re del mese',      value: records.kingOfMonth?.[0] || '—',                        sub: records.kingOfMonth ? `${records.kingOfMonth[1]} vittorie` : 'nessuna partita' },
+                  { icon: 'flame',  label: 'Serie record',     value: records.longestStreak?.username || '—',                 sub: records.longestStreak ? `${records.longestStreak.best} vittorie di fila` : '' },
+                  { icon: 'trophy', label: 'Più vittorie',     value: records.mostWins?.username || '—',                      sub: records.mostWins ? `${records.mostWins.wins} vinte` : '' },
+                  { icon: 'chart',  label: 'Miglior win rate', value: records.bestRate?.username || '—',                      sub: records.bestRate ? `${records.bestRate.winRate}% · min 5 partite` : 'min 5 partite' },
+                  { icon: 'cards',  label: 'Mazzo più forte',  value: records.topDeck?.name || '—',                           sub: records.topDeck ? `${records.topDeck.winRate}% · min 3 partite` : 'min 3 partite' },
+                  { icon: 'calendar', label: 'Più presenze',   value: records.mostGames?.username || '—',                     sub: records.mostGames ? `${records.mostGames.games} partite` : '' },
+                  { icon: 'groups', label: 'Tavolo record',    value: `${records.biggestTable.players.length} giocatori`,     sub: new Date(records.biggestTable.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) },
+                  { icon: 'shield', label: 'Re sopravvivenza', value: records.survivalKing?.username || '—',                  sub: records.survivalKing ? `piazzamento medio ${records.survivalKing.avg.toFixed(1)}°` : 'serve ordine di uscita' },
+                  { icon: 'skull',  label: 'Sfortunato',       value: records.unluckiest?.username || '—',                    sub: records.unluckiest ? `${records.unluckiest.firstOuts}× primo eliminato` : 'serve ordine di uscita' },
+                  { icon: 'swords', label: 'Più spietato',     value: records.mostRuthless?.[0] || '—',                      sub: records.mostRuthless ? `${records.mostRuthless[1]} eliminazioni` : 'serve "eliminato da"' },
+                  { icon: 'pin',    label: 'Bersaglio',        value: records.biggestTarget?.[0] || '—',                     sub: records.biggestTarget ? `eliminato ${records.biggestTarget[1]} volte` : 'serve "eliminato da"' },
                 ].map((r, i) => (
-                  <div key={i} style={{ background: t.bgSurface, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: `1px solid ${t.border}`, borderRadius: 12, padding: '0.6rem 0.75rem', boxShadow: t.shadow, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: t.gradient }} />
-                    <div style={{ fontSize: 10, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 5 }}>{r.icon} {r.label}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: t.text, lineHeight: 1.2, wordBreak: 'break-word' }}>{r.value}</div>
-                    {r.sub && <div style={{ fontSize: 10, color: t.textMuted, marginTop: 3 }}>{r.sub}</div>}
+                  <div key={i} style={bento(t, { padding: '0.8rem 0.9rem', borderRadius: 16, minWidth: 0 })}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800, marginBottom: 6 }}>
+                      <span style={{ color: t.accent, display: 'flex' }}><Icon name={r.icon} size={15} /></span>{r.label}
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: t.text, lineHeight: 1.25, wordBreak: 'break-word' }}>{r.value}</div>
+                    {r.sub && <div style={{ fontSize: 12, color: t.textSub, marginTop: 3, lineHeight: 1.35 }}>{r.sub}</div>}
                   </div>
                 ))}
               </div>
@@ -436,38 +423,47 @@ export default function GruppoPage() {
           )}
 
           {/* ── META COLORI ── */}
-          <SectionHeader icon="🎨" title="Meta colori" collapsible open={showMeta} onToggle={() => setShowMeta(v => !v)} t={t} />
+          <SectionHeader icon="chart" title="Meta colori" collapsible open={showMeta} onToggle={() => setShowMeta(v => !v)} t={t} />
           {showMeta && (
-            <div style={card}>
+            <div className="ct-section-open" style={bento(t, { padding: '1rem' })}>
               {colorMeta.every(c => c.games === 0) ? (
                 <div style={{ fontSize: 13, color: t.textMuted }}>Nessun dato</div>
-              ) : colorMeta.map(c => {
-                const COLOR_BG  = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
-                const COLOR_LBL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
-                return (
-                  <div key={c.color} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: COLOR_BG[c.color], border: '1px solid rgba(0,0,0,0.15)', flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{c.color}</span>
-                    <span style={{ fontSize: 12, color: t.textSub, width: 52, flexShrink: 0 }}>{COLOR_LBL[c.color]}</span>
-                    <div style={{ flex: 1, height: 8, borderRadius: 4, background: t.bgMuted, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${c.winRate}%`, background: t.primary, borderRadius: 4, transition: 'width 0.4s' }} />
+              ) : (
+                <>
+                  {(() => {
+                    const tot = colorMeta.reduce((a, c) => a + c.games, 0) || 1
+                    return (
+                      <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', marginBottom: 14 }}>
+                        {colorMeta.map(c => <div key={c.color} className="ct-bar-fill" style={{ width: `${c.games / tot * 100}%`, background: MANA_BAR[c.color] }} />)}
+                      </div>
+                    )
+                  })()}
+                  {colorMeta.map(c => (
+                    <div key={c.color} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <ManaPips colors={c.color} size={24} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text, width: 58, flexShrink: 0 }}>{COLOR_LBL[c.color]}</span>
+                      <div style={{ flex: 1, height: 8, borderRadius: 4, background: t.bgMuted, overflow: 'hidden' }}>
+                        <div className="ct-bar-fill" style={{ height: '100%', width: `${c.winRate}%`, background: t.primary, borderRadius: 4 }} />
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: t.text, width: 42, textAlign: 'right', flexShrink: 0 }}>{c.winRate}%</span>
+                      <span style={{ fontSize: 12, color: t.textSub, width: 58, textAlign: 'right', flexShrink: 0 }}>{c.games} pres.</span>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: t.text, width: 38, textAlign: 'right', flexShrink: 0 }}>{c.winRate}%</span>
-                    <span style={{ fontSize: 11, color: t.textMuted, width: 60, textAlign: 'right', flexShrink: 0 }}>{c.games} pres.</span>
-                  </div>
-                )
-              })}
+                  ))}
+                  <div style={{ fontSize: 12, color: t.textSub, marginTop: 2 }}>Barra: quota di presenze per colore · percentuale: win rate dei mazzi con quel colore</div>
+                </>
+              )}
 
               <div style={{ marginTop: 24 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 16 }}>Attivita · partite per mese</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: t.text, marginBottom: 16 }}>Attività · partite per mese</div>
                 {(() => {
                   const max = Math.max(1, ...activity.map(m => m.count))
                   return (
                     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, height: 130 }}>
                       {activity.map((m, i) => (
                         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: m.count ? t.text : t.textMuted }}>{m.count || ''}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: m.count ? t.text : t.textMuted }}>{m.count || ''}</div>
                           <div style={{ width: '100%', maxWidth: 38, height: `${(m.count / max) * 90}px`, minHeight: m.count ? 4 : 2, background: m.count ? t.gradient : t.bgMuted, borderRadius: 6, transition: 'height 0.4s' }} />
-                          <div style={{ fontSize: 10.5, color: t.textSub, textTransform: 'capitalize' }}>{m.label}</div>
+                          <div style={{ fontSize: 12, color: t.textSub, textTransform: 'capitalize' }}>{m.label}</div>
                         </div>
                       ))}
                     </div>
