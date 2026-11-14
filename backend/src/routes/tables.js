@@ -2,7 +2,7 @@ const router = require('express').Router();
 const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
-const { findEventForTime, joinError, canEditTable, resultMatchesSeats, MAX_SEATS } = require('../lib/openTables');
+const { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, MAX_SEATS } = require('../lib/openTables');
 
 // Tavoli aperti creati dai giocatori (separati dai pod di torneo generati dall'admin).
 
@@ -24,10 +24,14 @@ const parseId = (v) => { const n = Number.parseInt(v, 10); return Number.isInteg
 const loadTable = (id) => prisma.openTable.findUnique({ where: { id }, include: tableInclude });
 
 // Eventi "vicini" a un orario (per agganciare il tavolo alla serata giusta).
+// I tornei 1v1 (svizzera) non prevedono tavoli aperti: esclusi dall'aggancio.
 async function eventNear(when) {
   const t = new Date(when);
   const from = new Date(t.getTime() - 2 * 86400000), to = new Date(t.getTime() + 2 * 86400000);
-  const events = await prisma.event.findMany({ where: { startsAt: { gte: from, lte: to } }, select: { id: true, startsAt: true, allDay: true } });
+  const events = await prisma.event.findMany({
+    where: { startsAt: { gte: from, lte: to }, OR: [{ format: null }, { format: { not: '1v1' } }] },
+    select: { id: true, startsAt: true, allDay: true, format: true },
+  });
   return findEventForTime(events, t);
 }
 
@@ -52,8 +56,9 @@ router.post('/', auth, async (req, res) => {
     let startsAt = new Date();
     let eventId = parseId(req.body.eventId);
     if (eventId) {
-      const ev = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, startsAt: true } });
+      const ev = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, startsAt: true, format: true } });
       if (!ev) return res.status(404).json({ error: 'Evento non trovato' });
+      if (!allowsOpenTables(ev)) return res.status(400).json({ error: 'I tornei 1v1 (svizzera) non prevedono tavoli aperti' });
       // evento futuro: il tavolo parte all'orario dell'evento
       if (new Date(ev.startsAt) > startsAt) startsAt = new Date(ev.startsAt);
     } else {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findEventForTime, joinError, canEditTable, resultMatchesSeats, eventWindow } from './openTables'
+import { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, eventWindow } from './openTables'
 import { canCreateEvent, canManageEvent } from './permissions'
 
 const at = (s) => new Date(s)
@@ -20,6 +20,15 @@ describe('eventWindow / findEventForTime', () => {
     expect(findEventForTime([allDay], at('2026-11-22T23:30:00'))?.id).toBe(2)
     const { from } = eventWindow(allDay)
     expect(from.getHours()).toBe(0)
+  })
+
+  it('non aggancia mai un torneo 1v1 (svizzera)', () => {
+    const duel = { id: 9, startsAt: at('2026-11-20T21:00:00'), allDay: false, format: '1v1' }
+    expect(findEventForTime([duel], at('2026-11-20T21:30:00'))).toBeNull()
+    expect(findEventForTime([duel, ev], at('2026-11-20T21:30:00'))?.id).toBe(1)
+    expect(allowsOpenTables(duel)).toBe(false)
+    expect(allowsOpenTables({ format: 'multiplayer' })).toBe(true)
+    expect(allowsOpenTables({ format: null })).toBe(true)
   })
 
   it("con più eventi sceglie quello che inizia più vicino all'orario del tavolo", () => {

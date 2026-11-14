@@ -341,8 +341,10 @@ export default function EventDetailPage() {
         </>
       )}
 
-      {/* Tavoli aperti dai giocatori per questa serata */}
-      <OpenTables eventId={event.id} title="Tavoli aperti della serata" emptyHint="Nessun tavolo aperto per questa serata. Aprine uno: gli altri vedranno i posti liberi e potranno sedersi." />
+      {/* Tavoli aperti dai giocatori per questa serata (non nei tornei 1v1: lì gli abbinamenti sono a svizzera) */}
+      {!is1v1 && (
+        <OpenTables eventId={event.id} title="Tavoli aperti della serata" emptyHint="Nessun tavolo aperto per questa serata. Aprine uno: gli altri vedranno i posti liberi e potranno sedersi." />
+      )}
 
       {/* Partite registrate nel giorno dell'evento */}
       {nightGames.length > 0 && (

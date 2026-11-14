@@ -14,10 +14,14 @@ function eventWindow(event) {
   return { from, to };
 }
 
+// I tornei 1v1 (svizzera) non prevedono tavoli aperti.
+const allowsOpenTables = (event) => event?.format !== '1v1';
+
 // L'evento a cui agganciare un tavolo che inizia a `when` (il più vicino come inizio), o null.
+// Gli eventi 1v1 non vengono mai considerati.
 function findEventForTime(events, when) {
   const t = new Date(when).getTime();
-  const hits = events.filter(ev => {
+  const hits = events.filter(allowsOpenTables).filter(ev => {
     const { from, to } = eventWindow(ev);
     return t >= from.getTime() && t < to.getTime();
   });
@@ -47,4 +51,4 @@ function resultMatchesSeats(gamePlayerIds, seatUserIds) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
-module.exports = { MAX_SEATS, eventWindow, findEventForTime, joinError, canEditTable, resultMatchesSeats };
+module.exports = { MAX_SEATS, allowsOpenTables, eventWindow, findEventForTime, joinError, canEditTable, resultMatchesSeats };
