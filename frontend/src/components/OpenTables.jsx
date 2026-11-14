@@ -59,11 +59,11 @@ function TableCard({ table, me, t, onChange, showEvent }) {
       background: seated && !done ? t.primaryBg : t.bgSurfaceAlt,
       boxShadow: seated && !done && t.glow !== 'none' ? t.glow : 'none',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <div style={{ minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0, flex: '1 1 150px' }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>Tavolo di {table.createdBy.username}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4, fontSize: 13, color: t.textSub }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="clock" size={14} /> dalle {hhmm(table.startsAt)}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}><Icon name="clock" size={14} /> dalle {hhmm(table.startsAt)}</span>
             {showEvent && table.event && (
               <button onClick={() => navigate(`/evento/${table.event.id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: t.primary, fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Icon name="calendar" size={14} /> {table.event.title}
