@@ -10,6 +10,9 @@ import PlayerAvatar from '../components/PlayerAvatar'
 import DeckThumb from '../components/DeckThumb'
 import BracketBadge from '../components/BracketBadge'
 import { Icon, ManaPips, bento } from '../components/ui'
+import PlayerPicker from '../components/PlayerPicker'
+import { useAuth } from '../hooks/useAuth'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 // Registra partita v2 (restyle Stitch): logger a tocchi, a schermo intero.
 // Stessa API di prima: giocatori+mazzi, vincitore, piazzamenti (da ordine di uscita),
@@ -60,8 +63,10 @@ const chip = (t, active, extra = {}) => ({
 
 export default function NewGamePage() {
   const navigate = useNavigate()
-  const { t } = useTheme()
+  const { t, dark } = useTheme()
   const { toast } = useFeedback()
+  const { user: me } = useAuth()
+  const isMobile = useIsMobile()
   // Contesto pod torneo: giocatori bloccati + collegamento al tavolo dopo il salvataggio
   const podCtx = useLocation().state?.podContext || null
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
@@ -77,10 +82,18 @@ export default function NewGamePage() {
   const [elimBy, setElimBy] = useState({})        // { "userId-deckId" → userId del killer }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [editing, setEditing] = useState(null)    // indice dello slot in modifica (scelta giocatore/mazzo)
+  const [editing, setEditing] = useState(null)    // indice dello slot in modifica (scelta del mazzo)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [games, setGames] = useState([])          // per "Giocati di recente" e conteggio partite
+  const [events, setEvents] = useState([])        // per "Stasera"
 
   useEffect(() => {
     api.getDecks().then(setAllDecks).catch(() => setError('Errore caricamento mazzi'))
+    if (!podCtx) {
+      api.getGames().then(setGames).catch(() => {})
+      api.getEvents().then(setEvents).catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Raggruppa mazzi per utente
@@ -90,9 +103,59 @@ export default function NewGamePage() {
     return acc
   }, {}), [allDecks])
 
-  const users = Object.entries(byUser)
+  const users = useMemo(() => Object.entries(byUser)
     .map(([id, v]) => ({ id: parseInt(id), ...v }))
-    .sort((a, b) => a.username.localeCompare(b.username))
+    .sort((a, b) => a.username.localeCompare(b.username)), [byUser])
+
+  // Partite giocate da ciascuno (ordinamento e info nel selettore)
+  const gamesById = useMemo(() => {
+    const m = {}
+    for (const g of games) for (const pl of g.players) m[pl.user.id] = (m[pl.user.id] || 0) + 1
+    return m
+  }, [games])
+
+  // "Giocati di recente": io + i compagni più frequenti delle mie ultime 20 partite
+  const recentIds = useMemo(() => {
+    const mine = games.filter(g => g.players.some(pl => pl.user.id === me?.id)).slice(0, 20)
+    const count = {}
+    for (const g of mine) for (const pl of g.players) if (pl.user.id !== me?.id) count[pl.user.id] = (count[pl.user.id] || 0) + 1
+    const ids = Object.entries(count).sort((a, b) => b[1] - a[1]).map(([id]) => parseInt(id))
+    return [...(me?.id && byUser[me.id] ? [me.id] : []), ...ids].filter(id => byUser[id]).slice(0, 8)
+  }, [games, me, byUser])
+
+  // "Stasera": iscritti agli eventi di oggi
+  const tonightIds = useMemo(() => {
+    const today = new Date()
+    const same = (d) => { const x = new Date(d); return x.getFullYear() === today.getFullYear() && x.getMonth() === today.getMonth() && x.getDate() === today.getDate() }
+    const ids = new Set()
+    for (const ev of events) if (same(ev.startsAt)) for (const r of ev.rsvps || []) ids.add(r.userId)
+    return [...ids].filter(id => byUser[id])
+  }, [events, byUser])
+
+  // Selezione dal selettore: aggiunge al primo posto libero (o un nuovo posto, max 5),
+  // oppure toglie il giocatore dal tavolo.
+  const toggleUser = (id) => {
+    const key = String(id)
+    const decks = byUser[id]?.decks || []
+    const autoDeck = decks.length === 1 ? String(decks[0].id) : ''
+    setSlots(prev => {
+      const idx = prev.findIndex(sl => sl.userId === key)
+      if (idx !== -1) {
+        const rest = prev.filter((_, i) => i !== idx)
+        while (rest.length < 3) rest.push({ ...EMPTY_SLOT })
+        // posti vuoti in fondo
+        return [...rest.filter(sl => sl.userId), ...rest.filter(sl => !sl.userId)]
+      }
+      const empty = prev.findIndex(sl => !sl.userId)
+      if (empty !== -1) {
+        const next = [...prev]; next[empty] = { userId: key, deckId: autoDeck }; return next
+      }
+      if (prev.length >= 5) return prev
+      return [...prev, { userId: key, deckId: autoDeck }]
+    })
+    setWinnerId(null)
+    setEditing(null)
+  }
 
   const updateSlot = (i, patch) => {
     setSlots(prev => {
@@ -282,13 +345,27 @@ export default function NewGamePage() {
         <StepTitle n={1} t={t} title="Chi ha giocato" sub="Da 3 a 5 giocatori al tavolo"
           right={<span style={{ fontSize: 13, fontWeight: 700, color: filledSlots.length >= 3 ? t.primary : t.textSub, padding: '4px 10px', borderRadius: 999, border: `1px solid ${filledSlots.length >= 3 ? t.primaryBorder : t.border}`, whiteSpace: 'nowrap' }}>{filledSlots.length}/{slots.length}</span>} />
 
+        {!podCtx && (
+          <button onClick={() => setPickerOpen(true)} className="ct-press" style={{
+            width: '100%', minHeight: 54, borderRadius: 16, cursor: 'pointer', marginBottom: 12,
+            display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px', textAlign: 'left',
+            border: `1px solid ${t.primaryBorder}`, background: t.primaryBg, color: t.text,
+          }}>
+            <span style={{ width: 36, height: 36, borderRadius: 12, background: t.primary, color: t.primaryFg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="groups" size={19} stroke={2.2} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 15, fontWeight: 800 }}>{slots.some(sl => sl.userId) ? 'Cambia i giocatori' : 'Scegli i giocatori'}</span>
+              <span style={{ display: 'block', fontSize: 13, color: t.textSub }}>Cerca per nome, stasera, giocati di recente</span>
+            </span>
+            <Icon name="chevron" size={18} />
+          </button>
+        )}
+
         {slots.map((slot, i) => {
           const u = slot.userId ? userOf(slot.userId) : null
           const deck = slot.deckId ? deckOf(slot.deckId) : null
-          const open = editing === i || !slot.userId || !slot.deckId
-          const userChoices = podCtx
-            ? podCtx.players.map(p => ({ id: p.userId, username: p.username, ...(byUser[p.userId] || {}) }))
-            : users.filter(x => !usedIds.has(String(x.id)) || String(x.id) === slot.userId)
+          const open = !!slot.userId && (editing === i || !slot.deckId)
           return (
             <div key={i} style={{
               borderRadius: 16, padding: 12, marginBottom: 10,
@@ -307,31 +384,25 @@ export default function NewGamePage() {
                       <ManaPips colors={deck.colors} size={17} />
                     </div>
                   ) : (
-                    <div style={{ fontSize: 13, color: t.textMuted, marginTop: 2 }}>{u ? 'Scegli il mazzo' : 'Tocca un giocatore qui sotto'}</div>
+                    <div style={{ fontSize: 13, color: t.textMuted, marginTop: 2 }}>{u ? 'Scegli il mazzo' : (podCtx ? '' : 'Posto libero')}</div>
                   )}
                 </div>
-                {deck && !open && (
-                  <button onClick={() => setEditing(i)} className="ct-press" style={{ minHeight: 40, padding: '0 12px', borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cambia</button>
+                {!u && !podCtx && (
+                  <button onClick={() => setPickerOpen(true)} className="ct-press" style={{ minHeight: 40, padding: '0 12px', borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="plus" size={15} stroke={2.4} /> Scegli</button>
                 )}
-                {i >= 3 && !podCtx && (
-                  <button onClick={() => removeSlot(i)} aria-label="Rimuovi giocatore" className="ct-press" style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={18} /></button>
+                {deck && !open && (byUser[slot.userId]?.decks || []).length > 1 && (
+                  <button onClick={() => setEditing(i)} className="ct-press" style={{ minHeight: 40, padding: '0 12px', borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Mazzo</button>
+                )}
+                {u && !podCtx && (
+                  <button onClick={() => toggleUser(parseInt(slot.userId))} aria-label={`Togli ${u.username} dal tavolo`} className="ct-press" style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={18} /></button>
+                )}
+                {!u && i >= 3 && !podCtx && (
+                  <button onClick={() => removeSlot(i)} aria-label="Rimuovi posto" className="ct-press" style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={18} /></button>
                 )}
               </div>
 
-              {/* scelta giocatore */}
-              {open && !podCtx && (
-                <div className="ct-scroll-x ct-section-open" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 12, paddingBottom: 2 }}>
-                  {userChoices.map(x => (
-                    <button key={x.id} onClick={() => pickUser(i, x.id)} className="ct-press" style={chip(t, String(x.id) === slot.userId)}>
-                      <PlayerAvatar username={x.username} avatarCardName={x.avatarCardName} avatarScryfallId={x.avatarScryfallId} size={32} />
-                      {x.username}
-                    </button>
-                  ))}
-                </div>
-              )}
-
               {/* scelta mazzo */}
-              {open && slot.userId && (
+              {open && (
                 <div className="ct-section-open" style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                   {(byUser[slot.userId]?.decks || []).map(d => {
                     const active = String(d.id) === slot.deckId
@@ -362,12 +433,12 @@ export default function NewGamePage() {
         })}
 
         {slots.length < 5 && !podCtx && (
-          <button onClick={addSlot} className="ct-press" style={{
+          <button onClick={() => setPickerOpen(true)} className="ct-press" style={{
             width: '100%', minHeight: 48, borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700,
             border: `1.5px dashed ${t.borderStrong}`, background: 'transparent', color: t.textSub,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}>
-            <Icon name="plus" size={18} /> Aggiungi {slots.length + 1}° giocatore
+            <Icon name="plus" size={18} /> Aggiungi giocatore ({slots.filter(sl => sl.userId).length}/5)
           </button>
         )}
       </div>
@@ -509,6 +580,14 @@ export default function NewGamePage() {
       </div>
 
       {error && <div role="alert" style={{ color: t.danger, fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{error}</div>}
+
+      {!podCtx && (
+        <PlayerPicker
+          open={pickerOpen} onOpenChange={setPickerOpen} t={t} dark={dark} isMobile={isMobile}
+          players={users} selected={slots.map(sl => sl.userId).filter(Boolean).map(Number)} onToggle={toggleUser} max={5}
+          tonightIds={tonightIds} recentIds={recentIds} gamesById={gamesById}
+        />
+      )}
 
       {/* Salva: fisso in basso */}
       <div style={{ position: 'sticky', bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 5, paddingTop: 4 }}>
