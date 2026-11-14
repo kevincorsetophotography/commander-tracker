@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { mergeRsvps } from '../lib/rsvp'
 import { toast as sonner } from 'sonner'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
@@ -66,7 +67,7 @@ export default function EventDetailPage() {
 
   const toggleRsvp = async () => {
     try {
-      const { rsvps } = await api.toggleRsvp(eid); setEvent(ev => ({ ...ev, rsvps }))
+      const { rsvps } = await api.toggleRsvp(eid); setEvent(ev => ({ ...ev, rsvps: mergeRsvps(ev.rsvps, rsvps, user) }))
       const nowGoing = rsvps.some(r => r.userId === user?.id)
       if (nowGoing) sonner.success('Iscritto!', { description: `Ci vediamo a “${event.title}”` })
       else sonner('Iscrizione annullata', { description: event.title })
