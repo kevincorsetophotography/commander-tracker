@@ -7,6 +7,7 @@ import { useCardArt } from '../lib/cardCache'
 import PlayerAvatar from '../components/PlayerAvatar'
 import BracketBadge from '../components/BracketBadge'
 import { Icon, ManaPips, SectionLabel, bento } from '../components/ui'
+import OpenTables from '../components/OpenTables'
 
 // Gioca v2 (restyle Stitch): CTA "Registra partita", il tuo tavolo stasera (se c'è),
 // Giudice, i tuoi mazzi recenti, prossimo evento, ultima partita. Stesse funzioni di prima.
@@ -138,7 +139,10 @@ export default function GiocaPage() {
         <Icon name="chevron" size={24} stroke={2.4} />
       </button>
 
-      {/* Stasera: il tuo tavolo */}
+      {/* Tavoli aperti dai giocatori (si agganciano da soli alla serata in corso) */}
+      <OpenTables showEvent title="Tavoli aperti adesso" emptyHint="Nessun tavolo aperto in questo momento. Aprine uno con un tocco: gli altri vedranno i posti liberi e potranno sedersi." />
+
+      {/* Stasera: il tuo tavolo (torneo) */}
       {tonight && (
         <div className="ct-fade-up" style={bento(t, { padding: '1rem', marginBottom: 14, border: `1px solid ${t.primaryBorder}`, animationDelay: '40ms' })}>
           <SectionLabel t={t} icon="groups" right={<span style={{ fontSize: 12, fontWeight: 700, color: t.primary }}>Turno {tonight.round.number}</span>}>

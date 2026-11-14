@@ -1,4 +1,5 @@
-﻿const router = require('express').Router();
+﻿const { canCreateEvent, canManageEvent } = require('../lib/permissions');
+const router = require('express').Router();
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
 const { makePods, makePairings, standings1v1, rankStandings, swissPairings } = require('../lib/tournament');
@@ -42,13 +43,16 @@ const MAX_TITLE = 120;
 const MAX_LOCATION = 160;
 const MAX_DESCRIPTION = 2000;
 
+// Aggiunge canManage (admin, o organizzatore creatore dell'evento) per chi sta guardando.
+const withManage = (event, user) => (event ? { ...event, canManage: canManageEvent(user, event) } : event);
+
 const parseEventId = (value) => {
   const id = Number.parseInt(value, 10);
   return Number.isInteger(id) ? id : null;
 };
 
 const eventInclude = {
-  createdBy: { select: { id: true, username: true } },
+  createdBy: { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } },
   rsvps: { select: { userId: true, user: { select: { username: true, avatarCardName: true, avatarScryfallId: true } } } }
 };
 
@@ -116,16 +120,16 @@ router.get('/', auth, async (req, res) => {
       orderBy: { startsAt: 'asc' },
       include: eventInclude
     });
-    res.json(events);
+    res.json(events.map(ev => withManage(ev, req.user)));
   } catch (error) {
     console.error('list events error', error);
     res.status(500).json({ error: 'Errore durante il caricamento degli eventi' });
   }
 });
 
-// POST /api/events — crea un evento (solo admin)
+// POST /api/events — crea un evento (admin o organizzatore)
 router.post('/', auth, async (req, res) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono creare eventi' });
+  if (!canCreateEvent(req.user)) return res.status(403).json({ error: 'Solo admin e organizzatori possono creare eventi' });
 
   const { error, data } = buildEventData(req.body);
   if (error) return res.status(400).json({ error });
@@ -145,17 +149,15 @@ router.post('/', auth, async (req, res) => {
       link: `/eventi?focus=${event.id}`,
     });
 
-    res.json(event);
+    res.json(withManage(event, req.user));
   } catch (error) {
     console.error('create event error', error);
     res.status(500).json({ error: 'Errore durante la creazione dell\'evento' });
   }
 });
 
-// PATCH /api/events/:id — modifica un evento (solo admin)
+// PATCH /api/events/:id — modifica un evento (admin o organizzatore che l'ha creato)
 router.patch('/:id', auth, async (req, res) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono modificare eventi' });
-
   const eventId = parseEventId(req.params.id);
   if (!eventId) return res.status(400).json({ error: 'ID evento non valido' });
 
@@ -165,9 +167,10 @@ router.patch('/:id', auth, async (req, res) => {
   try {
     const existing = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, _count: { select: { rounds: true } } },
+      select: { id: true, createdByUserId: true, _count: { select: { rounds: true } } },
     });
     if (!existing) return res.status(404).json({ error: 'Evento non trovato' });
+    if (!canManageEvent(req.user, existing)) return res.status(403).json({ error: 'Puoi modificare solo gli eventi che hai creato' });
     // Formato bloccato una volta che il torneo è iniziato
     if (existing._count.rounds > 0) { delete data.format; delete data.bestOf; }
 
@@ -176,23 +179,22 @@ router.patch('/:id', auth, async (req, res) => {
       data,
       include: eventInclude
     });
-    res.json(event);
+    res.json(withManage(event, req.user));
   } catch (error) {
     console.error('update event error', error);
     res.status(500).json({ error: 'Errore durante l\'aggiornamento dell\'evento' });
   }
 });
 
-// DELETE /api/events/:id — elimina un evento (solo admin)
+// DELETE /api/events/:id — elimina un evento (admin o organizzatore che l'ha creato)
 router.delete('/:id', auth, async (req, res) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono eliminare eventi' });
-
   const eventId = parseEventId(req.params.id);
   if (!eventId) return res.status(400).json({ error: 'ID evento non valido' });
 
   try {
-    const existing = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true } });
+    const existing = await prisma.event.findUnique({ where: { id: eventId }, select: { id: true, createdByUserId: true } });
     if (!existing) return res.status(404).json({ error: 'Evento non trovato' });
+    if (!canManageEvent(req.user, existing)) return res.status(403).json({ error: 'Puoi eliminare solo gli eventi che hai creato' });
 
     await prisma.event.delete({ where: { id: eventId } });
     res.json({ ok: true });
@@ -240,22 +242,22 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const event = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
     if (!event) return res.status(404).json({ error: 'Evento non trovato' });
-    res.json(withStandings(event));
+    res.json(withManage(withStandings(event), req.user));
   } catch (error) {
     console.error('get event error', error);
     res.status(500).json({ error: 'Errore durante il caricamento dell\'evento' });
   }
 });
 
-// POST /api/events/:id/rounds — genera il turno successivo (solo admin)
+// POST /api/events/:id/rounds — genera il turno successivo (admin o organizzatore dell'evento)
 router.post('/:id/rounds', auth, async (req, res) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono generare i turni' });
   const eventId = parseEventId(req.params.id);
   if (!eventId) return res.status(400).json({ error: 'ID evento non valido' });
 
   try {
     const event = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
     if (!event) return res.status(404).json({ error: 'Evento non trovato' });
+    if (!canManageEvent(req.user, event)) return res.status(403).json({ error: 'Solo admin o l\'organizzatore dell\'evento possono generare i turni' });
     if (!event.format) return res.status(400).json({ error: 'Imposta prima il formato dell\'evento' });
 
     const rounds = event.rounds;
@@ -300,7 +302,7 @@ router.post('/:id/rounds', auth, async (req, res) => {
     const number = last ? last.number + 1 : 1;
     await prisma.eventRound.create({ data: { eventId, number, tables: { create: tables } } });
     const full = await prisma.event.findUnique({ where: { id: eventId }, include: eventDetailInclude });
-    res.json(withStandings(full));
+    res.json(withManage(withStandings(full), req.user));
   } catch (error) {
     console.error('generate round error', error);
     res.status(500).json({ error: 'Errore durante la generazione del turno' });
@@ -317,15 +319,15 @@ router.post('/:eventId/tables/:tableId/result', auth, async (req, res) => {
       where: { id: tableId },
       include: {
         seats: { select: { userId: true, seat: true } },
-        round: { select: { event: { select: { id: true, format: true, bestOf: true } } } },
+        round: { select: { event: { select: { id: true, format: true, bestOf: true, createdByUserId: true } } } },
       },
     });
     if (!table) return res.status(404).json({ error: 'Tavolo non trovato' });
     const event = table.round.event;
 
     const isParticipant = table.seats.some(s => s.userId === req.user.id);
-    if (req.user.role !== 'ADMIN' && !isParticipant) {
-      return res.status(403).json({ error: 'Solo i giocatori del tavolo o un admin possono inserire il risultato' });
+    if (!canManageEvent(req.user, event) && !isParticipant) {
+      return res.status(403).json({ error: 'Solo i giocatori del tavolo, l\'organizzatore o un admin possono inserire il risultato' });
     }
 
     // Multiplayer: il risultato è una partita registrata (conta nelle statistiche)
@@ -341,7 +343,7 @@ router.post('/:eventId/tables/:tableId/result', auth, async (req, res) => {
       }
       await prisma.eventTable.update({ where: { id: tableId }, data: { gameId, done: true } });
       const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventDetailInclude });
-      return res.json(withStandings(full));
+      return res.json(withManage(withStandings(full), req.user));
     }
 
     if (table.seats.length !== 2) return res.status(400).json({ error: 'Tavolo non valido per 1v1' });
@@ -365,19 +367,22 @@ router.post('/:eventId/tables/:tableId/result', auth, async (req, res) => {
     });
 
     const full = await prisma.event.findUnique({ where: { id: event.id }, include: eventDetailInclude });
-    res.json(withStandings(full));
+    res.json(withManage(withStandings(full), req.user));
   } catch (error) {
     console.error('table result error', error);
     res.status(500).json({ error: 'Errore durante il salvataggio del risultato' });
   }
 });
 
-// DELETE /api/events/:eventId/rounds/:roundId — elimina un turno (solo admin)
+// DELETE /api/events/:eventId/rounds/:roundId — elimina un turno (admin o organizzatore dell'evento)
 router.delete('/:eventId/rounds/:roundId', auth, async (req, res) => {
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo gli admin possono eliminare i turni' });
   const roundId = Number.parseInt(req.params.roundId, 10);
-  if (!Number.isInteger(roundId)) return res.status(400).json({ error: 'ID turno non valido' });
+  const eventId = parseEventId(req.params.eventId);
+  if (!Number.isInteger(roundId) || !eventId) return res.status(400).json({ error: 'ID turno non valido' });
   try {
+    const round = await prisma.eventRound.findUnique({ where: { id: roundId }, select: { eventId: true, event: { select: { createdByUserId: true } } } });
+    if (!round || round.eventId !== eventId) return res.status(404).json({ error: 'Turno non trovato' });
+    if (!canManageEvent(req.user, round.event)) return res.status(403).json({ error: 'Solo admin o l\'organizzatore dell\'evento possono eliminare i turni' });
     await prisma.eventRound.delete({ where: { id: roundId } });
     res.json({ ok: true });
   } catch (error) {

@@ -134,7 +134,7 @@ frontend/src/
 
 ## Modello dati (Prisma — tutti i campi)
 
-**User**: id, username (unique), password (bcrypt), role (PLAYER|ADMIN)
+**User**: id, username (unique), password (bcrypt), role (PLAYER|ADMIN), isOrganizer (Boolean, default false — ruolo invisibile: resta PLAYER ma crea/gestisce i PROPRI eventi)
 
 **Deck**: id, name, commander, colors (es. "WUBRG"), decklist (testo libero), bracket (1-4), archetype, userId
 - Unique: (userId, name)
@@ -165,6 +165,10 @@ frontend/src/
 **EventTable**: id, number, done, roundId, gameId (partita reale per pod multiplayer), winnerUserId, isDraw, scoreA, scoreB (game won per 1v1)
 
 **EventSeat**: id, seat, tableId, userId — Unique: (tableId, userId)
+
+**OpenTable** (tavolo aperto dai giocatori, separato dai pod di torneo): id, title?, startsAt, isOpen, maxSeats (5, creatore incluso), createdById, eventId? (SetNull), gameId? @unique (SetNull)
+
+**OpenTableSeat**: id, tableId (Cascade), userId (Cascade), createdAt — Unique: (tableId, userId)
 
 ---
 
@@ -217,11 +221,23 @@ POST /api/events/:id/rounds   genera turno successivo (admin): pod-based o swiss
 DELETE /api/events/:eventId/rounds/:roundId   elimina turno (admin)
 POST /api/events/:eventId/tables/:tableId/result   registra risultato tavolo {winnerUserId|isDraw, scoreA, scoreB}
 
+// TAVOLI APERTI (giocatori)
+GET  /api/tables?eventId=     tavoli dell'evento, oppure attivi (senza risultato, ultime 12h)
+POST /api/tables              {eventId?} → un tocco: aperto, orario adesso (o inizio evento futuro), creatore seduto; aggancio automatico all'evento
+PATCH /api/tables/:id         {isOpen?, startsAt?} creatore o admin (startsAt ricalcola l'evento)
+DELETE /api/tables/:id        creatore o admin, solo senza risultato
+POST /api/tables/:id/join | /leave   (leave del creatore: passa al primo seduto; tavolo vuoto = cancellato)
+DELETE /api/tables/:id/seats/:userId creatore o admin
+POST /api/tables/:id/result   {gameId} giocatore seduto o admin; giocatori partita == seduti
+
+// UTENTE CORRENTE
+GET  /api/me                  utente aggiornato (role, isOrganizer, avatar) — fuori da /api/auth per non consumare il rate limit del login
+
 // ADMIN (ruolo ADMIN)
 GET  /api/admin/export        backup JSON completo (users, decks, games)
 GET  /api/admin/users         lista utenti con conteggi
 POST /api/admin/users         {username, password}
-PATCH /api/admin/users/:id    {username?, password?, role?}
+PATCH /api/admin/users/:id    {username?, password?, role?, isOrganizer?}
 DELETE /api/admin/users/:id   (solo se no mazzi/partite)
 
 // JUDGE
@@ -336,6 +352,8 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - **Header mobile** stretto: tutto deve stare a 320px (il brand cede per primo con `overflow:hidden`).
 - **DB veloce, Scryfall lento**: cache aggressiva sulle carte (immutabili), **niente** cache lato client sulle query DB (rischio dati stantii).
 - **Migrazioni dati una tantum**: scriverle **idempotenti** e agganciarle a `start:prod`.
+- **Permessi eventi**: `backend/src/lib/permissions.js` (`canCreateEvent`, `canManageEvent`): admin tutto; organizzatore crea eventi e gestisce SOLO i propri (modifica, elimina, turni, risultati); gli eventi espongono `canManage` per chi guarda e `createdBy` ("Organizzato da"). Il middleware auth rilegge `role` e `isOrganizer` dal DB a ogni richiesta (revoca immediata).
+- **Tavoli aperti**: regole pure in `backend/src/lib/openTables.js` (finestra evento: da 1h prima dell'inizio alle 4:00; eventi tutto il giorno = intera giornata; max 5; chiuso = nessuno entra). Notifica `type: 'table'` al creatore quando qualcuno si siede. Il risultato passa da Registra partita con `location.state.tableContext` (giocatori bloccati, come i pod).
 - **Tornei — classifica 1v1 calcolata SOLO lato server** (`tournament.js` + `withStandings` in `routes/events.js`): fonte di verità unica. Svizzera evita re-match, bye al più basso senza bye, **max 4 turni**.
 - **Tornei — pod multiplayer = Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext`. Gli iscritti SENZA mazzi non possono entrare in un pod.
 - **Date locali, non UTC**: usare `getFullYear/Month/Date`, MAI `toISOString().slice(0,10)` (shifta col fuso → stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.

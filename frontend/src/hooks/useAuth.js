@@ -65,6 +65,14 @@ export function AuthProvider({ children }) {
     });
   };
 
+  // All'avvio riallinea l'utente salvato con il server (es. ruolo organizzatore assegnato
+  // dall'admin dopo il login), senza dover rifare l'accesso.
+  useEffect(() => {
+    if (!localStorage.getItem('ct_token')) return;
+    api.getMe().then(fresh => { if (fresh?.id) updateUser(fresh) }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const value = useMemo(() => ({ user, login, register, logout, updateUser }), [user]);
 
   return createElement(AuthContext.Provider, { value }, children);

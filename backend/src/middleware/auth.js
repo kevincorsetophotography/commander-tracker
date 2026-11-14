@@ -10,7 +10,7 @@ module.exports = async (req, res, next) => {
     // (JWT embeds the role at login time, which could be stale after admin PATCH)
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, username: true, role: true },
+      select: { id: true, username: true, role: true, isOrganizer: true },
     });
     if (!user) return res.status(401).json({ error: 'Utente non trovato' });
     req.user = user;

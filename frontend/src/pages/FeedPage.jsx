@@ -382,6 +382,7 @@ const NOTIF_META = {
   comment:     { icon: 'comment', label: 'Commento' },
   reaction:    { icon: 'flame',   label: 'Reazione' },
   achievement: { icon: 'trophy',  label: 'Achievement' },
+  table:       { icon: 'groups',  label: 'Tavolo' },
 }
 
 function NotifFeedItem({ notif, t, navigate }) {

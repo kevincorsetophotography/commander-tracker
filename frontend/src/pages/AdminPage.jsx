@@ -244,6 +244,17 @@ export default function AdminPage() {
     }
   }
 
+  // Organizzatore: resta PLAYER ma può creare e gestire i propri eventi (ruolo invisibile agli altri)
+  const toggleOrganizer = async (u) => {
+    try {
+      await api.updateUser(u.id, { isOrganizer: !u.isOrganizer })
+      await loadData()
+      toast(u.isOrganizer ? `${u.username} non è più organizzatore` : `${u.username} ora può creare eventi`, 'success')
+    } catch (err) {
+      toast(err.error || 'Errore aggiornamento organizzatore', 'error')
+    }
+  }
+
   const removeUser = async (userId) => {
     const ok = await confirm({ title: 'Eliminare utente?', message: 'L\'utente verrà eliminato definitivamente.', confirmLabel: 'Elimina', danger: true })
     if (!ok) return
@@ -526,7 +537,17 @@ export default function AdminPage() {
                       Mazzi: {user._count.decks} · Presenze: {user._count.gamePlayers} · Partite create: {user._count.createdGames}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {user.role !== 'ADMIN' && (
+                      <button role="switch" aria-checked={!!user.isOrganizer} onClick={() => toggleOrganizer(user)} className="ct-press"
+                        title="Può creare eventi e gestire quelli che crea. Resta un giocatore normale."
+                        style={{ ...buttonSecondary, display: 'inline-flex', alignItems: 'center', gap: 8, color: user.isOrganizer ? t.primary : t.text, borderColor: user.isOrganizer ? t.primaryBorder : t.border }}>
+                        <span style={{ width: 34, height: 20, borderRadius: 999, background: user.isOrganizer ? t.primary : t.bgMuted, position: 'relative', transition: 'background 0.2s' }}>
+                          <span style={{ position: 'absolute', top: 2, left: user.isOrganizer ? 16 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+                        </span>
+                        Organizzatore
+                      </button>
+                    )}
                     <button style={buttonSecondary} onClick={() => startUserEdit(user)}>Modifica</button>
                     <button style={buttonDanger} onClick={() => removeUser(user.id)}>Elimina</button>
                   </div>

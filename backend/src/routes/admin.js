@@ -19,7 +19,7 @@ router.get('/export', async (req, res) => {
   const [users, decks, games] = await Promise.all([
     prisma.user.findMany({
       orderBy: { id: 'asc' },
-      select: { id: true, username: true, role: true, createdAt: true }
+      select: { id: true, username: true, role: true, isOrganizer: true, createdAt: true }
     }),
     prisma.deck.findMany({
       orderBy: { id: 'asc' },
@@ -62,6 +62,7 @@ router.get('/users', async (req, res) => {
       id: true,
       username: true,
       role: true,
+      isOrganizer: true,
       createdAt: true,
       _count: {
         select: {
@@ -95,7 +96,7 @@ router.post('/users', async (req, res) => {
         password: hash,
         role: normalizeRole(role)
       },
-      select: { id: true, username: true, role: true, createdAt: true }
+      select: { id: true, username: true, role: true, isOrganizer: true, createdAt: true }
     });
 
     res.json(user);
@@ -113,7 +114,7 @@ router.patch('/users/:id', async (req, res) => {
   const userId = parseId(req.params.id);
   if (!userId) return res.status(400).json({ error: 'ID utente non valido' });
 
-  const { username, password, role } = req.body;
+  const { username, password, role, isOrganizer } = req.body;
   const data = {};
 
   if (typeof username === 'string' && username.trim()) {
@@ -124,6 +125,9 @@ router.patch('/users/:id', async (req, res) => {
   if (typeof role === 'string') {
     data.role = normalizeRole(role);
   }
+
+  // Organizzatore: resta PLAYER ma può creare e gestire i propri eventi
+  if (typeof isOrganizer === 'boolean') data.isOrganizer = isOrganizer;
 
   if (typeof password === 'string' && password.trim()) {
     if (password.length > 128) return res.status(400).json({ error: 'Password troppo lunga (max 128 caratteri)' });
@@ -142,7 +146,7 @@ router.patch('/users/:id', async (req, res) => {
     const user = await prisma.user.update({
       where: { id: userId },
       data,
-      select: { id: true, username: true, role: true, createdAt: true }
+      select: { id: true, username: true, role: true, isOrganizer: true, createdAt: true }
     });
 
     res.json(user);

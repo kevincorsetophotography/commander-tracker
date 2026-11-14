@@ -12,6 +12,8 @@ model User {
   username       String       @unique
   password       String       // bcrypt hash
   role           String       @default("PLAYER")
+  // Organizzatore: resta PLAYER ma può creare e gestire i PROPRI eventi (assegnato dall'admin)
+  isOrganizer    Boolean      @default(false)
   avatarCardName   String?
   avatarScryfallId String?    // UUID stampa Scryfall specifica scelta dall'utente
   createdAt        DateTime   @default(now())
@@ -27,6 +29,8 @@ model User {
   sentNotifications Notification[] @relation("NotifSender")
   achievementUnlocks AchievementUnlock[]
   judgeQuestions JudgeQuestion[]
+  createdOpenTables OpenTable[] @relation("OpenTableCreator")
+  openTableSeats    OpenTableSeat[]
 }
 
 model Deck {
@@ -55,6 +59,7 @@ model Game {
   comments        Comment[]
   reactions       Reaction[]
   eventTable      EventTable?
+  openTable       OpenTable?
 }
 
 model Comment {
@@ -96,6 +101,7 @@ model Event {
   createdByUserId Int?
   rsvps           EventRsvp[]
   rounds          EventRound[]
+  openTables      OpenTable[]
 
   @@index([startsAt])
 }
@@ -210,4 +216,37 @@ model GamePlayer {
   userId   Int
   deck     Deck    @relation(fields: [deckId], references: [id])
   deckId   Int
+}
+
+// Tavolo aperto creato da un giocatore (fuori dai turni di torneo generati dall'admin).
+// Aperto = altri possono sedersi fino a maxSeats; chiuso = nessun altro entra.
+model OpenTable {
+  id          Int             @id @default(autoincrement())
+  title       String?
+  startsAt    DateTime        @default(now())
+  isOpen      Boolean         @default(true)
+  maxSeats    Int             @default(5)
+  createdAt   DateTime        @default(now())
+  createdBy   User            @relation("OpenTableCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdById Int
+  event       Event?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  eventId     Int?
+  game        Game?           @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  gameId      Int?            @unique
+  seats       OpenTableSeat[]
+
+  @@index([eventId])
+  @@index([startsAt])
+}
+
+model OpenTableSeat {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  table     OpenTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  @@unique([tableId, userId])
+  @@index([tableId])
 }

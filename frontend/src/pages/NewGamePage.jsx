@@ -68,7 +68,10 @@ export default function NewGamePage() {
   const { user: me } = useAuth()
   const isMobile = useIsMobile()
   // Contesto pod torneo: giocatori bloccati + collegamento al tavolo dopo il salvataggio
-  const podCtx = useLocation().state?.podContext || null
+  const navState = useLocation().state || {}
+  // Tavolo aperto (creato dai giocatori): stesso flusso dei pod, poi si collega al tavolo
+  const tableCtx = navState.tableContext || null
+  const podCtx = navState.podContext || tableCtx || null
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
   const [slots, setSlots] = useState(() => podCtx
     ? podCtx.players.map(p => ({ userId: String(p.userId), deckId: '' }))
@@ -262,6 +265,13 @@ export default function NewGamePage() {
         playedAt: playedAt || undefined
       })
       // Pod torneo: collega la partita al tavolo e torna all'evento
+      if (tableCtx) {
+        await api.submitOpenTableResult(tableCtx.tableId, { gameId: game.id })
+        fireConfetti()
+        toast('Risultato del tavolo registrato', 'success')
+        setTimeout(() => navigate(tableCtx.eventId ? `/evento/${tableCtx.eventId}` : '/gioca'), 700)
+        return
+      }
       if (podCtx) {
         await api.submitTableResult(podCtx.eventId, podCtx.tableId, { gameId: game.id })
         fireConfetti()
@@ -329,7 +339,7 @@ export default function NewGamePage() {
         <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', border: `1px solid ${t.primaryBorder}`, background: t.primaryBg }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.primary, boxShadow: `0 0 8px ${t.primary}`, flexShrink: 0 }} />
           <div style={{ fontSize: 14, color: t.text, lineHeight: 1.45 }}>
-            Partita del tavolo dell'evento: giocatori bloccati, data dell'evento. Scegli i mazzi, il vincitore e (se vuoi) l'ordine di uscita.
+            {tableCtx ? 'Partita del tuo tavolo: giocatori bloccati. Scegli i mazzi, il vincitore e (se vuoi) l’ordine di uscita.' : 'Partita del tavolo dell’evento: giocatori bloccati, data dell’evento. Scegli i mazzi, il vincitore e (se vuoi) l’ordine di uscita.'}
           </div>
         </div>
       )}

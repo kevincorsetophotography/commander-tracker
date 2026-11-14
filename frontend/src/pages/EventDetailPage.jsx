@@ -11,6 +11,7 @@ import EmptyState from '../components/EmptyState'
 import PlayerAvatar from '../components/PlayerAvatar'
 import { Icon, Segmented, AvatarStack, ManaPips, SectionLabel, bento, RsvpButton } from '../components/ui'
 import { FormatChip } from './EventsPage'
+import OpenTables from '../components/OpenTables'
 
 // Dettaglio evento v2 (restyle Stitch): vista "stasera" con iscritti, il tuo tavolo
 // in evidenza, turni a segmenti, partite della serata. Stessa API di prima.
@@ -59,6 +60,8 @@ export default function EventDetailPage() {
   if (error || !event) return (<div style={{ maxWidth: 640, margin: '0 auto' }}>{back}<EmptyState icon="🔍" title="Evento non trovato" message={error} /></div>)
 
   const going = event.rsvps?.some(r => r.userId === user?.id)
+  // admin o organizzatore che ha creato l'evento (calcolato dal server)
+  const canManage = !!event.canManage
   const registrants = event.rsvps || []
   const rounds = event.rounds || []
   const is1v1 = event.format === '1v1'
@@ -134,7 +137,7 @@ export default function EventDetailPage() {
         ) : isMatch ? (() => {
           const sa = tbl.seats.find(s => s.seat === 0) || tbl.seats[0]
           const sb = tbl.seats.find(s => s.seat === 1) || tbl.seats[1]
-          const canEnter = (isAdmin || mine) && !tbl.done
+          const canEnter = (canManage || mine) && !tbl.done
           const sc = scores[tbl.id] || { a: tbl.scoreA ?? 0, b: tbl.scoreB ?? 0 }
           const winA = tbl.done && tbl.winnerUserId === sa.user.id
           const winB = tbl.done && tbl.winnerUserId === sb.user.id
@@ -192,7 +195,7 @@ export default function EventDetailPage() {
                   </span>
                   <button onClick={() => navigate(`/partita/${tbl.game.id}`)} className="ct-press" style={ghostBtn}>Vedi partita <Icon name="chevron" size={15} /></button>
                 </div>
-              ) : (isAdmin || mine) ? (
+              ) : (canManage || mine) ? (
                 <button
                   onClick={() => navigate('/nuova-partita', { state: { podContext: { eventId: eid, tableId: tbl.id, date: event.startsAt, players: tbl.seats.map(s => ({ userId: s.user.id, username: s.user.username })) } } })}
                   className="ct-press" style={{ ...primaryBtn, width: '100%' }}
@@ -233,6 +236,12 @@ export default function EventDetailPage() {
           <Icon name="calendar" size={16} /> {dateLine}{time ? ` · ${time}` : ''}
         </div>
         {event.location && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: t.textSub, marginTop: 4 }}><Icon name="pin" size={16} /><span style={{ wordBreak: 'break-word' }}>{event.location}</span></div>}
+        {event.createdBy && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 14, color: t.textSub }}>
+            <PlayerAvatar username={event.createdBy.username} avatarCardName={event.createdBy.avatarCardName} avatarScryfallId={event.createdBy.avatarScryfallId} size={26} />
+            <span>Organizzato da <strong style={{ color: t.text }}>{event.createdBy.username}</strong></span>
+          </div>
+        )}
         {event.description && <div style={{ fontSize: 14, color: t.textSub, marginTop: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>{event.description}</div>}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
@@ -277,7 +286,7 @@ export default function EventDetailPage() {
 
           <div className="ct-fade-up" style={{ ...card, animationDelay: '120ms' }}>
             <SectionLabel t={t} icon={is1v1 ? 'swords' : 'shuffle'} right={
-              isAdmin && rounds.length > 0 && activeView !== 'classifica' && currentRound?.id === rounds[rounds.length - 1].id && (
+              canManage && rounds.length > 0 && activeView !== 'classifica' && currentRound?.id === rounds[rounds.length - 1].id && (
                 <button className="ct-press" style={ghostBtn} onClick={() => deleteRound(currentRound.id)}>Rifai turno</button>
               )
             }>{is1v1 ? 'Torneo 1v1 · svizzera' : 'Tavoli della serata'}</SectionLabel>
@@ -322,7 +331,7 @@ export default function EventDetailPage() {
               <div key={activeView}>{orderedTables.map(renderTable)}</div>
             )}
 
-            {isAdmin && (rounds.length === 0 || event.canNextRound) && (
+            {canManage && (rounds.length === 0 || event.canNextRound) && (
               <button className="ct-press" style={{ ...primaryBtn, width: '100%', marginTop: 4 }} onClick={generateRound} disabled={busy}>
                 <Icon name="shuffle" size={18} />
                 {rounds.length === 0 ? (event.format === 'multiplayer' ? 'Genera tavoli' : 'Genera abbinamenti') : `Genera turno ${rounds.length + 1}`}
@@ -331,6 +340,9 @@ export default function EventDetailPage() {
           </div>
         </>
       )}
+
+      {/* Tavoli aperti dai giocatori per questa serata */}
+      <OpenTables eventId={event.id} title="Tavoli aperti della serata" emptyHint="Nessun tavolo aperto per questa serata. Aprine uno: gli altri vedranno i posti liberi e potranno sedersi." />
 
       {/* Partite registrate nel giorno dell'evento */}
       {nightGames.length > 0 && (

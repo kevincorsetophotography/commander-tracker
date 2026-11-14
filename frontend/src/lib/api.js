@@ -84,6 +84,19 @@ export const api = {
   deleteRound:   (id, roundId)   => req('DELETE', `/events/${id}/rounds/${roundId}`),
   submitTableResult: (id, tableId, data) => req('POST', `/events/${id}/tables/${tableId}/result`, data),
 
+  // tavoli aperti (creati dai giocatori)
+  getTables:        (eventId)        => req('GET',    eventId ? `/tables?eventId=${eventId}` : '/tables'),
+  createTable:      (data = {})      => req('POST',   '/tables', data),
+  updateTable:      (id, data)       => req('PATCH',  `/tables/${id}`, data),
+  deleteTable:      (id)             => req('DELETE', `/tables/${id}`),
+  joinTable:        (id)             => req('POST',   `/tables/${id}/join`),
+  leaveTable:       (id)             => req('POST',   `/tables/${id}/leave`),
+  removeTableSeat:  (id, userId)     => req('DELETE', `/tables/${id}/seats/${userId}`),
+  submitOpenTableResult: (id, data)  => req('POST',   `/tables/${id}/result`, data),
+
+  // utente corrente aggiornato (ruolo, organizzatore)
+  getMe: () => req('GET', '/me'),
+
   // judge bot
   askJudge: (question) => req('POST', '/judge', { question }),
   getJudgeHistory: () => req('GET', '/judge'),

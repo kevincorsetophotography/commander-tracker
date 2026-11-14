@@ -88,6 +88,8 @@ export default function EventsPage() {
   const { toast, confirm } = useFeedback()
   const navigate = useNavigate()
   const isAdmin = user?.role === 'ADMIN'
+  // admin o organizzatore (ruolo invisibile assegnato dall'admin)
+  const canCreate = isAdmin || !!user?.isOrganizer
 
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -209,7 +211,7 @@ export default function EventsPage() {
     border: `1px solid ${danger ? t.dangerBorder : t.border}`, background: danger ? t.dangerBg : t.bgSurfaceAlt, color: danger ? t.danger : t.textSub,
   })
 
-  const AdminActions = ({ ev }) => isAdmin ? (
+  const AdminActions = ({ ev }) => ev.canManage ? (
     <span style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
       <button aria-label="Modifica evento" onClick={() => startEdit(ev)} className="ct-press" style={iconBtn(false)}><Icon name="edit" size={17} /></button>
       <button aria-label="Elimina evento" onClick={() => removeEvent(ev)} className="ct-press" style={iconBtn(true)}><Icon name="trash" size={17} /></button>
@@ -248,6 +250,7 @@ export default function EventsPage() {
             {ev.location && <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: t.textSub, marginTop: 6 }}><Icon name="pin" size={15} /><span style={{ wordBreak: 'break-word' }}>{ev.location}</span></div>}
           </div>
         </div>
+        {ev.createdBy && <div style={{ fontSize: 13, color: t.textSub, marginTop: 10 }}>Organizzato da <strong style={{ color: t.text }}>{ev.createdBy.username}</strong></div>}
         {ev.description && <div style={{ fontSize: 14, color: t.textSub, marginTop: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>{ev.description}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
           {users.length > 0 && <AvatarStack users={users} size={32} max={6} ring={t.bgPage} PlayerAvatar={PlayerAvatar} />}
@@ -287,6 +290,7 @@ export default function EventsPage() {
               {time && <span style={{ fontSize: 13, color: t.textSub }}>{time}</span>}
             </div>
             {ev.location && <div style={{ fontSize: 13, color: t.textSub, marginTop: 4, wordBreak: 'break-word' }}>{ev.location}</div>}
+            {ev.createdBy && <div style={{ fontSize: 12, color: t.textSub, marginTop: 4 }}>Organizzato da <strong style={{ color: t.text }}>{ev.createdBy.username}</strong></div>}
             {ev.description && <div style={{ fontSize: 13, color: t.textSub, marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45 }}>{ev.description}</div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               {users.length > 0 && <AvatarStack users={users} size={26} max={4} ring={t.bgPage} PlayerAvatar={PlayerAvatar} />}
@@ -308,15 +312,15 @@ export default function EventsPage() {
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
         <div style={{ fontSize: 26, fontWeight: 800, color: t.text, letterSpacing: '-0.02em' }}>Eventi</div>
-        {isAdmin && !isMobile && (
+        {canCreate && !isMobile && (
           <button onClick={startCreate} className="ct-press" style={{ minHeight: 44, padding: '0 18px', borderRadius: 14, border: 'none', background: t.primary, color: t.primaryFg, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: t.glow }}>
             <Icon name="plus" size={18} stroke={2.5} /> Nuovo evento
           </button>
         )}
       </div>
 
-      {/* Form admin (crea / modifica) in pannello */}
-      {isAdmin && (
+      {/* Form crea / modifica (admin e organizzatori) in pannello */}
+      {canCreate && (
         <Sheet open={showForm} onOpenChange={(o) => { if (!o) resetForm() }} title={editingId ? 'Modifica evento' : 'Nuovo evento'} t={t} dark={dark} isMobile={isMobile}>
           <form onSubmit={submit}>
             <label style={labelSt}>Titolo *</label>
@@ -360,7 +364,7 @@ export default function EventsPage() {
       {loading ? (
         <div style={{ fontSize: 14, color: t.textSub }}>Caricamento…</div>
       ) : events.length === 0 ? (
-        <EmptyState icon="📅" title="Nessun evento" message={isAdmin ? 'Crea il primo evento con "Nuovo evento".' : 'Gli admin non hanno ancora pubblicato eventi.'} />
+        <EmptyState icon="📅" title="Nessun evento" message={canCreate ? 'Crea il primo evento con "Nuovo evento".' : 'Gli admin non hanno ancora pubblicato eventi.'} />
       ) : (
         <>
           <div style={{ marginBottom: 14 }}>
@@ -383,7 +387,7 @@ export default function EventsPage() {
       )}
 
       {/* FAB admin su mobile, sopra la barra */}
-      {isAdmin && isMobile && (
+      {canCreate && isMobile && (
         <button onClick={startCreate} aria-label="Nuovo evento" className="ct-press" style={{
           position: 'fixed', right: 18, bottom: 'calc(92px + env(safe-area-inset-bottom))', zIndex: 25,
           height: 52, padding: '0 18px', borderRadius: 999, border: 'none', background: t.accent, color: '#fff',

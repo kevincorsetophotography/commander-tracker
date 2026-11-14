@@ -15,6 +15,7 @@ const publicUser = (user) => ({
   id: user.id,
   username: user.username,
   role: user.role,
+  isOrganizer: !!user.isOrganizer,
   avatarCardName: user.avatarCardName ?? null,
   avatarScryfallId: user.avatarScryfallId ?? null,
 });
@@ -88,3 +89,4 @@ router.patch('/profile', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.publicUser = publicUser;

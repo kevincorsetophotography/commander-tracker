@@ -76,6 +76,8 @@ app.use('/api/decks',         apiLimiter, deckRoutes);
 app.use('/api/games',         apiLimiter, gameRoutes);
 app.use('/api/stats',         apiLimiter, statsRoutes);
 app.use('/api/events',        apiLimiter, eventRoutes);
+app.use('/api/me',            apiLimiter, require('./routes/me'));
+app.use('/api/tables',        apiLimiter, require('./routes/tables'));
 app.use('/api/notifications', apiLimiter, notificationRoutes);
 app.use('/api/judge',         judgeRoutes);
 app.use('/api/scryfall',      apiLimiter, scryfallRoutes);
