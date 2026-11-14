@@ -10,6 +10,7 @@ import { Skeleton, SkeletonList } from '../components/Skeleton'
 import PlayerAvatar from '../components/PlayerAvatar'
 import BracketBadge from '../components/BracketBadge'
 import { Icon, ManaPips, Ring, bento, SectionLabel } from '../components/ui'
+import NumberFlow from '@number-flow/react'
 
 // Feed v2 (restyle Stitch): serata in evidenza, bento rank/win rate, podio,
 // mazzo del momento, settimana, feed partite + notifiche. Stessi dati di prima.
@@ -146,10 +147,10 @@ function StatsBento({ snapshot, t, user, navigate }) {
         {myRank ? (
           <>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 6 }}>
-              <span style={{ fontSize: 34, fontWeight: 900, color: t.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>#{myRank}</span>
+              <span style={{ fontSize: 34, fontWeight: 900, color: t.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>#<NumberFlow value={myRank} /></span>
               <span style={{ fontSize: 13, color: t.textSub }}>su {standingsCount}</span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: t.primary, marginTop: 6 }}>{myStanding.points} punti</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: t.primary, marginTop: 6 }}><NumberFlow value={myStanding.points} /> punti</div>
             <div style={{ fontSize: 13, color: t.textSub, marginTop: 4, lineHeight: 1.35 }}>
               {gap > 0 ? `−${gap} pt da ${leader.username}` : 'In testa alla stagione'}
             </div>
@@ -213,7 +214,7 @@ function Podium({ standings, t, user, navigate }) {
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <span style={{ fontSize: 20, fontWeight: 900, color: i === 0 ? t.primary : t.text, fontVariantNumeric: 'tabular-nums' }}>{s.points}</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: i === 0 ? t.primary : t.text, fontVariantNumeric: 'tabular-nums' }}><NumberFlow value={s.points} /></span>
               <span style={{ fontSize: 13, color: t.textSub, marginLeft: 3 }}>pt</span>
             </div>
           </div>
@@ -279,7 +280,7 @@ function WeeklyActivity({ activity, t }) {
       }>Questa settimana</SectionLabel>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
         <div style={{ flexShrink: 0 }}>
-          <span style={{ fontSize: 36, fontWeight: 900, color: t.text, lineHeight: 1 }}>{activity.count}</span>
+          <span style={{ fontSize: 36, fontWeight: 900, color: t.text, lineHeight: 1 }}><NumberFlow value={activity.count} /></span>
           <span style={{ fontSize: 14, color: t.textSub, marginLeft: 6 }}>{activity.count === 1 ? 'partita' : 'partite'}</span>
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 5 }}>

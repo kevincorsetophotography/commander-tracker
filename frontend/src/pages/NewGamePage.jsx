@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useFeedback } from '../hooks/useFeedback'
 import { fireConfetti } from '../lib/confetti'
+import { toast as sonner } from 'sonner'
 import { pointsFor } from '../lib/seasons'
 import PlayerAvatar from '../components/PlayerAvatar'
 import DeckThumb from '../components/DeckThumb'
@@ -206,7 +207,24 @@ export default function NewGamePage() {
         return
       }
       fireConfetti()
-      toast('Partita registrata', 'success')
+      const winnerName = userOf(winnerId.userId)?.username
+      sonner.success('Partita registrata', {
+        description: winnerName ? `Vittoria di ${winnerName} · punti stagione aggiornati` : undefined,
+        duration: 6000,
+        action: {
+          label: 'Annulla',
+          onClick: async () => {
+            try {
+              await api.deleteGame(game.id)
+              sonner('Partita annullata')
+              navigate('/', { replace: true })
+              window.location.reload()
+            } catch (e) {
+              sonner.error(e.error || 'Impossibile annullare la partita')
+            }
+          },
+        },
+      })
       setTimeout(() => navigate('/'), 700)
     } catch (err) {
       setError(err.error || 'Errore nel salvataggio')

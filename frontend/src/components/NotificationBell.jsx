@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
+import * as Dialog from '@radix-ui/react-dialog'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -86,62 +86,72 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (() => {
-        const panel = (
-        <>
-          {/* backdrop per chiudere al click fuori (su mobile scurisce la pagina sotto il pannello) */}
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40, background: isMobile ? 'rgba(4,6,18,0.6)' : 'transparent' }} />
-
-          <div className={isMobile ? 'ct-sheet-in' : 'ct-modal-in'} style={{
-            // Mobile: pannello OPACO che sale dal basso (prima era un dropdown semitrasparente, illeggibile).
-            ...(isMobile
-              ? { position: 'fixed', left: 0, right: 0, bottom: 0, width: '100%', maxHeight: '85vh', borderRadius: '24px 24px 0 0', padding: '4px 8px calc(16px + env(safe-area-inset-bottom))', borderBottom: 'none' }
-              : { position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 340, maxWidth: 'calc(100vw - 20px)', maxHeight: '70vh', borderRadius: 14, padding: 4 }),
-            zIndex: 50, overflowY: 'auto', boxSizing: 'border-box',
-            background: dark ? '#0e122b' : '#FFFFFF', border: `1px solid ${t.border}`,
-            boxShadow: '0 -12px 40px rgba(0,0,0,0.45)',
-          }}>
-            {isMobile && <div style={{ width: 40, height: 4, borderRadius: 4, background: t.borderStrong, margin: '8px auto 4px' }} />}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 10px 8px' }}>
-              <span style={{ fontSize: isMobile ? 18 : 13, fontWeight: 800, color: t.text }}>Notifiche</span>
-              {isMobile && (
-                <button onClick={() => setOpen(false)} aria-label="Chiudi" style={{ width: 40, height: 40, border: 'none', background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="close" size={20} />
-                </button>
-              )}
-            </div>
-
-            {loading && <div style={{ padding: '10px', fontSize: 13, color: t.textSub }}>Caricamento…</div>}
-
+      {(() => {
+        const list = (
+          <>
+            {loading && <div style={{ padding: '10px', fontSize: 14, color: t.textSub }}>Caricamento…</div>}
             {!loading && items.length === 0 && (
-              <div style={{ padding: '18px 12px', fontSize: 13, color: t.textMuted, textAlign: 'center' }}>
-                Nessuna notifica
-              </div>
+              <div style={{ padding: '18px 12px', fontSize: 14, color: t.textMuted, textAlign: 'center' }}>Nessuna notifica</div>
             )}
-
             {!loading && items.map(n => (
               <div
                 key={n.id}
                 onClick={() => goTo(n)}
+                className="ct-press"
                 style={{
-                  display: 'flex', gap: 8, padding: '9px 10px', borderRadius: 8, cursor: n.link ? 'pointer' : 'default',
-                  background: n.read ? 'transparent' : (t.primaryBg || t.bgMuted),
-                  marginBottom: 2,
+                  display: 'flex', gap: 10, padding: isMobile ? '12px 12px' : '9px 10px', borderRadius: 12, cursor: n.link ? 'pointer' : 'default',
+                  background: n.read ? 'transparent' : (t.primaryBg || t.bgMuted), marginBottom: 4,
                 }}
               >
-                {!n.read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: t.primary, marginTop: 6, flexShrink: 0 }} />}
+                {!n.read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.primary, marginTop: 7, flexShrink: 0, boxShadow: `0 0 6px ${t.primary}` }} />}
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: t.text, wordBreak: 'break-word' }}>{n.title}</div>
-                  {n.body && <div style={{ fontSize: 12, color: t.textSub, marginTop: 2, wordBreak: 'break-word' }}>{n.body}</div>}
-                  <div style={{ fontSize: 12, color: t.textMuted, marginTop: 3 }}>{timeAgo(n.createdAt)}</div>
+                  <div style={{ fontSize: isMobile ? 15 : 13, fontWeight: 600, color: t.text, wordBreak: 'break-word' }}>{n.title}</div>
+                  {n.body && <div style={{ fontSize: isMobile ? 14 : 12, color: t.textSub, marginTop: 2, wordBreak: 'break-word' }}>{n.body}</div>}
+                  <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{timeAgo(n.createdAt)}</div>
                 </div>
               </div>
             ))}
-          </div>
-        </>
+          </>
         )
-        // Mobile: portal su body (l'header con backdrop-filter farebbe da contenitore ai fixed).
-        return isMobile ? createPortal(panel, document.body) : panel
+
+        // Mobile: pannello OPACO dal basso, accessibile (Radix Dialog: focus, Esc/indietro, portal su body).
+        if (isMobile) return (
+          <Dialog.Root open={open} onOpenChange={setOpen}>
+            <Dialog.Portal>
+              <Dialog.Overlay style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(4,6,18,0.6)' }} />
+              <Dialog.Content aria-describedby={undefined} className="ct-sheet-in" style={{
+                position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 61, maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box',
+                background: dark ? '#0e122b' : '#FFFFFF', border: `1px solid ${t.border}`, borderBottom: 'none',
+                borderRadius: '24px 24px 0 0', padding: '4px 10px calc(16px + env(safe-area-inset-bottom))',
+                boxShadow: '0 -12px 40px rgba(0,0,0,0.45)', outline: 'none',
+              }}>
+                <div style={{ width: 40, height: 4, borderRadius: 4, background: t.borderStrong, margin: '8px auto 4px' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 6px 10px' }}>
+                  <Dialog.Title style={{ margin: 0, fontSize: 19, fontWeight: 800, color: t.text }}>Notifiche</Dialog.Title>
+                  <Dialog.Close aria-label="Chiudi" style={{ width: 44, height: 44, border: 'none', background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="close" size={21} />
+                  </Dialog.Close>
+                </div>
+                {list}
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+        )
+
+        // Desktop: dropdown ancorato alla campanella (opaco).
+        return open && (
+          <>
+            <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div className="ct-modal-in" style={{
+              position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 340, maxWidth: 'calc(100vw - 20px)', maxHeight: '70vh',
+              borderRadius: 14, padding: 4, zIndex: 50, overflowY: 'auto', boxSizing: 'border-box',
+              background: dark ? '#0e122b' : '#FFFFFF', border: `1px solid ${t.border}`, boxShadow: t.shadow,
+            }}>
+              <div style={{ padding: '8px 10px', fontSize: 13, fontWeight: 800, color: t.text }}>Notifiche</div>
+              {list}
+            </div>
+          </>
+        )
       })()}
     </div>
   )

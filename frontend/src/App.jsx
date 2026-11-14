@@ -1,5 +1,7 @@
-﻿import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+﻿import { useState, useEffect, lazy, Suspense } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
+import { LazyMotion, domAnimation, m, MotionConfig } from 'motion/react'
+import { Toaster } from 'sonner'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 function RedirectWithSearch({ to }) {
@@ -11,24 +13,24 @@ import { ThemeProvider, useTheme } from './hooks/useTheme'
 import { FeedbackProvider } from './hooks/useFeedback'
 import { useIsMobile } from './hooks/useIsMobile'
 import Login from './pages/Login'
-import DecksPage from './pages/DecksPage'
-import NewGamePage from './pages/NewGamePage'
-import DashboardPage from './pages/DashboardPage'
+const DecksPage = lazy(() => import('./pages/DecksPage'))
+const NewGamePage = lazy(() => import('./pages/NewGamePage'))
 import FeedPage from './pages/FeedPage'
-import GruppoPage from './pages/GruppoPage'
-import AdminPage from './pages/AdminPage'
-import PlayerProfilePage from './pages/PlayerProfilePage'
-import DeckProfilePage from './pages/DeckProfilePage'
-import EventsPage from './pages/EventsPage'
-import EventDetailPage from './pages/EventDetailPage'
-import GamePage from './pages/GamePage'
-import JudgePage from './pages/JudgePage'
-import GiocaPage from './pages/GiocaPage'
-import GuidaPage from './pages/GuidaPage'
-import LandingPage from './pages/LandingPage'
+const GruppoPage = lazy(() => import('./pages/GruppoPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+const PlayerProfilePage = lazy(() => import('./pages/PlayerProfilePage'))
+const DeckProfilePage = lazy(() => import('./pages/DeckProfilePage'))
+const EventsPage = lazy(() => import('./pages/EventsPage'))
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage'))
+const GamePage = lazy(() => import('./pages/GamePage'))
+const JudgePage = lazy(() => import('./pages/JudgePage'))
+const GiocaPage = lazy(() => import('./pages/GiocaPage'))
+const GuidaPage = lazy(() => import('./pages/GuidaPage'))
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 import NotificationBell from './components/NotificationBell'
 import PlayerAvatar from './components/PlayerAvatar'
 import { Icon } from './components/ui'
+import { SkeletonList } from './components/Skeleton'
 import { api } from './lib/api'
 
 function NavItem({ to, end, children }) {
@@ -142,10 +144,12 @@ function PillItem({ to, end, icon, label, active, dot }) {
         color: active ? t.primary : t.textSub, transition: 'color 0.15s ease',
       }}
     >
-      <span style={{
-        position: 'absolute', top: 2, width: 18, height: 3, borderRadius: 3, background: t.primary,
-        boxShadow: `0 0 8px ${t.primary}`, opacity: active ? 1 : 0, transition: 'opacity 0.2s ease',
-      }} />
+      {active && (
+        <m.span layoutId="ct-pill-indicator" transition={{ type: 'spring', stiffness: 520, damping: 38 }} style={{
+          position: 'absolute', top: 2, width: 18, height: 3, borderRadius: 3, background: t.primary,
+          boxShadow: `0 0 8px ${t.primary}`,
+        }} />
+      )}
       <span style={{ position: 'relative', display: 'flex', filter: active ? `drop-shadow(0 0 6px ${t.primaryBorder})` : 'none' }}>
         <Icon name={icon} size={23} />
         {dot && <span style={{ position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: '50%', background: t.primary, boxShadow: `0 0 6px ${t.primary}` }} />}
@@ -228,10 +232,12 @@ function AccountMenu() {
         style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '50%', display: 'flex' }}>
         <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} avatarScryfallId={user?.avatarScryfallId} size={34} highlight />
       </button>
-      {open && createPortal(
-        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(4,6,18,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} className="ct-sheet-in" role="dialog" aria-label="Account" style={{
-            width: '100%', maxWidth: 480, background: dark ? '#0e122b' : '#FFFFFF',
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(4,6,18,0.6)' }} />
+          <Dialog.Content aria-describedby={undefined} className="ct-sheet-in" style={{
+            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 61, margin: '0 auto', outline: 'none',
+            width: '100%', maxWidth: 480, boxSizing: 'border-box', background: dark ? '#0e122b' : '#FFFFFF',
             borderRadius: '24px 24px 0 0', border: `1px solid ${t.border}`, borderBottom: 'none',
             paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', boxShadow: '0 -12px 40px rgba(0,0,0,0.45)',
           }}>
@@ -239,7 +245,7 @@ function AccountMenu() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 16px' }}>
               <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} avatarScryfallId={user?.avatarScryfallId} size={48} highlight />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>{user?.username}</div>
+                <Dialog.Title style={{ margin: 0, fontSize: 18, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>{user?.username}</Dialog.Title>
                 <div style={{ fontSize: 13, color: t.textSub }}>{user?.role === 'ADMIN' ? 'Amministratore' : 'Giocatore'}</div>
               </div>
             </div>
@@ -251,10 +257,9 @@ function AccountMenu() {
             <Row icon="book" label="Guida utente" onClick={() => go('/guida')} />
             {user?.role === 'ADMIN' && <Row icon="shield" label="Pannello Admin" onClick={() => go('/admin')} />}
             <Row icon="logout" label="Esci" danger onClick={() => { setOpen(false); logout() }} right={null} />
-          </div>
-        </div>,
-        document.body
-      )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </>
   )
 }
@@ -351,7 +356,16 @@ function Layout() {
 
         {/* Contenuto */}
         <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? `1rem 0.85rem calc(${hideNav ? 24 : 112}px + env(safe-area-inset-bottom))` : '1.75rem 1rem 3rem' }}>
-          {routes}
+          <Suspense fallback={<SkeletonList rows={5} />}>
+            <m.div
+              key={pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {routes}
+            </m.div>
+          </Suspense>
         </div>
       </div>
 
@@ -366,19 +380,44 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/login" replace />
 }
 
+// Toast sonner (conferma dopo il salvataggio partita, con "Annulla").
+function ThemedToaster() {
+  const { t, dark } = useTheme()
+  return (
+    <Toaster
+      theme={dark ? 'dark' : 'light'}
+      position="top-center"
+      offset={16}
+      toastOptions={{
+        style: {
+          background: dark ? '#0e122b' : '#FFFFFF', color: t.text, border: `1px solid ${t.primaryBorder}`,
+          borderRadius: 16, fontSize: 15, fontFamily: 'inherit', boxShadow: t.shadow,
+        },
+      }}
+    />
+  )
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <FeedbackProvider>
         <AuthProvider>
+          <MotionConfig reducedMotion="user">
+          <LazyMotion features={domAnimation} strict>
+          <ThemedToaster />
           <BrowserRouter>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/login" element={<Login />} />
               {/* Landing pubblica, scollegata dal portale: nessun redirect in base al login. */}
               <Route path="/info"  element={<LandingPage />} />
               <Route path="/*"     element={<PrivateRoute><Layout /></PrivateRoute>} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
+          </LazyMotion>
+          </MotionConfig>
         </AuthProvider>
       </FeedbackProvider>
     </ThemeProvider>
