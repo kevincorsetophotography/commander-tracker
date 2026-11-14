@@ -158,3 +158,43 @@ export function AvatarStack({ users, size = 30, max = 5, ring, PlayerAvatar }) {
     </div>
   )
 }
+
+// Pulsante iscrizione evento: "Ci sei?" → "Iscritto!" (con "pop" al cambio stato).
+export function RsvpButton({ going, onClick, full = false, busy = false, t }) {
+  return (
+    <span style={{ display: full ? 'block' : 'inline-block', width: full ? '100%' : 'auto' }}>
+      <button
+        key={going ? 'on' : 'off'}
+        onClick={(e) => { e.stopPropagation(); onClick?.(e) }}
+        disabled={busy}
+        aria-pressed={going}
+        title={going ? 'Sei iscritto: tocca per annullare' : 'Iscriviti all’evento'}
+        className={`ct-press ${going ? 'ct-pop' : ''}`}
+        style={{
+          width: full ? '100%' : 'auto', minHeight: full ? 52 : 40, padding: full ? '0 18px' : '0 14px',
+          borderRadius: full ? 16 : 999, cursor: busy ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          fontSize: full ? 17 : 14, fontWeight: 800, letterSpacing: '0.01em',
+          border: 'none',
+          // non iscritto: invito (gradiente del tema) · iscritto: verde pieno
+          background: going ? t.win : t.gradient,
+          color: t.primaryFg,
+          boxShadow: going ? `0 0 0 3px ${t.winBg}` : t.glow === 'none' ? t.shadow : t.glow,
+        }}
+      >
+        {going ? (
+          <span style={{ width: full ? 24 : 20, height: full ? 24 : 20, borderRadius: '50%', background: t.primaryFg, color: t.win, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="check" size={full ? 15 : 13} stroke={3.2} />
+          </span>
+        ) : (
+          <Icon name="plus" size={full ? 19 : 16} stroke={2.6} />
+        )}
+        {going ? 'Iscritto!' : 'Ci sei?'}
+        {going && !full && <span aria-hidden="true" style={{ display: 'inline-flex', opacity: 0.7, marginLeft: -2 }}><Icon name="close" size={14} stroke={2.6} /></span>}
+      </button>
+      {full && going && (
+        <span style={{ display: 'block', textAlign: 'center', fontSize: 12, color: t.textSub, marginTop: 6 }}>Tocca di nuovo per annullare l’iscrizione</span>
+      )}
+    </span>
+  )
+}

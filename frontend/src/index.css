@@ -176,6 +176,10 @@ body {
 @keyframes ct-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .ct-sheet-in { animation: ct-sheet-in 0.32s cubic-bezier(0.22,1.15,0.36,1) both; }
 
+/* Conferma iscrizione evento: piccolo "pop" */
+@keyframes ct-pop { 0% { transform: scale(0.92); } 55% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.ct-pop { animation: ct-pop 0.38s cubic-bezier(0.34,1.4,0.64,1) both; }
+
 /* Pulsante centrale GIOCA della nav: alone che pulsa piano */
 @keyframes ct-glow-pulse {
   0%, 100% { box-shadow: 0 0 18px rgba(52,240,143,0.40); }
@@ -187,6 +191,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ct-aurora::before, .ct-aurora::after,
   .ct-fade-up, .ct-bar-fill, .ct-section-open, .ct-modal-in,
-  .ct-ring-fill, .ct-sheet-in, .ct-glow-pulse { animation: none; }
+  .ct-ring-fill, .ct-sheet-in, .ct-glow-pulse, .ct-pop { animation: none; }
   .ct-lift:active, .ct-press:active { transform: none; }
 }

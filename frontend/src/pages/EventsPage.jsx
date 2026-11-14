@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { toast as sonner } from 'sonner'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
 import { useIsMobile } from '../hooks/useIsMobile'
 import EmptyState from '../components/EmptyState'
 import PlayerAvatar from '../components/PlayerAvatar'
-import { Icon, Sheet, Segmented, AvatarStack, bento } from '../components/ui'
+import { Icon, Sheet, Segmented, AvatarStack, bento, RsvpButton } from '../components/ui'
 
 // Eventi v2 (restyle Stitch): prossimo evento in evidenza, Prossimi/Passati,
 // form admin in pannello (Radix). Stessa API di prima.
@@ -186,6 +187,9 @@ export default function EventsPage() {
     try {
       const { rsvps } = await api.toggleRsvp(ev.id)
       setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, rsvps } : e))
+      const nowGoing = rsvps.some(r => r.userId === user?.id)
+      if (nowGoing) sonner.success('Iscritto!', { description: `Ci vediamo a “${ev.title}”` })
+      else sonner('Iscrizione annullata', { description: ev.title })
     } catch (err) {
       toast(err.error || 'Errore adesione', 'error')
     }
@@ -195,22 +199,9 @@ export default function EventsPage() {
   const inputSt = { padding: '12px 14px', borderRadius: 14, border: `1px solid ${t.border}`, fontSize: 15, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text, fontFamily: 'inherit', minHeight: 48 }
   const labelSt = { fontSize: 13, fontWeight: 600, color: t.textSub, display: 'block', marginBottom: 6 }
 
-  const RsvpButton = ({ ev, full }) => {
-    const going = ev.rsvps?.some(r => r.userId === user?.id)
-    return (
-      <button onClick={(e) => { e.stopPropagation(); toggleRsvp(ev) }} className="ct-press" style={{
-        minHeight: full ? 50 : 40, width: full ? '100%' : 'auto', padding: full ? '0 16px' : '0 14px', borderRadius: full ? 14 : 999,
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: 'pointer',
-        fontSize: full ? 16 : 14, fontWeight: 800, whiteSpace: 'nowrap',
-        border: going ? `1px solid ${t.primaryBorder}` : 'none',
-        background: going ? t.primaryBg : t.primary, color: going ? t.primary : t.primaryFg,
-        boxShadow: going || !full ? 'none' : t.glow,
-      }}>
-        <Icon name="check" size={full ? 19 : 16} stroke={2.5} />
-        {going ? (full ? 'Ci sei · tocca per annullare' : 'Ci sei') : 'Ci sono'}
-      </button>
-    )
-  }
+  const RsvpBtn = ({ ev, full }) => (
+    <RsvpButton going={!!ev.rsvps?.some(r => r.userId === user?.id)} full={full} onClick={() => toggleRsvp(ev)} t={t} />
+  )
 
   const iconBtn = (danger) => ({
     width: 40, height: 40, borderRadius: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -262,9 +253,9 @@ export default function EventsPage() {
           <span style={{ fontSize: 14, color: t.textSub }}>{users.length === 0 ? 'Ancora nessun iscritto' : `${users.length} ${users.length === 1 ? 'iscritto' : 'iscritti'}`}</span>
           <span style={{ marginLeft: 'auto' }}><AdminActions ev={ev} /></span>
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-          <div style={{ flex: 1, minWidth: 0 }}><RsvpButton ev={ev} full /></div>
-          <button onClick={(e) => { e.stopPropagation(); navigate(`/evento/${ev.id}`) }} className="ct-press" style={{ minHeight: 50, padding: '0 14px', borderRadius: 14, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}><RsvpBtn ev={ev} full /></div>
+          <button onClick={(e) => { e.stopPropagation(); navigate(`/evento/${ev.id}`) }} className="ct-press" style={{ minHeight: 52, padding: '0 14px', borderRadius: 16, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
             Apri <Icon name="chevron" size={17} />
           </button>
         </div>
@@ -299,7 +290,7 @@ export default function EventsPage() {
               {users.length > 0 && <AvatarStack users={users} size={26} max={4} ring={t.bgPage} PlayerAvatar={PlayerAvatar} />}
               <span style={{ fontSize: 13, color: t.textSub }}>{users.length === 0 ? 'Nessun iscritto' : `${users.length} ${users.length === 1 ? 'iscritto' : 'iscritti'}`}</span>
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
-                {!faded && <RsvpButton ev={ev} />}
+                {!faded && <RsvpBtn ev={ev} />}
                 <AdminActions ev={ev} />
               </span>
             </div>

@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { toast as sonner } from 'sonner'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
@@ -9,7 +10,7 @@ import { useCardArt } from '../lib/cardCache'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import PlayerAvatar from '../components/PlayerAvatar'
 import BracketBadge from '../components/BracketBadge'
-import { Icon, ManaPips, Ring, bento, SectionLabel } from '../components/ui'
+import { Icon, ManaPips, Ring, bento, SectionLabel, RsvpButton } from '../components/ui'
 import NumberFlow from '@number-flow/react'
 
 // Feed v2 (restyle Stitch): serata in evidenza, bento rank/win rate, podio,
@@ -112,21 +113,9 @@ function NextEventCard({ event, t, user, navigate, onRsvp, busy }) {
         </span>
       </div>
 
-      <button
-        className="ct-press"
-        disabled={busy}
-        onClick={e => { e.stopPropagation(); onRsvp(event) }}
-        style={{
-          width: '100%', marginTop: 14, minHeight: 50, borderRadius: 14, cursor: busy ? 'wait' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 16, fontWeight: 800,
-          border: going ? `1px solid ${t.primaryBorder}` : 'none',
-          background: going ? t.primaryBg : t.primary, color: going ? t.primary : t.primaryFg,
-          boxShadow: going ? 'none' : t.glow,
-        }}
-      >
-        <Icon name="check" size={19} stroke={2.4} />
-        {going ? 'Ci sei · tocca per annullare' : 'Ci sono'}
-      </button>
+      <div style={{ marginTop: 14 }}>
+        <RsvpButton going={going} full busy={busy} onClick={() => onRsvp(event)} t={t} />
+      </div>
     </div>
   )
 }
@@ -457,6 +446,9 @@ export default function FeedPage() {
     try {
       const { rsvps } = await api.toggleRsvp(ev.id)
       setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, rsvps } : e))
+      const nowGoing = rsvps.some(r => r.userId === user?.id)
+      if (nowGoing) sonner.success('Iscritto!', { description: `Ci vediamo a “${ev.title}”` })
+      else sonner('Iscrizione annullata', { description: ev.title })
     } catch (err) {
       toast(err.error || 'Errore adesione', 'error')
     } finally {

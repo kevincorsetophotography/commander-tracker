@@ -1,13 +1,14 @@
 ﻿import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
+import { toast as sonner } from 'sonner'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
 import { Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import PlayerAvatar from '../components/PlayerAvatar'
-import { Icon, Segmented, AvatarStack, ManaPips, SectionLabel, bento } from '../components/ui'
+import { Icon, Segmented, AvatarStack, ManaPips, SectionLabel, bento, RsvpButton } from '../components/ui'
 import { FormatChip } from './EventsPage'
 
 // Dettaglio evento v2 (restyle Stitch): vista "stasera" con iscritti, il tuo tavolo
@@ -64,7 +65,12 @@ export default function EventDetailPage() {
   const avatarOf = (uid) => registrants.find(r => r.userId === uid)?.user || {}
 
   const toggleRsvp = async () => {
-    try { const { rsvps } = await api.toggleRsvp(eid); setEvent(ev => ({ ...ev, rsvps })) }
+    try {
+      const { rsvps } = await api.toggleRsvp(eid); setEvent(ev => ({ ...ev, rsvps }))
+      const nowGoing = rsvps.some(r => r.userId === user?.id)
+      if (nowGoing) sonner.success('Iscritto!', { description: `Ci vediamo a “${event.title}”` })
+      else sonner('Iscrizione annullata', { description: event.title })
+    }
     catch (e) { toast(e.error || 'Errore adesione', 'error') }
   }
   const generateRound = async () => {
@@ -232,14 +238,9 @@ export default function EventDetailPage() {
           {registrants.length > 0 && <AvatarStack users={registrants.map(r => ({ id: r.userId, ...r.user }))} size={32} max={6} ring={t.bgPage} PlayerAvatar={PlayerAvatar} />}
           <span style={{ fontSize: 14, color: t.textSub }}>{registrants.length === 0 ? 'Ancora nessun iscritto' : `${registrants.length} ${registrants.length === 1 ? 'iscritto' : 'iscritti'}`}</span>
         </div>
-        <button onClick={toggleRsvp} className="ct-press" style={{
-          width: '100%', marginTop: 14, minHeight: 50, borderRadius: 14, cursor: 'pointer', fontSize: 16, fontWeight: 800,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          border: going ? `1px solid ${t.primaryBorder}` : 'none', background: going ? t.primaryBg : t.primary,
-          color: going ? t.primary : t.primaryFg, boxShadow: going ? 'none' : t.glow,
-        }}>
-          <Icon name="check" size={19} stroke={2.5} /> {going ? 'Ci sei · tocca per annullare' : 'Ci sono'}
-        </button>
+        <div style={{ marginTop: 14 }}>
+          <RsvpButton going={going} full onClick={toggleRsvp} t={t} />
+        </div>
       </div>
 
       {/* Iscritti */}
