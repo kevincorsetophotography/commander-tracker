@@ -2,16 +2,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { categorizeCard } from '../lib/scryfall'
-import { resolveDecklistCards } from '../lib/cardCache'
+import { resolveDecklistCards, useCardArt } from '../lib/cardCache'
 import { useTheme } from '../hooks/useTheme'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Skeleton, SkeletonList } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import DeckThumb from '../components/DeckThumb'
 import BracketBadge from '../components/BracketBadge'
+import ArchetypeBadge from '../components/ArchetypeBadge'
+import { Icon, ManaPips, Segmented, SectionLabel, bento } from '../components/ui'
 
-const COLOR_MAP = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
-const artUrl = (name) => `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
 const CATEGORY_ORDER = ['Commander', 'Creature', 'Planeswalker', 'Istantanei', 'Stregonerie', 'Artefatti', 'Incantesimi', 'Terre', 'Altro']
 
 function WinBar({ pct, t }) {
@@ -114,12 +114,13 @@ export default function DeckProfilePage() {
     return sum > 0 ? sum.toFixed(2) : null
   }, [typedCards])
 
-  const card = {
-    background: t.bgSurface, backdropFilter: 'blur(14px) saturate(150%)', WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-    border: `1px solid ${t.border}`, borderRadius: 16, padding: '1.15rem 1.35rem', marginBottom: 12, boxShadow: t.shadow,
-  }
+  const bannerArt = useCardArt(deckStats.find(d => d.id === did)?.commander)
+
+  const card = bento(t, { padding: '1rem 1.05rem', marginBottom: 12 })
   const back = (
-    <button onClick={() => navigate(-1)} style={{ padding: '6px 14px', borderRadius: 10, border: `1px solid ${t.border}`, background: t.bgMuted, color: t.textSub, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16 }}>← Indietro</button>
+    <button onClick={() => navigate(-1)} className="ct-press" style={{ minHeight: 40, padding: '0 14px 0 10px', borderRadius: 12, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <Icon name="back" size={17} /> Indietro
+    </button>
   )
 
   if (loading) return (<div>{back}<Skeleton h={140} r={16} style={{ marginBottom: 12 }} /><SkeletonList rows={4} /></div>)
@@ -129,63 +130,54 @@ export default function DeckProfilePage() {
   const { deck, myGames, trend, matchups: mine, best, worst } = data
 
   const stat = (label, value, sub) => (
-    <div style={{ flex: 1, minWidth: 110 }}>
-      <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: t.text, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>{sub}</div>}
+    <div style={bento(t, { padding: '0.85rem 0.95rem', minWidth: 0 })}>
+      <div style={{ fontSize: 12, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 900, color: t.text, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: t.textSub, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' }}>{sub}</div>}
     </div>
   )
 
-  const tabBtn = (key, label) => ({
-    padding: '8px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-    background: tab === key ? t.primary : 'transparent',
-    color: tab === key ? t.primaryFg : t.textSub,
-    borderRadius: 10, transition: 'all 0.15s',
-  })
-
   return (
-    <div>
+    <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {back}
 
       {/* Banner commander */}
-      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ position: 'relative', height: 150, background: '#1a1640' }}>
-          {deck.commander && (
-            <img src={artUrl(deck.commander)} alt="" onError={e => { e.currentTarget.style.display = 'none' }}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%' }} />
+      <div className="ct-fade-up" style={{ ...card, padding: 0, overflow: 'hidden', marginBottom: 14 }}>
+        <div style={{ position: 'relative', height: 200, background: '#1a1640' }}>
+          {deck.commander && bannerArt.status === 'ready' && (
+            <img src={bannerArt.art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%' }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 800, fontSize: 22, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>{deck.name}</span>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,10,28,0.95) 0%, rgba(8,10,28,0.25) 60%, transparent 100%)' }} />
+          <div style={{ position: 'absolute', top: 12, right: 12 }}><ManaPips colors={deck.colors} size={24} /></div>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 900, fontSize: 24, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.8)', lineHeight: 1.15, wordBreak: 'break-word' }}>{deck.name}</div>
+              <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 3, wordBreak: 'break-word' }}>{deck.commander || 'Nessun commander'} · di {deck.owner}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                 <BracketBadge bracket={deck.bracket} size="lg" />
+                {deck.archetype && <ArchetypeBadge archetype={deck.archetype} />}
               </div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>{deck.commander || 'Nessun commander'} · di {deck.owner}</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {deck.colors && deck.colors.split('').map(c => (
-                <span key={c} style={{ width: 20, height: 20, borderRadius: '50%', background: COLOR_MAP[c] || '#eee', border: '1px solid rgba(0,0,0,0.2)' }} />
-              ))}
-              <span style={{ fontSize: 30, fontWeight: 900, color: deck.winRate >= 50 ? '#34F08F' : '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: 34, fontWeight: 900, color: deck.winRate >= 50 ? '#34F08F' : '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.8)', lineHeight: 1 }}>
                 {deck.games > 0 ? `${deck.winRate}%` : 'n/a'}
-              </span>
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>win rate</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div style={{ display: 'inline-flex', gap: 4, marginBottom: 16, background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 5, boxShadow: t.shadow }}>
-        <button style={tabBtn('perf', 'Performance')} onClick={() => setTab('perf')}>Performance</button>
-        <button style={tabBtn('lista', 'Lista carte')} onClick={() => setTab('lista')}>Lista carte</button>
+      <div style={{ marginBottom: 14 }}>
+        <Segmented t={t} value={tab} onChange={setTab} options={[{ value: 'perf', label: 'Performance' }, { value: 'lista', label: 'Lista carte' }]} />
       </div>
 
       {/* ── TAB: PERFORMANCE ── */}
       {tab === 'perf' && (
         <div key="perf" className="ct-fade-up">
           {/* Statistiche chiave */}
-          <div style={{ ...card, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
             {stat('Partite', deck.games)}
             {stat('Vittorie', deck.wins, `${deck.games - deck.wins} sconfitte`)}
             {stat('Miglior matchup', best ? `${best.winRate}%` : '—', best ? `vs ${best.deckB.name}` : 'nessun dato')}
@@ -195,11 +187,11 @@ export default function DeckProfilePage() {
           {/* Stima prezzo */}
           {totalEur && (
             <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 22 }}>💶</span>
+              <span style={{ width: 44, height: 44, borderRadius: 14, background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20, fontWeight: 900 }}>€</span>
               <div>
-                <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 2 }}>Valore stimato</div>
+                <div style={{ fontSize: 12, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, marginBottom: 2 }}>Valore stimato</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: t.text }}>~€ {totalEur}</div>
-                <div style={{ fontSize: 11, color: t.textMuted }}>prezzi Scryfall · carta singola</div>
+                <div style={{ fontSize: 12, color: t.textSub }}>prezzi Scryfall · carta singola</div>
               </div>
             </div>
           )}
@@ -207,13 +199,13 @@ export default function DeckProfilePage() {
           {/* Matchup */}
           {mine.length > 0 && (
             <>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Matchup</div>
+              <div style={{ marginTop: 20 }}><SectionLabel t={t} icon="swords">Matchup</SectionLabel></div>
               {mine.map((m, i) => (
                 <div key={i} className="ct-fade-up" style={{ ...card, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, animationDelay: `${Math.min(i, 6) * 40}ms` }}>
                   <DeckThumb commander={commanderById[m.deckB.id]} w={48} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, color: t.text }}>{m.deckB.name}</div>
-                    <div style={{ fontSize: 12, color: t.textSub }}>di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'}</div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: t.text, wordBreak: 'break-word' }}>{m.deckB.name}</div>
+                    <div style={{ fontSize: 13, color: t.textSub }}>di {m.deckB.owner} · {m.games} {m.games === 1 ? 'partita' : 'partite'}</div>
                     <WinBar pct={m.winRate} t={t} />
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: m.winRate >= 50 ? t.win : m.winRate > 0 ? t.primary : t.textMuted }}>{m.winRate}%</div>
@@ -225,11 +217,11 @@ export default function DeckProfilePage() {
           {/* Trend (collassabile) */}
           {trend.length >= 2 && (
             <div style={card}>
-              <div onClick={() => setShowTrend(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Andamento win rate</span>
-                <span style={{ fontSize: 12, color: t.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <div onClick={() => setShowTrend(v => !v)} role="button" aria-expanded={showTrend} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none', minHeight: 40 }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: t.text, display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ color: t.primary, display: 'flex' }}><Icon name="chart" size={18} /></span>Andamento win rate</span>
+                <span style={{ fontSize: 13, color: t.textSub, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   {trend.length} partite
-                  <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showTrend ? 'rotate(90deg)' : 'none' }}>▸</span>
+                  <span style={{ display: 'flex', transition: 'transform 0.15s', transform: showTrend ? 'rotate(90deg)' : 'none' }}><Icon name="chevron" size={17} /></span>
                 </span>
               </div>
               {showTrend && (<div className="ct-section-open">{(() => {
@@ -252,7 +244,7 @@ export default function DeckProfilePage() {
           )}
 
           {/* Storico */}
-          <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Storico partite</div>
+          <div style={{ marginTop: 20 }}><SectionLabel t={t} icon="trophy">Storico partite</SectionLabel></div>
           {myGames.length === 0 ? (
             <EmptyState icon="🃏" title="Nessuna partita" message="Questo mazzo non ha ancora giocato." />
           ) : myGames.map(g => {
@@ -261,15 +253,15 @@ export default function DeckProfilePage() {
             const winner = g.players.find(p => p.isWinner)
             const date = new Date(g.playedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
             return (
-              <div key={g.id} style={{ ...card, marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontSize: 12, color: t.textMuted }}>{date} · {g.players.length} giocatori · {me?.user.username}</div>
+              <div key={g.id} onClick={() => navigate(`/partita/${g.id}`)} className="ct-lift" style={{ ...card, marginBottom: 10, cursor: 'pointer', ...(won ? { background: t.winBg, border: `1px solid ${t.primaryBorder}` } : {}) }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 13, color: t.textSub }}>{date} · {g.players.length} giocatori · {me?.user.username}</div>
                   <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 12px', borderRadius: 20, background: won ? t.winBg : t.bgMuted, color: won ? t.win : t.textSub }}>
                     {won ? 'Vittoria' : 'Sconfitta'}{me?.placement ? ` · ${me.placement}°` : ''}
                   </span>
                 </div>
-                {!won && winner && <div style={{ fontSize: 13, color: t.textSub }}>Ha vinto {winner.user.username} ({winner.deck.name})</div>}
-                {g.notes && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4, fontStyle: 'italic' }}>{g.notes}</div>}
+                {!won && winner && <div style={{ fontSize: 14, color: t.text }}>Ha vinto {winner.user.username} ({winner.deck.name})</div>}
+                {g.notes && <div style={{ fontSize: 13, color: t.textSub, marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{g.notes}</div>}
               </div>
             )
           })}
@@ -293,14 +285,14 @@ export default function DeckProfilePage() {
                     const tot = cards.reduce((s, c) => s + c.count, 0)
                     return (
                       <div key={cat} style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: t.primary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                           {cat} <span style={{ color: t.textMuted, fontWeight: 600 }}>({tot})</span>
                         </div>
                         {cards.map((c, i) => {
                           const active = selectedCard?.name === c.name
                           return (
-                            <div key={i} onMouseEnter={() => c.imageUri && setSelectedCard(c)} onClick={() => setSelectedCard(active ? null : c)} style={{ display: 'flex', gap: 8, padding: '4px 8px', borderRadius: 7, cursor: 'pointer', background: active ? t.primaryBg : 'transparent', color: active ? t.primary : t.text, fontSize: 13 }}>
-                              <span style={{ color: t.textMuted, minWidth: 22, textAlign: 'right' }}>{c.count}×</span>
+                            <div key={i} onMouseEnter={() => c.imageUri && setSelectedCard(c)} onClick={() => setSelectedCard(active ? null : c)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', minHeight: 40, borderRadius: 10, cursor: 'pointer', background: active ? t.primaryBg : 'transparent', color: active ? t.primary : t.text, fontSize: 15 }}>
+                              <span style={{ color: t.textSub, minWidth: 26, textAlign: 'right', fontSize: 13, fontWeight: 700 }}>{c.count}×</span>
                               <span>{c.name}</span>
                             </div>
                           )
@@ -324,14 +316,14 @@ export default function DeckProfilePage() {
               </div>
               {totalEur && (
                 <div style={{ marginTop: 16, paddingTop: 12, borderTop: `0.5px solid ${t.border}`, fontSize: 13, color: t.textSub }}>
-                  Valore stimato: <strong style={{ color: t.text }}>~€ {totalEur}</strong> <span style={{ fontSize: 11 }}>(Scryfall)</span>
+                  Valore stimato: <strong style={{ color: t.text }}>~€ {totalEur}</strong> <span style={{ fontSize: 12 }}>(Scryfall)</span>
                 </div>
               )}
             </>
           )}
           {/* Anteprima mobile — fullscreen al tap */}
           {isMobile && selectedCard?.imageUri && (
-            <div onClick={() => setSelectedCard(null)} style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div onClick={() => setSelectedCard(null)} style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
               <img src={selectedCard.imageUri} alt={selectedCard.name} style={{ width: '100%', maxWidth: 320, borderRadius: 16, boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }} />
             </div>
           )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
+import { Icon, ManaPips, bento } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useFeedback } from '../hooks/useFeedback'
@@ -33,13 +34,7 @@ function WinBar({ pct, t }) {
 }
 
 function ColorPip({ c }) {
-  return (
-    <span title={COLOR_LABEL[c]} style={{
-      display: 'inline-block', width: 16, height: 16, borderRadius: '50%',
-      background: COLOR_MAP[c] || '#eee', border: '1px solid rgba(0,0,0,0.15)',
-      fontSize: 9, lineHeight: '16px', textAlign: 'center', fontWeight: 600, color: '#444',
-    }}>{c}</span>
-  )
+  return <span title={COLOR_LABEL[c]} style={{ display: 'inline-flex' }}><ManaPips colors={c} size={18} /></span>
 }
 
 export default function PlayerProfilePage() {
@@ -350,25 +345,16 @@ export default function PlayerProfilePage() {
   }
 
   // ── Stili ──
-  const card = {
-    background: t.bgSurface,
-    backdropFilter: 'blur(14px) saturate(150%)',
-    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-    border: `1px solid ${t.border}`,
-    borderRadius: 16,
-    padding: '1.15rem 1.35rem',
-    marginBottom: 12,
-    boxShadow: t.shadow,
-  }
-  const inputSt  = { padding: '9px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }
-  const btnPrimary   = { padding: '9px 20px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer' }
-  const btnSecondary = { padding: '6px 14px', borderRadius: 10, border: `1px solid ${t.border}`, background: t.bgMuted, color: t.textSub, fontSize: 13, fontWeight: 600, cursor: 'pointer' }
-  const btnDanger    = { padding: '5px 12px', background: t.dangerBg, color: t.danger, border: `0.5px solid ${t.dangerBorder}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
+  const card = bento(t, { padding: '1rem 1.05rem', marginBottom: 12 })
+  const inputSt  = { padding: '11px 13px', borderRadius: 12, border: `1px solid ${t.border}`, fontSize: 15, minHeight: 46, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }
+  const btnPrimary   = { padding: '0 18px', minHeight: 46, background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 800, cursor: 'pointer', boxShadow: t.glow }
+  const btnSecondary = { padding: '0 14px', minHeight: 40, borderRadius: 12, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }
+  const btnDanger    = { padding: '0 12px', minHeight: 40, background: t.dangerBg, color: t.danger, border: `1px solid ${t.dangerBorder}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }
 
   const backBtn = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-      <button onClick={() => navigate(-1)} style={btnSecondary}>← Indietro</button>
-      {isOwnProfile && <button onClick={() => navigate('/guida')} style={btnSecondary}>? Guida</button>}
+      <button onClick={() => navigate(-1)} className="ct-press" style={btnSecondary}><Icon name="back" size={17} /> Indietro</button>
+      {isOwnProfile && <button onClick={() => navigate('/guida')} className="ct-press" style={btnSecondary}><Icon name="book" size={17} /> Guida</button>}
     </div>
   )
 
@@ -387,10 +373,10 @@ export default function PlayerProfilePage() {
   const bgSrc       = heroImgSrc || fallbackSrc
 
   const stat = (label, value, sub) => (
-    <div style={{ flex: 1, minWidth: 120 }}>
-      <div style={{ fontSize: 11, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: t.text, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>{sub}</div>}
+    <div style={{ flex: 1, minWidth: 130, padding: '10px 12px', borderRadius: 14, background: t.bgSurfaceAlt, border: `1px solid ${t.border}` }}>
+      <div style={{ fontSize: 12, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 900, color: t.text, lineHeight: 1.05, wordBreak: 'break-word', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: t.textSub, marginTop: 4, lineHeight: 1.35 }}>{sub}</div>}
     </div>
   )
 
@@ -430,10 +416,10 @@ export default function PlayerProfilePage() {
       }}>
         <span style={{ fontSize: 22, filter: a.unlocked ? 'none' : 'grayscale(1)' }}>{hidden ? '🔒' : a.icon}</span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: a.unlocked ? (gold ? GOLD : t.text) : t.textSub }}>
             {hidden ? '???' : a.title}{gold && ' ✨'}
           </div>
-          <div style={{ fontSize: 10.5, color: t.textMuted, lineHeight: 1.25 }}>{hidden ? 'Achievement segreto' : a.desc}</div>
+          <div style={{ fontSize: 12, color: t.textMuted, lineHeight: 1.25 }}>{hidden ? 'Achievement segreto' : a.desc}</div>
         </div>
       </div>
     )
@@ -442,11 +428,11 @@ export default function PlayerProfilePage() {
   const getDeckStat = (deckId) => deckStats.find(d => d.id === deckId) || { games: 0, wins: 0, winRate: 0 }
 
   return (
-    <div>
+    <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {backBtn}
 
       {/* ── HERO BANNER ── */}
-      <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', marginBottom: 12, minHeight: 130, boxShadow: t.shadow }}>
+      <div className="ct-fade-up" style={{ position: 'relative', borderRadius: 22, overflow: 'hidden', marginBottom: 12, minHeight: 140, boxShadow: t.shadow }}>
         {/* sfondo art sfocato */}
         {bgSrc && (
           <img
@@ -461,14 +447,14 @@ export default function PlayerProfilePage() {
             ? 'linear-gradient(135deg, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.15) 100%)'
             : t.bgSurface,
           border: `1px solid ${hasArt ? 'rgba(255,255,255,0.10)' : t.border}`,
-          borderRadius: 16,
+          borderRadius: 22,
         }} />
 
         <div style={{ position: 'relative', padding: '20px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           {/* Avatar circolare */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
-              width: 72, height: 72, borderRadius: '50%', overflow: 'hidden',
+              width: 84, height: 84, borderRadius: '50%', overflow: 'hidden',
               border: `2.5px solid ${hasArt ? 'rgba(255,255,255,0.40)' : t.primaryBorder}`,
               background: t.primaryBg,
             }}>
@@ -487,35 +473,36 @@ export default function PlayerProfilePage() {
                 title="Cambia avatar"
                 style={{
                   position: 'absolute', bottom: -1, right: -1,
-                  width: 26, height: 26, borderRadius: '50%',
+                  width: 32, height: 32, borderRadius: '50%',
                   background: t.primary, color: t.primaryFg,
                   border: `2px solid ${hasArt ? 'rgba(0,0,0,0.55)' : t.bgSurface}`,
                   cursor: 'pointer', fontSize: 12,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                 }}
-              >✎</button>
+              ><Icon name="edit" size={15} stroke={2.4} /></button>
             )}
           </div>
 
           {/* Nome + info */}
           <div style={{ flex: 1, minWidth: 150 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: hasArt ? '#fff' : t.text, textShadow: hasArt ? '0 1px 6px rgba(0,0,0,0.6)' : 'none' }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: hasArt ? '#fff' : t.text, textShadow: hasArt ? '0 1px 6px rgba(0,0,0,0.6)' : 'none', wordBreak: 'break-word', lineHeight: 1.15 }}>
               {player.username}
             </div>
-            <div style={{ fontSize: 13, color: hasArt ? 'rgba(255,255,255,0.65)' : t.textSub }}>
+            <div style={{ fontSize: 14, color: hasArt ? 'rgba(255,255,255,0.8)' : t.textSub, marginTop: 3 }}>
               {total} partite giocate
             </div>
             {streak >= 2 && (
-              <div style={{ fontSize: 12, fontWeight: 700, color: hasArt ? '#FFD580' : t.primary, marginTop: 2 }}>
-                🔥 Streak attiva: {streak} vittorie di fila
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 800, color: hasArt ? '#FFD580' : t.primary, marginTop: 6, padding: '3px 10px', borderRadius: 999, background: 'rgba(0,0,0,0.25)' }}>
+                <Icon name="flame" size={14} /> {streak} vittorie di fila
               </div>
             )}
           </div>
 
           {/* Win rate % */}
-          <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: hasArt ? '#fff' : (winRate >= 50 ? t.win : t.primary), textShadow: hasArt ? '0 2px 10px rgba(0,0,0,0.5)' : 'none', flexShrink: 0 }}>
-            {winRate}%
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1, color: hasArt ? '#fff' : (winRate >= 50 ? t.win : t.primary), textShadow: hasArt ? '0 2px 10px rgba(0,0,0,0.5)' : 'none' }}>{winRate}%</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: hasArt ? 'rgba(255,255,255,0.75)' : t.textSub }}>win rate</div>
           </div>
         </div>
       </div>
@@ -524,31 +511,31 @@ export default function PlayerProfilePage() {
       {seasonData && (
         <div style={{ ...card, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Stagione corrente</div>
-            <div style={{ fontSize: 13, color: t.text, marginTop: 2, fontWeight: 500 }}>
-              {seasonData.label} · Rank #{seasonData.rank} · {seasonData.points} punti
+            <div style={{ fontSize: 12, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>Stagione corrente</div>
+            <div style={{ fontSize: 15, color: t.text, marginTop: 3, fontWeight: 700 }}>
+              {seasonData.label} · #{seasonData.rank} · {seasonData.points} punti
             </div>
           </div>
           {seasonData.qualified
-            ? <span style={{ fontSize: 11, fontWeight: 700, color: t.win, background: t.winBg, padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>qualificato ✓</span>
-            : <span style={{ fontSize: 11, color: t.textMuted, flexShrink: 0 }}>non qualificato</span>
+            ? <span style={{ fontSize: 12, fontWeight: 700, color: t.win, background: t.winBg, padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>qualificato ✓</span>
+            : <span style={{ fontSize: 12, color: t.textMuted, flexShrink: 0 }}>non qualificato</span>
           }
           <button
             onClick={() => navigate('/gruppo?tab=stagione')}
-            style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${t.border}`, background: t.bgMuted, color: t.textSub, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
-          >Classifica →</button>
+            className="ct-press" style={{ ...btnSecondary, whiteSpace: 'nowrap', flexShrink: 0 }}
+          >Classifica <Icon name="chevron" size={15} /></button>
         </div>
       )}
 
       {/* ── ACHIEVEMENT ── */}
       <div id="achievements" style={{ ...card, cursor: achOpen ? 'default' : 'pointer', scrollMarginTop: 70 }} onClick={() => { if (!achOpen) setAchOpen(true) }}>
         <div onClick={(e) => { e.stopPropagation(); setAchOpen(o => !o) }} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Achievement</span>
+          <span style={{ fontSize: 17, fontWeight: 800, color: t.text }}>Achievement</span>
           <span style={{ fontWeight: 500, color: t.textMuted, fontSize: 13 }}>· {unlockedCount}/{achievements.length}</span>
           {secretTotal > 0 && <span style={{ fontWeight: 600, color: GOLD, fontSize: 12 }}>✨ {secretDone}/{secretTotal} segreti</span>}
           <span style={{ marginLeft: 'auto', fontSize: 12, color: t.textSub, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             {achOpen ? 'nascondi' : 'mostra'}
-            <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: achOpen ? 'rotate(90deg)' : 'none' }}>▸</span>
+            <span style={{ display: 'inline-flex', transition: 'transform 0.15s', transform: achOpen ? 'rotate(90deg)' : 'none' }}><Icon name="chevron" size={17} /></span>
           </span>
         </div>
         {!achOpen && (
@@ -576,14 +563,14 @@ export default function PlayerProfilePage() {
         /* Profilo proprio: gestione completa */
         <div style={{ ...card }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: (showAddForm || myFullDecks.length > 0) ? 14 : 0 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>I miei mazzi</span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: t.text }}>I miei mazzi</span>
             {myFullDecks.length > 0 && (
               <span style={{ fontSize: 12, color: t.textMuted, fontWeight: 500 }}>{myFullDecks.length}</span>
             )}
             <button
               onClick={() => setShowAddForm(v => !v)}
               style={{
-                marginLeft: 'auto', padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                marginLeft: 'auto', padding: '0 14px', minHeight: 40, borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: 'pointer',
                 border: `1px solid ${showAddForm ? t.dangerBorder : t.primary}`,
                 background: showAddForm ? t.dangerBg : t.primaryBg,
                 color: showAddForm ? t.danger : t.primary,
@@ -607,12 +594,12 @@ export default function PlayerProfilePage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, color: t.textSub }}>
-                  Colori:{detectingDeckColors && <span style={{ marginLeft: 5, fontSize: 11, color: t.primary }}>rilevamento...</span>}
+                  Colori:{detectingDeckColors && <span style={{ marginLeft: 5, fontSize: 12, color: t.primary }}>rilevamento...</span>}
                 </span>
                 {['W', 'U', 'B', 'R', 'G'].map(c => (
                   <button key={c} type="button" onClick={() => toggleDeckColor(c)} style={{
-                    width: 28, height: 28, borderRadius: '50%', cursor: 'pointer',
-                    fontSize: 11, fontWeight: 600, color: '#444', background: COLOR_MAP[c],
+                    width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 800, color: '#444', background: COLOR_MAP[c],
                     border: deckForm.colors.includes(c) ? `2px solid ${t.primary}` : '1px solid #ccc',
                     outline: deckForm.colors.includes(c) ? `2px solid ${t.primaryBorder}` : 'none',
                   }}>{c}</button>
@@ -657,7 +644,7 @@ export default function PlayerProfilePage() {
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 12px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>{deck.name}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{deck.commander}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{deck.commander}</div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -687,7 +674,7 @@ export default function PlayerProfilePage() {
                   <select
                     value={deck.archetype || ''}
                     onChange={e => updateDeckArchetype(deck.id, e.target.value)}
-                    style={{ padding: '4px 6px', borderRadius: 6, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 11, cursor: 'pointer', outline: 'none', flex: 1, minWidth: 0 }}
+                    style={{ padding: '4px 6px', borderRadius: 6, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none', flex: 1, minWidth: 0 }}
                   >
                     <option value="">— archetipo</option>
                     {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
@@ -695,7 +682,7 @@ export default function PlayerProfilePage() {
                   <select
                     value={deck.bracket || ''}
                     onChange={e => updateDeckBracket(deck.id, e.target.value)}
-                    style={{ padding: '4px 6px', borderRadius: 6, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 11, cursor: 'pointer', outline: 'none' }}
+                    style={{ padding: '4px 6px', borderRadius: 6, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none' }}
                   >
                     <option value="">— livello</option>
                     {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
@@ -724,7 +711,7 @@ export default function PlayerProfilePage() {
             if (!best) return null
             return (
               <>
-                <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Miglior Mazzo</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: t.text, margin: '22px 0 12px' }}>Miglior Mazzo</div>
                 <div className="ct-lift" style={{ ...card, marginBottom: 10, display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate(`/mazzo/${best.id}`)}>
                   <DeckThumb commander={best.commander} w={64} preview={false} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -755,7 +742,7 @@ export default function PlayerProfilePage() {
                   <DeckThumb commander={d.commander} w={36} preview={false} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
-                    <div style={{ fontSize: 11, color: t.textMuted }}>{d.commander || '—'}</div>
+                    <div style={{ fontSize: 12, color: t.textMuted }}>{d.commander || '—'}</div>
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: d.games === 0 ? t.textMuted : d.winRate >= 50 ? t.win : t.primary, flexShrink: 0 }}>
                     {d.games === 0 ? 'n/a' : `${d.winRate}%`}
@@ -771,10 +758,10 @@ export default function PlayerProfilePage() {
       {opponents.length > 0 && (
         <div style={card}>
           <div onClick={() => setShowRivalita(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Scontri diretti ⚔️</span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: t.text }}>Scontri diretti</span>
             <span style={{ fontSize: 12, color: t.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {showRivalita ? 'nascondi' : `${opponents.length} avversari`}
-              <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showRivalita ? 'rotate(90deg)' : 'none' }}>▸</span>
+              <span style={{ display: 'inline-flex', transition: 'transform 0.15s', transform: showRivalita ? 'rotate(90deg)' : 'none' }}><Icon name="chevron" size={17} /></span>
             </span>
           </div>
           {showRivalita && h2h && (
@@ -810,11 +797,11 @@ export default function PlayerProfilePage() {
                       <div style={{ width: `${mePct}%`, background: t.primary }} />
                       <div style={{ width: `${100 - mePct}%`, background: t.bgMuted }} />
                     </div>
-                    <div style={{ textAlign: 'center', fontSize: 11, color: t.textMuted, marginBottom: 12 }}>chi finisce più in alto</div>
+                    <div style={{ textAlign: 'center', fontSize: 12, color: t.textMuted, marginBottom: 12 }}>chi finisce più in alto</div>
                     {row('arrivato più in alto', h2h.meBetter, h2h.oppBetter)}
                     {row('vittorie del pod', h2h.myWins, h2h.oppWins)}
                     {row('eliminazioni inflitte ⚔️', h2h.myKills, h2h.oppKills)}
-                    {h2h.undecided > 0 && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 8 }}>{h2h.undecided} partite senza ordine di uscita non assegnate.</div>}
+                    {h2h.undecided > 0 && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8 }}>{h2h.undecided} partite senza ordine di uscita non assegnate.</div>}
                   </>
                 )
               })()}
@@ -827,10 +814,10 @@ export default function PlayerProfilePage() {
       {total > 0 && (
         <div style={card}>
           <div onClick={() => setShowStats(v => !v)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: t.text }}>Statistiche dettagliate</span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: t.text }}>Statistiche dettagliate</span>
             <span style={{ fontSize: 12, color: t.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {showStats ? 'nascondi' : 'vittorie, kill, trend'}
-              <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: showStats ? 'rotate(90deg)' : 'none' }}>▸</span>
+              <span style={{ display: 'inline-flex', transition: 'transform 0.15s', transform: showStats ? 'rotate(90deg)' : 'none' }}><Icon name="chevron" size={17} /></span>
             </span>
           </div>
           {showStats && (
@@ -878,7 +865,7 @@ export default function PlayerProfilePage() {
       )}
 
       {/* ── STORICO PARTITE ── */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: '20px 0 10px' }}>Storico partite</div>
+      <div style={{ fontSize: 17, fontWeight: 800, color: t.text, margin: '22px 0 12px' }}>Storico partite</div>
       {myGames.length === 0 ? (
         <EmptyState icon="🃏" title="Nessuna partita" message="Questo giocatore non ha ancora giocato." />
       ) : (
@@ -959,7 +946,7 @@ export default function PlayerProfilePage() {
             {/* Griglia stampe */}
             {printings.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: t.textSub, marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: t.textSub, marginBottom: 8 }}>
                   {printings.length} stampa{printings.length !== 1 ? '' : 'e'} — clicca per selezionare
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
@@ -976,7 +963,7 @@ export default function PlayerProfilePage() {
                       }}
                     >
                       <img src={p.artCropUrl} alt={p.setName} style={{ width: '100%', height: 68, objectFit: 'cover', objectPosition: 'center 20%', display: 'block' }} />
-                      <div style={{ fontSize: 9, color: t.textSub, padding: '3px 5px', background: t.bgMuted, lineHeight: 1.3, textAlign: 'left' }}>
+                      <div style={{ fontSize: 12, color: t.textSub, padding: '3px 5px', background: t.bgMuted, lineHeight: 1.3, textAlign: 'left' }}>
                         <div style={{ fontWeight: 700, color: t.textSub }}>{p.setCode}</div>
                         <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.artist}</div>
                       </div>

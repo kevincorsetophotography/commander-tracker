@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import DeckListPanel from '../components/DeckListPanel'
 import { useTheme } from '../hooks/useTheme'
+import { Icon, Segmented } from '../components/ui'
 import { fetchCommanderColors } from '../lib/scryfall'
 import { useFeedback } from '../hooks/useFeedback'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -36,8 +37,8 @@ function SectionCard({ children, t }) {
       backdropFilter: 'blur(14px) saturate(150%)',
       WebkitBackdropFilter: 'blur(14px) saturate(150%)',
       border: `1px solid ${t.border}`,
-      borderRadius: 14,
-      padding: '1rem 1.25rem',
+      borderRadius: 18,
+      padding: '1rem 1.05rem',
       marginBottom: 12,
       boxShadow: t.shadow,
     }}>
@@ -415,10 +416,12 @@ export default function AdminPage() {
   }
 
   const inputStyle = {
-    padding: '9px 12px',
-    borderRadius: 8,
-    border: `0.5px solid ${t.border}`,
-    fontSize: 14,
+    padding: '10px 12px',
+    minHeight: 44,
+    borderRadius: 12,
+    border: `1px solid ${t.border}`,
+    fontSize: 15,
+    fontFamily: 'inherit',
     width: '100%',
     boxSizing: 'border-box',
     background: t.inputBg,
@@ -426,32 +429,38 @@ export default function AdminPage() {
   }
 
   const buttonPrimary = {
-    padding: '9px 16px',
+    padding: '0 16px',
+    minHeight: 44,
     background: t.primary,
     color: t.primaryFg,
     border: 'none',
-    borderRadius: 8,
-    fontSize: 14,
+    borderRadius: 12,
+    fontSize: 15,
+    fontWeight: 800,
     cursor: 'pointer'
   }
 
   const buttonSecondary = {
-    padding: '8px 12px',
-    background: t.bgSurface,
-    color: t.textSub,
-    border: `0.5px solid ${t.border}`,
-    borderRadius: 8,
-    fontSize: 13,
+    padding: '0 12px',
+    minHeight: 40,
+    background: t.bgSurfaceAlt,
+    color: t.text,
+    border: `1px solid ${t.border}`,
+    borderRadius: 12,
+    fontSize: 14,
+    fontWeight: 700,
     cursor: 'pointer'
   }
 
   const buttonDanger = {
-    padding: '8px 12px',
+    padding: '0 12px',
+    minHeight: 40,
     background: t.dangerBg,
     color: t.danger,
-    border: `0.5px solid ${t.dangerBorder}`,
-    borderRadius: 8,
-    fontSize: 13,
+    border: `1px solid ${t.dangerBorder}`,
+    borderRadius: 12,
+    fontSize: 14,
+    fontWeight: 700,
     cursor: 'pointer'
   }
 
@@ -461,33 +470,27 @@ export default function AdminPage() {
 
   return (
     <div style={{ color: t.text }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 18, fontWeight: 600 }}>Amministrazione</div>
-        <button onClick={exportData} style={{ ...buttonSecondary, fontWeight: 600 }}>⬇ Esporta backup (JSON)</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="shield" size={22} /></span>
+          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>Amministrazione</div>
+        </div>
+        <button onClick={exportData} className="ct-press" style={{ ...buttonSecondary }}>Esporta backup (JSON)</button>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        {['utenti', 'mazzi', 'partite'].map((item) => (
-          <button
-            key={item}
-            onClick={() => setTab(item)}
-            style={{
-              ...buttonSecondary,
-              background: tab === item ? t.primary : t.bgSurface,
-              color: tab === item ? t.primaryFg : t.textSub,
-              borderColor: tab === item ? t.primary : t.border
-            }}
-          >
-            {item.charAt(0).toUpperCase() + item.slice(1)}
-          </button>
-        ))}
+      <div style={{ marginBottom: 14 }}>
+        <Segmented t={t} value={tab} onChange={setTab} options={[
+          { value: 'utenti', label: 'Utenti', count: users.length },
+          { value: 'mazzi', label: 'Mazzi' },
+          { value: 'partite', label: 'Partite' },
+        ]} />
       </div>
 
-      {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+      {error && <div role="alert" style={{ color: t.danger, fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{error}</div>}
 
       {tab === 'utenti' && (
         <div>
           <SectionCard t={t}>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea utente</div>
+            <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 12 }}>Crea utente</div>
             <form onSubmit={submitUser} style={{ display: 'grid', gridTemplateColumns: cols('2fr 2fr 1fr auto'), gap: 8 }}>
               <input style={inputStyle} placeholder="Username" value={userForm.username} onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))} />
               <input style={inputStyle} type="password" placeholder="Password" value={userForm.password} onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))} />
@@ -514,9 +517,12 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, color: t.text }}>{user.username} <span style={{ color: t.textSub, fontWeight: 500 }}>· {user.role}</span></div>
-                    <div style={{ fontSize: 12, color: t.textSub }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, fontSize: 16, color: t.text, wordBreak: 'break-word' }}>{user.username}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 999, color: user.role === 'ADMIN' ? t.primaryFg : t.textSub, background: user.role === 'ADMIN' ? t.primary : t.bgSurfaceAlt, border: `1px solid ${user.role === 'ADMIN' ? t.primary : t.border}` }}>{user.role}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: t.textSub, marginTop: 3 }}>
                       Mazzi: {user._count.decks} · Presenze: {user._count.gamePlayers} · Partite create: {user._count.createdGames}
                     </div>
                   </div>
@@ -534,7 +540,7 @@ export default function AdminPage() {
       {tab === 'mazzi' && (
         <div>
           <SectionCard t={t}>
-            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Crea mazzo</div>
+            <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 12 }}>Crea mazzo</div>
             <form onSubmit={submitDeck} style={{ display: 'grid', gridTemplateColumns: cols('1fr 2fr 2fr 1fr 1fr 1fr auto'), gap: 8 }}>
               <select style={inputStyle} value={deckForm.userId} onChange={(event) => setDeckForm((current) => ({ ...current, userId: event.target.value }))}>
                 <option value="">Owner</option>
@@ -600,7 +606,7 @@ export default function AdminPage() {
                   <button style={buttonSecondary} onClick={() => setEditingDeckId(null)}>Annulla</button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                   {deck.commander && (
                     <img
                       src={`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(deck.commander)}&format=image&version=art_crop`}
@@ -609,17 +615,17 @@ export default function AdminPage() {
                       style={{ width: 72, height: 52, objectFit: 'cover', objectPosition: 'center top', borderRadius: 6, flexShrink: 0 }}
                     />
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ cursor: 'pointer' }}>{deck.name}</span>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: t.text, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ cursor: 'pointer', wordBreak: 'break-word' }}>{deck.name}</span>
                       <ArchetypeBadge archetype={deck.archetype} />
                       <BracketBadge bracket={deck.bracket} />
                     </div>
-                    <div style={{ fontSize: 12, color: t.textSub }}>
+                    <div style={{ fontSize: 13, color: t.textSub, marginTop: 3, wordBreak: 'break-word' }}>
                       {deck.user.username} · {deck.commander || 'Nessun commander'} · {deck.colors || 'Senza colori'}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
                     <DeckListPanel
                       decklist={deck.decklist}
                       commander={deck.commander}
@@ -652,7 +658,7 @@ export default function AdminPage() {
 
           {gameForm.id && (
             <SectionCard t={t}>
-              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Modifica partita #{gameForm.id}</div>
+              <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 12 }}>Modifica partita #{gameForm.id}</div>
               <form onSubmit={submitGameEdit}>
                 {gameForm.slots.map((slot, index) => (
                   <div key={index} style={{ display: 'grid', gridTemplateColumns: cols('40px 1fr 1fr auto'), gap: 8, marginBottom: 8, alignItems: 'center' }}>
@@ -750,9 +756,9 @@ export default function AdminPage() {
                         })}
                       </div>
                       {gameForm.elimOrder.length > 0 && (
-                        <div style={{ marginTop: 8, fontSize: 11, color: gameForm.elimOrder.length === losers.length ? t.win : t.textMuted }}>
+                        <div style={{ marginTop: 8, fontSize: 12, color: gameForm.elimOrder.length === losers.length ? t.win : t.textMuted }}>
                           {gameForm.elimOrder.length === losers.length ? '✓ Classifica completa' : `${gameForm.elimOrder.length}/${losers.length} ordinati`}
-                          <button type="button" onClick={() => setGameForm((c) => ({ ...c, elimOrder: [] }))} style={{ marginLeft: 10, fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}>✕ azzera</button>
+                          <button type="button" onClick={() => setGameForm((c) => ({ ...c, elimOrder: [] }))} style={{ marginLeft: 10, fontSize: 12, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}>✕ azzera</button>
                         </div>
                       )}
                     </div>

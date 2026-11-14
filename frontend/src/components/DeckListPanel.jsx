@@ -27,9 +27,9 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
 
   const hasList = !!decklist
 
-  const btnSecondary = { padding: '5px 12px', background: t.bgSurface, color: t.textSub, border: `0.5px solid ${t.border}`, borderRadius: 6, fontSize: 12, cursor: 'pointer' }
-  const btnPrimary   = { padding: '9px 20px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer' }
-  const inputSt      = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: `0.5px solid ${t.border}`, fontSize: 13, background: t.inputBg, color: t.text, outline: 'none' }
+  const btnSecondary = { padding: '0 12px', minHeight: 40, background: t.bgSurfaceAlt, color: t.textSub, border: `1px solid ${t.border}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }
+  const btnPrimary   = { padding: '0 18px', minHeight: 44, background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer' }
+  const inputSt      = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 12, border: `1px solid ${t.border}`, fontSize: 15, background: t.inputBg, color: t.text, outline: 'none' }
 
   const openPanel = async () => {
     setOpen(true)
@@ -174,7 +174,7 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
       </button>
 
       {open && (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, flexBasis: '100%', width: '100%' }}>
 
           {/* ── VIEWER ── */}
           {mode === 'view' && (
@@ -203,7 +203,7 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
                             userSelect: 'none'
                           }}
                         >
-                          <span style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, minWidth: 26, textAlign: 'right' }}>{card.count}×</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, minWidth: 26, textAlign: 'right' }}>{card.count}×</span>
                           <span style={{ fontSize: 14, color: active ? t.primary : t.text, fontWeight: active ? 500 : 400 }}>{card.name}</span>
                         </div>
                       )
@@ -260,17 +260,17 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 12, color: t.textSub, fontWeight: 500 }}>Commander</span>
                   {detectingColors && (
-                    <span style={{ fontSize: 11, color: t.primary }}>rilevamento colori...</span>
+                    <span style={{ fontSize: 12, color: t.primary }}>rilevamento colori...</span>
                   )}
                   {!detectingColors && detectedColors !== null && (
                     <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                       {detectedColors.length === 0
-                        ? <span style={{ fontSize: 11, color: t.textMuted }}>Incolore</span>
+                        ? <span style={{ fontSize: 12, color: t.textMuted }}>Incolore</span>
                         : detectedColors.map(c => (
                             <span key={c} title={c} style={{
                               display: 'inline-block', width: 14, height: 14, borderRadius: '50%',
                               background: COLOR_MAP[c], border: '1px solid rgba(0,0,0,0.2)',
-                              fontSize: 9, lineHeight: '14px', textAlign: 'center', fontWeight: 700, color: '#444'
+                              fontSize: 12, lineHeight: '14px', textAlign: 'center', fontWeight: 700, color: '#444'
                             }}>{c}</span>
                           ))
                       }

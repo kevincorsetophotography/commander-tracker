@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
+import { Segmented } from '../components/ui'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const { login, register } = useAuth()
@@ -14,6 +16,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [focusField, setFocusField] = useState('')
+  const [showPass, setShowPass] = useState(false)
 
   useEffect(() => {
     if (sessionStorage.getItem('ct_session_expired')) {
@@ -38,9 +41,9 @@ export default function Login() {
   }
 
   const inputStyle = (field) => ({
-    width: '100%', padding: '12px 14px', borderRadius: 12,
+    width: '100%', padding: '13px 15px', borderRadius: 14, minHeight: 50,
     border: `1px solid ${focusField === field ? t.primaryBorder : t.border}`,
-    fontSize: 14, boxSizing: 'border-box',
+    fontSize: 16, boxSizing: 'border-box',
     background: t.inputBg, color: t.text, outline: 'none',
     boxShadow: focusField === field ? t.glow : 'none',
     transition: 'all 0.18s ease',
@@ -69,8 +72,8 @@ export default function Login() {
             to="/info"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none',
-              fontSize: 12.5, fontWeight: 600, color: t.textSub,
-              padding: '5px 12px', borderRadius: 999, border: `1px solid ${t.border}`,
+              fontSize: 13, fontWeight: 600, color: t.textSub,
+              padding: '8px 14px', borderRadius: 999, border: `1px solid ${t.border}`,
             }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
@@ -85,14 +88,19 @@ export default function Login() {
           WebkitBackdropFilter: 'blur(18px) saturate(160%)',
           border: `1px solid ${t.border}`,
           borderRadius: 20,
-          padding: '2rem',
+          padding: '1.5rem 1.35rem 1.6rem',
           width: '100%',
           boxSizing: 'border-box',
           color: t.text,
           boxShadow: t.shadow,
         }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ marginBottom: 18 }}>
+            <Segmented t={t} value={mode} onChange={(m) => { setMode(m); setError('') }} options={[
+              { value: 'login', label: 'Accedi' }, { value: 'register', label: 'Registrati' },
+            ]} />
+          </div>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
               {mode === 'login' ? 'Bentornato' : 'Crea account'}
             </div>
             <div style={{ fontSize: 13, color: t.textSub }}>
@@ -103,19 +111,26 @@ export default function Login() {
           <form onSubmit={submit}>
             <div style={{ marginBottom: 12 }}>
               <input
-                type="text" placeholder="Username" value={username}
+                type="text" placeholder="Username" value={username} autoComplete="username"
                 onChange={e => setUsername(e.target.value)} required
                 onFocus={() => setFocusField('user')} onBlur={() => setFocusField('')}
                 style={inputStyle('user')}
               />
             </div>
             <div style={{ marginBottom: 18 }}>
-              <input
-                type="password" placeholder="Password" value={password}
-                onChange={e => setPassword(e.target.value)} required
-                onFocus={() => setFocusField('pass')} onBlur={() => setFocusField('')}
-                style={inputStyle('pass')}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPass ? 'text' : 'password'} placeholder="Password" value={password}
+                  onChange={e => setPassword(e.target.value)} required
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  onFocus={() => setFocusField('pass')} onBlur={() => setFocusField('')}
+                  style={{ ...inputStyle('pass'), paddingRight: 52 }}
+                />
+                <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Nascondi password' : 'Mostra password'}
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, border: 'none', background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
             {mode === 'register' && (
               <div style={{ marginBottom: 18 }}>
@@ -125,18 +140,18 @@ export default function Login() {
                   onFocus={() => setFocusField('invite')} onBlur={() => setFocusField('')}
                   style={inputStyle('invite')}
                 />
-                <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>
+                <div style={{ fontSize: 12, color: t.textSub, marginTop: 6 }}>
                   Chiedi il codice a un membro del gruppo
                 </div>
               </div>
             )}
-            {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+            {error && <div role="alert" style={{ color: t.danger, background: t.dangerBg, border: `1px solid ${t.dangerBorder}`, borderRadius: 12, padding: '10px 12px', fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{error}</div>}
             <button
               type="submit"
               disabled={loading}
               style={{
-                width: '100%', padding: '12px', background: t.primary, color: t.primaryFg,
-                border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                width: '100%', padding: '12px', minHeight: 52, background: t.primary, color: t.primaryFg,
+                border: 'none', borderRadius: 16, fontSize: 16, fontWeight: 800, cursor: 'pointer',
                 boxShadow: t.glow, transition: 'all 0.18s ease', opacity: loading ? 0.7 : 1,
               }}
             >
@@ -148,7 +163,9 @@ export default function Login() {
             {mode === 'login' ? 'Non hai un account?' : 'Hai già un account?'}{' '}
             <span
               onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
-              style={{ color: t.primary, cursor: 'pointer', fontWeight: 600 }}
+              role="button" tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter') { setMode(mode === 'login' ? 'register' : 'login'); setError('') } }}
+              style={{ color: t.primary, cursor: 'pointer', fontWeight: 700, padding: '8px 4px' }}
             >
               {mode === 'login' ? 'Registrati' : 'Accedi'}
             </span>

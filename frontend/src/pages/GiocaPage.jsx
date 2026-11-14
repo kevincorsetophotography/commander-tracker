@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
-import DeckThumb from '../components/DeckThumb'
+import { useCardArt } from '../lib/cardCache'
+import PlayerAvatar from '../components/PlayerAvatar'
+import BracketBadge from '../components/BracketBadge'
+import { Icon, ManaPips, SectionLabel, bento } from '../components/ui'
+
+// Gioca v2 (restyle Stitch): CTA "Registra partita", il tuo tavolo stasera (se c'è),
+// Giudice, i tuoi mazzi recenti, prossimo evento, ultima partita. Stesse funzioni di prima.
 
 function relativeDate(date) {
   const diffDays = Math.floor((Date.now() - new Date(date)) / 86400000)
@@ -13,6 +19,32 @@ function relativeDate(date) {
   return new Date(date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
 }
 
+const sameLocalDay = (a, b) => {
+  const x = new Date(a), y = new Date(b)
+  return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate()
+}
+
+function DeckCard({ deck, t, onClick }) {
+  const { status, art } = useCardArt(deck.commander)
+  return (
+    <button onClick={onClick} className="ct-lift" style={{
+      flex: '0 0 auto', width: 168, padding: 0, textAlign: 'left', cursor: 'pointer', overflow: 'hidden',
+      ...bento(t, { borderRadius: 18 }),
+    }}>
+      <div style={{ position: 'relative', height: 92, background: '#0f1225' }}>
+        {status === 'ready' && <img src={art} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }} />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(8,10,28,0.75))' }} />
+        <span style={{ position: 'absolute', left: 8, bottom: 8 }}><ManaPips colors={deck.colors} size={18} /></span>
+      </div>
+      <div style={{ padding: '9px 10px 11px' }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: t.text, lineHeight: 1.25, wordBreak: 'break-word' }}>{deck.name}</div>
+        {deck.commander && <div style={{ fontSize: 12, color: t.textSub, marginTop: 2, lineHeight: 1.3, wordBreak: 'break-word' }}>{deck.commander.split('//')[0].trim()}</div>}
+        {deck.bracket && <div style={{ marginTop: 6 }}><BracketBadge bracket={deck.bracket} size="lg" /></div>}
+      </div>
+    </button>
+  )
+}
+
 export default function GiocaPage() {
   const { t } = useTheme()
   const { user } = useAuth()
@@ -20,6 +52,7 @@ export default function GiocaPage() {
   const [games, setGames] = useState([])
   const [decks, setDecks] = useState([])
   const [events, setEvents] = useState([])
+  const [tonight, setTonight] = useState(null) // { event, table } se stasera ho un tavolo
 
   useEffect(() => {
     Promise.allSettled([api.getGames(), api.getDecks(), api.getEvents()])
@@ -58,99 +91,106 @@ export default function GiocaPage() {
       .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt))[0] || null
   })()
 
+  // Evento di oggi con tavoli: cerco il mio tavolo dell'ultimo turno
+  useEffect(() => {
+    if (!nextEvent || !nextEvent.format || !sameLocalDay(nextEvent.startsAt, new Date())) return
+    api.getEvent(nextEvent.id).then(ev => {
+      const round = ev.rounds?.[ev.rounds.length - 1]
+      const table = round?.tables.find(tb => tb.seats.some(s => s.user.id === user?.id))
+      if (table) setTonight({ event: ev, table, round })
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextEvent?.id])
+
   const eventCountdown = (startsAt) => {
     const diff = Math.ceil((new Date(startsAt) - Date.now()) / 86400000)
     if (diff <= 0) return 'Oggi'
     if (diff === 1) return 'Domani'
-    return `tra ${diff} giorni`
+    return `Tra ${diff} giorni`
   }
 
-  return (
-    <div style={{ maxWidth: 520, margin: '0 auto' }}>
+  const rowBtn = (extra = {}) => ({
+    width: '100%', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
+    ...bento(t, { padding: '0.95rem 1rem', ...extra }),
+  })
 
-      {/* Hero CTA — Registra Partita */}
+  return (
+    <div style={{ maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginBottom: 14 }}>Gioca</div>
+
+      {/* Hero CTA — Registra partita */}
       <button
-        className="ct-fade-up"
+        className="ct-fade-up ct-press"
         onClick={() => navigate('/nuova-partita')}
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          width: '100%', textAlign: 'left', marginBottom: 10,
-          background: t.primary, color: t.primaryFg,
-          border: 'none', borderRadius: 20, padding: '1.5rem 1.75rem',
-          cursor: 'pointer', boxShadow: t.glow,
-          transition: 'opacity 0.15s ease',
+          display: 'flex', alignItems: 'center', gap: 16, width: '100%', textAlign: 'left', marginBottom: 14,
+          background: t.gradient, color: t.primaryFg, border: 'none', borderRadius: 24, padding: '1.4rem 1.3rem',
+          cursor: 'pointer', boxShadow: t.glow === 'none' ? t.shadow : `${t.glow}, ${t.shadow}`,
         }}
-        onMouseEnter={e => { e.currentTarget.style.opacity = '0.9' }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
       >
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Registra Partita</div>
-          <div style={{ fontSize: 13, opacity: 0.85 }}>Aggiungi il risultato di una partita appena finita</div>
-        </div>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9, flexShrink: 0 }}>
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="16"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
-        </svg>
+        <span style={{ width: 58, height: 58, borderRadius: 18, background: 'rgba(4,17,26,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="swords" size={30} stroke={2.2} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 22, fontWeight: 900, lineHeight: 1.15 }}>Registra partita</span>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 600, opacity: 0.85, marginTop: 4 }}>Il risultato di una partita appena finita</span>
+        </span>
+        <Icon name="chevron" size={24} stroke={2.4} />
       </button>
 
-      {/* Judge Bot secondario */}
-      <button
-        className="ct-fade-up"
-        onClick={() => navigate('/giudice')}
-        style={{ animationDelay: '60ms',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          width: '100%', textAlign: 'left', marginBottom: 28,
-          background: t.bgSurface, color: t.text,
-          border: `1px solid ${t.border}`, borderRadius: 14, padding: '0.95rem 1.25rem',
-          cursor: 'pointer', boxShadow: t.shadow,
-          transition: 'border-color 0.15s ease',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = t.primaryBorder }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = t.border }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 24, lineHeight: 1 }}>⚖</span>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Judge Bot</div>
-            <div style={{ fontSize: 12, color: t.textSub }}>Ruling Commander · Comprehensive Rules + Scryfall</div>
+      {/* Stasera: il tuo tavolo */}
+      {tonight && (
+        <div className="ct-fade-up" style={bento(t, { padding: '1rem', marginBottom: 14, border: `1px solid ${t.primaryBorder}`, animationDelay: '40ms' })}>
+          <SectionLabel t={t} icon="groups" right={<span style={{ fontSize: 12, fontWeight: 700, color: t.primary }}>Turno {tonight.round.number}</span>}>
+            Stasera · Tavolo {tonight.table.number}
+          </SectionLabel>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {tonight.table.seats.map(s => (
+              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 14, fontWeight: 600, color: t.text, background: t.bgSurfaceAlt, border: `1px solid ${t.border}`, borderRadius: 999, padding: '3px 11px 3px 3px' }}>
+                <PlayerAvatar username={s.user.username} avatarCardName={s.user.avatarCardName} avatarScryfallId={s.user.avatarScryfallId} size={28} highlight={s.user.id === user?.id} />
+                {s.user.username}
+              </span>
+            ))}
           </div>
+          {tonight.table.done ? (
+            <button onClick={() => navigate(`/evento/${tonight.event.id}`)} className="ct-press" style={{ width: '100%', minHeight: 46, borderRadius: 14, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+              Tavolo concluso · vedi la serata
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/nuova-partita', { state: { podContext: { eventId: tonight.event.id, tableId: tonight.table.id, date: tonight.event.startsAt, players: tonight.table.seats.map(s => ({ userId: s.user.id, username: s.user.username })) } } })}
+              className="ct-press"
+              style={{ width: '100%', minHeight: 48, borderRadius: 14, border: 'none', background: t.primary, color: t.primaryFg, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: t.glow }}
+            >
+              <Icon name="swords" size={18} stroke={2.2} /> Registra il risultato del tavolo
+            </button>
+          )}
         </div>
-        <span style={{ color: t.primary, fontSize: 20, fontWeight: 700, flexShrink: 0 }}>›</span>
+      )}
+
+      {/* Giudice */}
+      <button className="ct-fade-up ct-lift" onClick={() => navigate('/giudice')} style={{ ...rowBtn(), marginBottom: 22, animationDelay: '80ms' }}>
+        <span style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(139,92,246,0.18)', color: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="book" size={23} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 16, fontWeight: 800, color: t.text }}>Chiedi al Giudice</span>
+          <span style={{ display: 'block', fontSize: 13, color: t.textSub, marginTop: 2 }}>Ruling Commander · Regole complete + Scryfall</span>
+        </span>
+        <span style={{ color: t.textMuted, display: 'flex' }}><Icon name="chevron" size={20} /></span>
       </button>
 
       {/* Ultimi mazzi usati */}
       {recentDecks.length > 0 && (
-        <div className="ct-fade-up" style={{ marginBottom: 24, animationDelay: '120ms' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-            Ultimi mazzi usati
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+        <div className="ct-fade-up" style={{ marginBottom: 22, animationDelay: '120ms' }}>
+          <SectionLabel t={t} icon="cards" right={
+            <button onClick={() => navigate('/mazzi')} style={{ background: 'none', border: 'none', color: t.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, padding: '6px 0' }}>
+              I miei mazzi <Icon name="chevron" size={15} />
+            </button>
+          }>Ultimi mazzi usati</SectionLabel>
+          <div className="ct-scroll-x" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
             {recentDecks.map(deck => (
-              <button
-                key={deck.id}
-                onClick={() => navigate('/mazzo/' + deck.id)}
-                style={{
-                  flex: 1, minWidth: 0, padding: 0, border: `1px solid ${t.border}`,
-                  borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
-                  background: t.bgSurface, boxShadow: t.shadow, textAlign: 'left',
-                  transition: 'transform 0.15s ease, border-color 0.15s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = t.primaryBorder }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = t.border }}
-              >
-                <div style={{ height: 72, overflow: 'hidden', background: t.bgMuted }}>
-                  <DeckThumb commander={deck.commander} w="100%" preview={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }} />
-                </div>
-                <div style={{ padding: '6px 8px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{deck.name}</div>
-                  {deck.commander && (
-                    <div style={{ fontSize: 11, color: t.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {deck.commander.split('//')[0].trim()}
-                    </div>
-                  )}
-                </div>
-              </button>
+              <DeckCard key={deck.id} deck={deck} t={t} onClick={() => navigate('/mazzo/' + deck.id)} />
             ))}
           </div>
         </div>
@@ -158,31 +198,17 @@ export default function GiocaPage() {
 
       {/* Prossimo evento */}
       {nextEvent && (
-        <div className="ct-fade-up" style={{ marginTop: 24, animationDelay: '180ms' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-            Prossimo evento
-          </div>
-          <button
-            onClick={() => navigate(`/evento/${nextEvent.id}`)}
-            style={{
-              width: '100%', textAlign: 'left', padding: '0.9rem 1rem',
-              background: t.primaryBg, border: `1px solid ${t.primaryBorder}`,
-              borderRadius: 14, cursor: 'pointer', boxShadow: t.shadow,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {nextEvent.title}
-              </div>
-              <div style={{ fontSize: 11, color: t.textSub, marginTop: 3 }}>
+        <div className="ct-fade-up" style={{ marginBottom: 22, animationDelay: '160ms' }}>
+          <SectionLabel t={t} icon="calendar">Prossimo evento</SectionLabel>
+          <button onClick={() => navigate(`/evento/${nextEvent.id}`)} className="ct-lift" style={rowBtn({ background: t.primaryBg, border: `1px solid ${t.primaryBorder}` })}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 16, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>{nextEvent.title}</span>
+              <span style={{ display: 'block', fontSize: 13, color: t.textSub, marginTop: 3, textTransform: 'capitalize' }}>
                 {new Date(nextEvent.startsAt).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })}
                 {nextEvent.rsvps?.length > 0 ? ` · ${nextEvent.rsvps.length} iscritti` : ''}
-              </div>
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: t.primary, flexShrink: 0,
-              background: t.primaryBg, border: `1px solid ${t.primaryBorder}`,
-              borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+              </span>
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: t.primary, flexShrink: 0, background: t.bgSurface, border: `1px solid ${t.primaryBorder}`, borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap' }}>
               {eventCountdown(nextEvent.startsAt)}
             </span>
           </button>
@@ -195,30 +221,22 @@ export default function GiocaPage() {
         const me = lastGame.players.find(p => p.user.id === user?.id)
         const iWon = !!me?.isWinner
         return (
-          <div className="ct-fade-up" style={{ marginTop: 24, animationDelay: '240ms' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-              Ultima partita
-            </div>
-            <button
-              onClick={() => navigate('/partita/' + lastGame.id)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '0.9rem 1rem',
-                background: iWon ? t.winBg : t.bgSurface,
-                border: `1px solid ${iWon ? t.win + '55' : t.border}`,
-                borderLeft: `3px solid ${iWon ? t.win : t.primary}`,
-                borderRadius: 12, cursor: 'pointer', boxShadow: t.shadow,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: iWon ? t.win : t.text }}>
-                  🏆 {winner?.user?.username}{winner?.deck?.commander ? ` · ${winner.deck.commander.split('//')[0].trim()}` : winner?.deck?.name ? ` · ${winner.deck.name}` : ''}
-                </div>
-                <div style={{ fontSize: 11, color: t.textSub, marginTop: 2 }}>
+          <div className="ct-fade-up" style={{ animationDelay: '200ms' }}>
+            <SectionLabel t={t} icon="trophy">La tua ultima partita</SectionLabel>
+            <button onClick={() => navigate('/partita/' + lastGame.id)} className="ct-lift" style={rowBtn(iWon ? { background: t.winBg, border: `1px solid ${t.primaryBorder}` } : {})}>
+              <PlayerAvatar username={winner?.user?.username} avatarCardName={winner?.user?.avatarCardName} avatarScryfallId={winner?.user?.avatarScryfallId} size={44} highlight={iWon} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: iWon ? t.win : t.text }}>
+                  {iWon ? 'Hai vinto!' : `${me?.placement ? `${me.placement}° posto · ` : ''}Vittoria di ${winner?.user?.username}`}
+                </span>
+                <span style={{ display: 'block', fontSize: 13, color: t.textSub, marginTop: 2, wordBreak: 'break-word' }}>
+                  {winner?.deck?.commander ? winner.deck.commander.split('//')[0].trim() : winner?.deck?.name || ''}
+                </span>
+                <span style={{ display: 'block', fontSize: 12, color: t.textMuted, marginTop: 2 }}>
                   {lastGame.players.length} giocatori · {relativeDate(lastGame.playedAt)}
-                </div>
-              </div>
-              <span style={{ color: t.primary, fontSize: 18, flexShrink: 0 }}>›</span>
+                </span>
+              </span>
+              <span style={{ color: t.textMuted, display: 'flex' }}><Icon name="chevron" size={20} /></span>
             </button>
           </div>
         )

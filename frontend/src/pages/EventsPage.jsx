@@ -287,9 +287,10 @@ export default function EventsPage() {
               {time && <span style={{ fontSize: 13, color: t.textSub }}>{time}</span>}
             </div>
             {ev.location && <div style={{ fontSize: 13, color: t.textSub, marginTop: 4, wordBreak: 'break-word' }}>{ev.location}</div>}
+            {ev.description && <div style={{ fontSize: 13, color: t.textSub, marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45 }}>{ev.description}</div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               {users.length > 0 && <AvatarStack users={users} size={26} max={4} ring={t.bgPage} PlayerAvatar={PlayerAvatar} />}
-              <span style={{ fontSize: 13, color: t.textSub }}>{users.length === 0 ? 'Nessun iscritto' : `${users.length} ${users.length === 1 ? 'iscritto' : 'iscritti'}`}</span>
+              <span style={{ fontSize: 13, color: t.textSub }} title={users.map(u => u.username).filter(Boolean).join(', ')}>{users.length === 0 ? 'Nessun iscritto' : `${users.length} ${users.length === 1 ? 'iscritto' : 'iscritti'}`}</span>
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
                 {!faded && <RsvpBtn ev={ev} />}
                 <AdminActions ev={ev} />

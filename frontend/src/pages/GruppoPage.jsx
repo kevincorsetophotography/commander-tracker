@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
@@ -10,7 +10,8 @@ import BracketBadge from '../components/BracketBadge'
 import GameSocial from '../components/GameSocial'
 import { listSeasons, computeStandings, seasonOf } from '../lib/seasons'
 import PlayerAvatar from '../components/PlayerAvatar'
-import SeasonRecap from '../components/SeasonRecap'
+// Infografica stagione: caricata solo quando la si apre (dipendenza pesante)
+const SeasonRecap = lazy(() => import('../components/SeasonRecap'))
 import NumberFlow from '@number-flow/react'
 import { Icon, ManaPips, Segmented, bento } from '../components/ui'
 
@@ -628,6 +629,7 @@ export default function GruppoPage() {
       </div>
     </div>
     {showRecap && season && (
+      <Suspense fallback={null}>
       <SeasonRecap
         season={season}
         seasonKey={seasonKey}
@@ -636,6 +638,7 @@ export default function GruppoPage() {
         playerStats={playerStats}
         onClose={() => setShowRecap(false)}
       />
+      </Suspense>
     )}
     </>
   )
