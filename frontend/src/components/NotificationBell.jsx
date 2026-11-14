@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { Icon } from './ui'
 
 const POLL_MS = 60000
 
@@ -19,7 +21,7 @@ function timeAgo(iso) {
 }
 
 export default function NotificationBell() {
-  const { t } = useTheme()
+  const { t, dark } = useTheme()
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [count, setCount] = useState(0)
@@ -63,19 +65,20 @@ export default function NotificationBell() {
       <button
         onClick={toggle}
         title="Notifiche"
+        className="ct-press"
         aria-label={count > 0 ? `Notifiche, ${count} non lette` : 'Notifiche'}
         style={{
-          position: 'relative', padding: '6px 12px', borderRadius: 10, cursor: 'pointer',
-          border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.textSub,
-          fontSize: 15, lineHeight: 1, transition: 'all 0.18s ease',
+          position: 'relative', width: 44, height: 44, borderRadius: 14, cursor: 'pointer',
+          border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s ease',
         }}
       >
-        🔔
+        <Icon name="bell" size={21} />
         {count > 0 && (
           <span style={{
-            position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 4px',
-            borderRadius: 9, background: t.danger || '#e8654f', color: '#fff',
-            fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'absolute', top: -5, right: -5, minWidth: 20, height: 20, padding: '0 5px',
+            borderRadius: 10, background: t.primary, color: t.primaryFg, boxShadow: `0 0 8px ${t.primaryBorder}`,
+            fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxSizing: 'border-box',
           }}>
             {count > 9 ? '9+' : count}
@@ -83,24 +86,29 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && (() => {
+        const panel = (
         <>
-          {/* backdrop per chiudere al click fuori */}
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          {/* backdrop per chiudere al click fuori (su mobile scurisce la pagina sotto il pannello) */}
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40, background: isMobile ? 'rgba(4,6,18,0.6)' : 'transparent' }} />
 
-          <div style={{
-            // su mobile la campanella non è l'elemento più a destra: ancoro il
-            // pannello al viewport per non farlo uscire dal bordo sinistro.
+          <div className={isMobile ? 'ct-sheet-in' : 'ct-modal-in'} style={{
+            // Mobile: pannello OPACO che sale dal basso (prima era un dropdown semitrasparente, illeggibile).
             ...(isMobile
-              ? { position: 'fixed', top: 'calc(env(safe-area-inset-top) + 80px)', right: 10, left: 'auto' }
-              : { position: 'absolute', top: 'calc(100% + 8px)', right: 0 }),
-            zIndex: 50,
-            width: 320, maxWidth: 'calc(100vw - 20px)', maxHeight: '70vh', overflowY: 'auto',
-            background: t.bgSurface, border: `1px solid ${t.border}`, borderRadius: 12,
-            boxShadow: t.shadow, padding: 4,
+              ? { position: 'fixed', left: 0, right: 0, bottom: 0, width: '100%', maxHeight: '85vh', borderRadius: '24px 24px 0 0', padding: '4px 8px calc(16px + env(safe-area-inset-bottom))', borderBottom: 'none' }
+              : { position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 340, maxWidth: 'calc(100vw - 20px)', maxHeight: '70vh', borderRadius: 14, padding: 4 }),
+            zIndex: 50, overflowY: 'auto', boxSizing: 'border-box',
+            background: dark ? '#0e122b' : '#FFFFFF', border: `1px solid ${t.border}`,
+            boxShadow: '0 -12px 40px rgba(0,0,0,0.45)',
           }}>
-            <div style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: t.textSub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Notifiche
+            {isMobile && <div style={{ width: 40, height: 4, borderRadius: 4, background: t.borderStrong, margin: '8px auto 4px' }} />}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 10px 8px' }}>
+              <span style={{ fontSize: isMobile ? 18 : 13, fontWeight: 800, color: t.text }}>Notifiche</span>
+              {isMobile && (
+                <button onClick={() => setOpen(false)} aria-label="Chiudi" style={{ width: 40, height: 40, border: 'none', background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="close" size={20} />
+                </button>
+              )}
             </div>
 
             {loading && <div style={{ padding: '10px', fontSize: 13, color: t.textSub }}>Caricamento…</div>}
@@ -125,13 +133,16 @@ export default function NotificationBell() {
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: t.text, wordBreak: 'break-word' }}>{n.title}</div>
                   {n.body && <div style={{ fontSize: 12, color: t.textSub, marginTop: 2, wordBreak: 'break-word' }}>{n.body}</div>}
-                  <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>{timeAgo(n.createdAt)}</div>
+                  <div style={{ fontSize: 12, color: t.textMuted, marginTop: 3 }}>{timeAgo(n.createdAt)}</div>
                 </div>
               </div>
             ))}
           </div>
         </>
-      )}
+        )
+        // Mobile: portal su body (l'header con backdrop-filter farebbe da contenitore ai fixed).
+        return isMobile ? createPortal(panel, document.body) : panel
+      })()}
     </div>
   )
 }

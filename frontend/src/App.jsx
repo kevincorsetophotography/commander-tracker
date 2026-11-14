@@ -1,4 +1,5 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 function RedirectWithSearch({ to }) {
@@ -27,6 +28,8 @@ import GuidaPage from './pages/GuidaPage'
 import LandingPage from './pages/LandingPage'
 import NotificationBell from './components/NotificationBell'
 import PlayerAvatar from './components/PlayerAvatar'
+import { Icon } from './components/ui'
+import { api } from './lib/api'
 
 function NavItem({ to, end, children }) {
   const { t } = useTheme()
@@ -123,63 +126,136 @@ function UserChip({ titleSize = 13, avatar = 26, hideLabel = false }) {
   )
 }
 
-const DOCK_ICONS = {
-  feed: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-      <polyline points="9,22 9,12 15,12 15,22"/>
-    </svg>
-  ),
-  gioca: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="8" y="4" width="8" height="14" rx="1.5" transform="rotate(-18 12 18)"/>
-      <rect x="8" y="4" width="8" height="14" rx="1.5" transform="rotate(18 12 18)"/>
-      <rect x="8" y="3" width="8" height="15" rx="1.5"/>
-      <path d="M12,8.5 L13.3,11 L12,13.5 L10.7,11 Z" strokeWidth="1.2"/>
-    </svg>
-  ),
-  eventi: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  gruppo: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-      <path d="M16 3.13a4 4 0 010 7.75"/>
-    </svg>
-  ),
-  io: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-      <circle cx="12" cy="7" r="4"/>
-    </svg>
-  ),
-}
+// ── Nav mobile v2: pillola flottante Feed | Eventi | [GIOCA] | Gruppo | Io ──
 
-function DockItem({ to, end, icon, label }) {
+function PillItem({ to, end, icon, label, active, dot }) {
   const { t } = useTheme()
   return (
     <NavLink
       to={to}
       end={end}
-      style={({ isActive }) => ({
-        flex: 1, minWidth: 0, textDecoration: 'none',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
-        minHeight: 56, padding: '8px 2px', borderRadius: 14,
-        color: isActive ? t.primary : t.textSub,
-        background: isActive ? t.primaryBg : 'transparent',
-        transition: 'color 0.15s ease, background 0.15s ease',
-      })}
+      aria-label={label}
+      className="ct-press"
+      style={{
+        flex: 1, minWidth: 0, minHeight: 52, textDecoration: 'none', position: 'relative',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+        color: active ? t.primary : t.textSub, transition: 'color 0.15s ease',
+      }}
     >
-      {icon}
-      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.03em' }}>{label}</span>
+      <span style={{
+        position: 'absolute', top: 2, width: 18, height: 3, borderRadius: 3, background: t.primary,
+        boxShadow: `0 0 8px ${t.primary}`, opacity: active ? 1 : 0, transition: 'opacity 0.2s ease',
+      }} />
+      <span style={{ position: 'relative', display: 'flex', filter: active ? `drop-shadow(0 0 6px ${t.primaryBorder})` : 'none' }}>
+        <Icon name={icon} size={23} />
+        {dot && <span style={{ position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: '50%', background: t.primary, boxShadow: `0 0 6px ${t.primary}` }} />}
+      </span>
+      <span style={{ fontSize: 12, fontWeight: active ? 700 : 600, letterSpacing: '0.01em' }}>{label}</span>
     </NavLink>
+  )
+}
+
+function PillNav({ user, hasUpcomingEvent }) {
+  const { t, dark } = useTheme()
+  const { pathname } = useLocation()
+  const isPlay = ['/gioca', '/nuova-partita', '/giudice'].some(p => pathname.startsWith(p))
+  const myProfile = `/giocatore/${user?.id}`
+  return (
+    <div style={{
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30, pointerEvents: 'none',
+      padding: '0 12px calc(12px + env(safe-area-inset-bottom))',
+    }}>
+      <nav aria-label="Navigazione principale" style={{
+        pointerEvents: 'auto', maxWidth: 448, margin: '0 auto', height: 64, borderRadius: 999,
+        background: dark ? 'rgba(14,18,43,0.85)' : 'rgba(255,255,255,0.88)',
+        backdropFilter: 'blur(18px) saturate(160%)', WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+        border: `1px solid ${dark ? 'rgba(52,240,143,0.25)' : t.primaryBorder}`,
+        boxShadow: dark ? '0 12px 40px rgba(0,0,0,0.6)' : '0 10px 30px rgba(20,20,42,0.16)',
+        display: 'flex', alignItems: 'center', padding: '0 6px',
+      }}>
+        <PillItem to="/" end icon="feed" label="Feed" active={pathname === '/'} />
+        <PillItem to="/eventi" icon="calendar" label="Eventi" dot={hasUpcomingEvent}
+          active={pathname.startsWith('/eventi') || pathname.startsWith('/evento')} />
+        <div style={{ flex: '0 0 68px', display: 'flex', justifyContent: 'center' }}>
+          <NavLink
+            to="/gioca"
+            aria-label="Gioca"
+            className={`ct-press ${isPlay ? '' : 'ct-glow-pulse'}`}
+            style={{
+              width: 58, height: 58, marginTop: -26, borderRadius: '50%', textDecoration: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: t.primary, color: t.primaryFg,
+              border: `4px solid ${dark ? '#0e122b' : t.bgPage}`,
+              boxShadow: isPlay ? `0 0 26px ${t.primary}` : undefined,
+            }}
+          >
+            <Icon name="swords" size={28} stroke={2.2} />
+          </NavLink>
+        </div>
+        <PillItem to="/gruppo" icon="groups" label="Gruppo" active={pathname.startsWith('/gruppo')} />
+        <PillItem to={myProfile} icon="person" label="Io" active={pathname === myProfile} />
+      </nav>
+    </div>
+  )
+}
+
+// ── Menu account (tap sull'avatar): profilo, mazzi, tema, guida, admin, esci ──
+function AccountMenu() {
+  const { user, logout } = useAuth()
+  const { t, dark, toggleDark } = useTheme()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const go = (to) => { setOpen(false); navigate(to) }
+
+  const Row = ({ icon, label, sub, onClick, danger, right }) => (
+    <button onClick={onClick} className="ct-press" style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', minHeight: 56,
+      background: 'transparent', border: 'none', borderTop: `1px solid ${t.border}`, cursor: 'pointer', textAlign: 'left',
+      color: danger ? t.danger : t.text, fontSize: 15, fontWeight: 600,
+    }}>
+      <span style={{ color: danger ? t.danger : t.primary, display: 'flex' }}><Icon name={icon} size={20} /></span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        {label}
+        {sub && <span style={{ display: 'block', fontSize: 12, fontWeight: 500, color: t.textSub, marginTop: 2 }}>{sub}</span>}
+      </span>
+      {right === undefined ? <span style={{ color: t.textMuted, display: 'flex' }}><Icon name="chevron" size={18} /></span> : right}
+    </button>
+  )
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} aria-label="Menu account" className="ct-press"
+        style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '50%', display: 'flex' }}>
+        <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} avatarScryfallId={user?.avatarScryfallId} size={34} highlight />
+      </button>
+      {open && createPortal(
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(4,6,18,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} className="ct-sheet-in" role="dialog" aria-label="Account" style={{
+            width: '100%', maxWidth: 480, background: dark ? '#0e122b' : '#FFFFFF',
+            borderRadius: '24px 24px 0 0', border: `1px solid ${t.border}`, borderBottom: 'none',
+            paddingBottom: 'calc(12px + env(safe-area-inset-bottom))', boxShadow: '0 -12px 40px rgba(0,0,0,0.45)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: t.borderStrong, margin: '10px auto 6px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 16px' }}>
+              <PlayerAvatar username={user?.username} avatarCardName={user?.avatarCardName} avatarScryfallId={user?.avatarScryfallId} size={48} highlight />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>{user?.username}</div>
+                <div style={{ fontSize: 13, color: t.textSub }}>{user?.role === 'ADMIN' ? 'Amministratore' : 'Giocatore'}</div>
+              </div>
+            </div>
+            <Row icon="person" label="Il mio profilo" onClick={() => go(`/giocatore/${user?.id}`)} />
+            <Row icon="cards" label="I miei mazzi" onClick={() => go('/mazzi')} />
+            <Row icon={dark ? 'sun' : 'moon'} label={dark ? 'Tema chiaro' : 'Tema scuro'}
+              sub={dark ? 'Ora: scuro (consigliato per la serata)' : 'Ora: chiaro'} onClick={toggleDark}
+              right={<span style={{ fontSize: 13, fontWeight: 700, color: t.primary }}>Cambia</span>} />
+            <Row icon="book" label="Guida utente" onClick={() => go('/guida')} />
+            {user?.role === 'ADMIN' && <Row icon="shield" label="Pannello Admin" onClick={() => go('/admin')} />}
+            <Row icon="logout" label="Esci" danger onClick={() => { setOpen(false); logout() }} right={null} />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
@@ -187,6 +263,16 @@ function Layout() {
   const { user, logout } = useAuth()
   const { t, dark, toggleDark } = useTheme()
   const isMobile = useIsMobile()
+  const { pathname } = useLocation()
+  const hideNav = pathname.startsWith('/nuova-partita')
+
+  // Pallino su "Eventi" se c'è un evento futuro (una sola chiamata all'avvio).
+  const [hasUpcomingEvent, setHasUpcomingEvent] = useState(false)
+  useEffect(() => {
+    api.getEvents()
+      .then(list => setHasUpcomingEvent(list.some(e => new Date(e.startsAt).getTime() > Date.now() - 6 * 3600000)))
+      .catch(() => {})
+  }, [])
 
   const routes = (
     <Routes>
@@ -224,23 +310,19 @@ function Layout() {
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {isMobile ? (
-          /* ── HEADER MOBILE (singola riga) ── */
-          <div style={{ ...navBar, padding: '0 0.75rem', paddingTop: 'env(safe-area-inset-top)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0' }}>
-              <div style={{ minWidth: 0, overflow: 'hidden', flexShrink: 1 }}>
-                <Brand logoSize={30} titleSize={12} />
+          /* ── HEADER MOBILE v2: brand · campanella · avatar (menu account) ── */
+          <div style={{ ...navBar, padding: '0 0.85rem', paddingTop: 'env(safe-area-inset-top)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 60 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, overflow: 'hidden' }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.primary, boxShadow: `0 0 10px ${t.primary}`, flexShrink: 0 }} />
+                <div style={{ lineHeight: 1.15, minWidth: 0 }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: t.text, letterSpacing: '-0.01em' }}>Commanderone</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textSub, letterSpacing: '0.14em' }}>VILLASTELLONE</div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                 <NotificationBell />
-                {user?.role === 'ADMIN' && (
-                  <NavLink to="/admin" style={({ isActive }) => ({
-                    padding: '6px 10px', borderRadius: 10, textDecoration: 'none', fontSize: 12, fontWeight: 600,
-                    background: isActive ? t.primary : t.bgSurfaceAlt, color: isActive ? t.primaryFg : t.textSub,
-                    border: `1px solid ${t.border}`,
-                  })}>Admin</NavLink>
-                )}
-                <IconButton onClick={toggleDark} title={dark ? 'Light mode' : 'Dark mode'}>{dark ? '☀' : '🌙'}</IconButton>
-                <UserChip avatar={26} hideLabel />
+                <AccountMenu />
               </div>
             </div>
           </div>
@@ -268,29 +350,13 @@ function Layout() {
         )}
 
         {/* Contenuto */}
-        <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? '1rem 0.85rem calc(104px + env(safe-area-inset-bottom))' : '1.75rem 1rem 3rem' }}>
+        <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? `1rem 0.85rem calc(${hideNav ? 24 : 112}px + env(safe-area-inset-bottom))` : '1.75rem 1rem 3rem' }}>
           {routes}
         </div>
       </div>
 
-      {/* ── DOCK MOBILE ── */}
-      {isMobile && (
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 30,
-          background: t.bgNav,
-          backdropFilter: 'blur(16px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-          borderTop: `1px solid ${t.border}`,
-          display: 'flex', gap: 4,
-          padding: '6px 8px calc(6px + env(safe-area-inset-bottom)) 8px',
-        }}>
-          <DockItem to="/" end icon={DOCK_ICONS.feed} label="Feed" />
-          <DockItem to="/gioca"  icon={DOCK_ICONS.gioca} label="Gioca" />
-          <DockItem to="/eventi" icon={DOCK_ICONS.eventi} label="Eventi" />
-          <DockItem to="/gruppo" icon={DOCK_ICONS.gruppo} label="Gruppo" />
-          <DockItem to={`/giocatore/${user?.id}`} icon={DOCK_ICONS.io} label="Io" />
-        </div>
-      )}
+      {/* ── NAV MOBILE v2 (nascosta nel logger "Registra partita", a schermo intero) ── */}
+      {isMobile && !hideNav && <PillNav user={user} hasUpcomingEvent={hasUpcomingEvent} />}
     </div>
   )
 }

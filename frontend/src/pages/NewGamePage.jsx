@@ -1,10 +1,18 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import { useFeedback } from '../hooks/useFeedback'
 import { fireConfetti } from '../lib/confetti'
+import { pointsFor } from '../lib/seasons'
 import PlayerAvatar from '../components/PlayerAvatar'
+import DeckThumb from '../components/DeckThumb'
+import BracketBadge from '../components/BracketBadge'
+import { Icon, ManaPips, bento } from '../components/ui'
+
+// Registra partita v2 (restyle Stitch): logger a tocchi, a schermo intero.
+// Stessa API di prima: giocatori+mazzi, vincitore, piazzamenti (da ordine di uscita),
+// eliminatedById, data, note. Nessun campo nuovo.
 
 const EMPTY_SLOT = { userId: '', deckId: '' }
 
@@ -14,6 +22,40 @@ const toLocalDate = (d) => {
   const p = (n) => String(n).padStart(2, '0')
   return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}`
 }
+
+const prettyDate = (ymd) => {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const today = toLocalDate(new Date())
+  const label = date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
+  return ymd === today ? `Oggi, ${label}` : label
+}
+
+function StepTitle({ n, title, sub, t, right }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 10, minWidth: 0 }}>
+        <span style={{
+          width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 14, fontWeight: 900, color: t.primary, border: `1.5px solid ${t.primaryBorder}`, background: t.primaryBg,
+        }}>{n}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: t.text, lineHeight: 1.3 }}>{title}</div>
+          {sub && <div style={{ fontSize: 13, color: t.textSub, marginTop: 2, lineHeight: 1.4 }}>{sub}</div>}
+        </div>
+      </div>
+      {right}
+    </div>
+  )
+}
+
+const chip = (t, active, extra = {}) => ({
+  display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '6px 12px 6px 6px', borderRadius: 999,
+  cursor: 'pointer', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
+  border: `1px solid ${active ? t.primaryBorder : t.border}`,
+  background: active ? t.primaryBg : t.bgSurfaceAlt, color: active ? t.primary : t.text,
+  ...extra,
+})
 
 export default function NewGamePage() {
   const navigate = useNavigate()
@@ -34,40 +76,55 @@ export default function NewGamePage() {
   const [elimBy, setElimBy] = useState({})        // { "userId-deckId" → userId del killer }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [editing, setEditing] = useState(null)    // indice dello slot in modifica (scelta giocatore/mazzo)
 
   useEffect(() => {
     api.getDecks().then(setAllDecks).catch(() => setError('Errore caricamento mazzi'))
   }, [])
 
   // Raggruppa mazzi per utente
-  const byUser = allDecks.reduce((acc, d) => {
+  const byUser = useMemo(() => allDecks.reduce((acc, d) => {
     if (!acc[d.userId]) acc[d.userId] = { username: d.user.username, avatarCardName: d.user.avatarCardName || null, avatarScryfallId: d.user.avatarScryfallId || null, decks: [] }
     acc[d.userId].decks.push(d)
     return acc
-  }, {})
+  }, {}), [allDecks])
 
-  const users = Object.entries(byUser).map(([id, v]) => ({ id: parseInt(id), ...v }))
+  const users = Object.entries(byUser)
+    .map(([id, v]) => ({ id: parseInt(id), ...v }))
+    .sort((a, b) => a.username.localeCompare(b.username))
 
-  const updateSlot = (i, field, value) => {
+  const updateSlot = (i, patch) => {
     setSlots(prev => {
       const next = [...prev]
-      next[i] = { ...next[i], [field]: value }
-      // Reset mazzo se cambia giocatore
-      if (field === 'userId') next[i].deckId = ''
+      next[i] = { ...next[i], ...patch }
       return next
     })
     setWinnerId(null)
   }
 
+  const pickUser = (i, userId) => {
+    const decks = byUser[userId]?.decks || []
+    // Un solo mazzo → scelto in automatico
+    updateSlot(i, { userId: String(userId), deckId: decks.length === 1 ? String(decks[0].id) : '' })
+    if (decks.length === 1) setEditing(null)
+  }
+
+  const pickDeck = (i, deckId) => {
+    updateSlot(i, { deckId: String(deckId) })
+    setEditing(null)
+  }
+
   const addSlot = () => {
     if (slots.length >= 5) return
     setSlots(prev => [...prev, { ...EMPTY_SLOT }])
+    setEditing(slots.length)
   }
 
   const removeSlot = (i) => {
     if (slots.length <= 3) return
     setSlots(prev => prev.filter((_, idx) => idx !== i))
     setWinnerId(null)
+    setEditing(null)
   }
 
   const filledSlots = slots.filter(s => s.userId && s.deckId)
@@ -89,7 +146,7 @@ export default function NewGamePage() {
 
   // placement: vincitore = 1; primo eliminato = N; ultimo eliminato (runner-up) = 2
   const computePlacements = () => {
-    if (elimOrder.length !== losers.length || losers.length === 0) return null
+    if (!winnerId || elimOrder.length !== losers.length || losers.length === 0) return null
     const n = filledSlots.length
     const map = {}
     map[`${winnerId.userId}-${winnerId.deckId}`] = 1
@@ -97,8 +154,24 @@ export default function NewGamePage() {
     return map
   }
 
-  const getDeckName = (deckId) => allDecks.find(d => d.id === parseInt(deckId))?.name || ''
-  const getUserName = (userId) => users.find(u => u.id === parseInt(userId))?.username || ''
+  const deckOf = (deckId) => allDecks.find(d => d.id === parseInt(deckId))
+  const userOf = (userId) => byUser[userId]
+
+  // Anteprima punti stagione: stessa funzione usata dalla classifica (lib/seasons).
+  const pointsPreview = useMemo(() => {
+    if (!winnerId || filledSlots.length < 3) return null
+    const placements = computePlacements()
+    const players = filledSlots.map(s => ({
+      key: slotKey(s), userId: s.userId,
+      isWinner: isWinner(s),
+      placement: placements ? placements[slotKey(s)] : null,
+    }))
+    const game = { players }
+    return players
+      .map(p => ({ ...p, pts: pointsFor(p, game) }))
+      .sort((a, b) => (a.placement ?? (a.isWinner ? 1 : 99)) - (b.placement ?? (b.isWinner ? 1 : 99)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winnerId, elimOrder, slots])
 
   const submit = async () => {
     if (filledSlots.length < 3) { setError('Servono almeno 3 giocatori completi'); return }
@@ -142,110 +215,169 @@ export default function NewGamePage() {
     }
   }
 
-  const card = {
-    background: t.bgSurface,
-    backdropFilter: 'blur(14px) saturate(150%)',
-    WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-    border: `1px solid ${t.border}`,
-    borderRadius: 16,
-    padding: '1.15rem 1.35rem',
-    marginBottom: 12,
-    boxShadow: t.shadow,
-  }
-  const sel = { padding: '11px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, background: t.inputBg, color: t.text, outline: 'none', cursor: 'pointer', width: '100%', boxSizing: 'border-box' }
+  const card = bento(t, { padding: '1.1rem 1rem', marginBottom: 14 })
+  const usedIds = new Set(slots.map(s => s.userId).filter(Boolean))
+  const canSave = filledSlots.length >= 3 && !!winnerId && !saving
 
   return (
-    <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: '1.25rem', color: t.text }}>{podCtx ? 'Risultato del pod' : 'Nuova partita'}</div>
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+      {/* Testata: chiudi · titolo · data */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <button onClick={() => navigate(-1)} aria-label="Chiudi" className="ct-press" style={{
+          width: 44, height: 44, borderRadius: 14, border: `1px solid ${t.border}`, background: t.bgSurfaceAlt, color: t.text,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+        }}><Icon name="close" size={20} /></button>
+        <div style={{ flex: 1, minWidth: 0, fontSize: 22, fontWeight: 800, color: t.text }}>
+          {podCtx ? 'Risultato del pod' : 'Registra partita'}
+        </div>
+        <label style={{ position: 'relative', ...chip(t, false, { padding: '6px 12px', color: t.text }) }}>
+          <Icon name="calendar" size={17} />
+          <span style={{ textTransform: 'capitalize' }}>{prettyDate(playedAt)}</span>
+          <input
+            type="date"
+            value={playedAt}
+            max={podCtx ? undefined : toLocalDate(new Date())}
+            onChange={e => e.target.value && setPlayedAt(e.target.value)}
+            aria-label="Data partita"
+            style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}
+          />
+        </label>
+      </div>
+
       {podCtx && (
-        <div style={{ ...card, fontSize: 13, color: t.textSub }}>
-          Giocatori del tavolo bloccati. Scegli il mazzo di ognuno, il vincitore e (se vuoi) ordine di uscita ed eliminazioni. La partita verrà collegata al torneo e conterà nelle statistiche.
+        <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', border: `1px solid ${t.primaryBorder}`, background: t.primaryBg }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.primary, boxShadow: `0 0 8px ${t.primary}`, flexShrink: 0 }} />
+          <div style={{ fontSize: 14, color: t.text, lineHeight: 1.45 }}>
+            Partita del tavolo dell'evento: giocatori bloccati, data dell'evento. Scegli i mazzi, il vincitore e (se vuoi) l'ordine di uscita.
+          </div>
         </div>
       )}
 
       {allDecks.length === 0 && !error && (
         <div style={{ ...card, color: t.textSub, fontSize: 14 }}>
-          Nessun mazzo trovato. Prima aggiungete i mazzi dalla pagina <strong>Mazzi</strong>.
+          Caricamento mazzi… Se non compare nulla, aggiungete prima i mazzi dalla pagina <strong>Mazzi</strong>.
         </div>
       )}
 
-      {/* Data partita */}
-      <div style={card}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: t.text }}>Data partita</div>
-        <input
-          type="date"
-          value={playedAt}
-          max={podCtx ? undefined : toLocalDate(new Date())}
-          onChange={e => setPlayedAt(e.target.value)}
-          style={{ ...sel, minWidth: 180 }}
-        />
-        {podCtx && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 6 }}>Pre-impostata alla data dell'evento.</div>}
-      </div>
+      {/* 1 — Chi ha giocato */}
+      <div className="ct-fade-up" style={card}>
+        <StepTitle n={1} t={t} title="Chi ha giocato" sub="Da 3 a 5 giocatori al tavolo"
+          right={<span style={{ fontSize: 13, fontWeight: 700, color: filledSlots.length >= 3 ? t.primary : t.textSub, padding: '4px 10px', borderRadius: 999, border: `1px solid ${filledSlots.length >= 3 ? t.primaryBorder : t.border}`, whiteSpace: 'nowrap' }}>{filledSlots.length}/{slots.length}</span>} />
 
-      {/* Slot giocatori */}
-      <div style={card}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>Giocatori al tavolo</div>
         {slots.map((slot, i) => {
-          const userDecks = slot.userId ? (byUser[slot.userId]?.decks || []) : []
-          const avatarEl = slot.userId && byUser[slot.userId] ? (
-            <PlayerAvatar
-              username={byUser[slot.userId].username}
-              avatarCardName={byUser[slot.userId].avatarCardName} avatarScryfallId={byUser[slot.userId].avatarScryfallId}
-              size={32}
-            />
-          ) : (
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: t.primaryBg, color: t.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0, border: `1px solid ${t.primaryBorder}` }}>
-              {i + 1}
-            </div>
-          )
+          const u = slot.userId ? userOf(slot.userId) : null
+          const deck = slot.deckId ? deckOf(slot.deckId) : null
+          const open = editing === i || !slot.userId || !slot.deckId
+          const userChoices = podCtx
+            ? podCtx.players.map(p => ({ id: p.userId, username: p.username, ...(byUser[p.userId] || {}) }))
+            : users.filter(x => !usedIds.has(String(x.id)) || String(x.id) === slot.userId)
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-              <div style={{ paddingTop: 10, flexShrink: 0 }}>{avatarEl}</div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <select style={{ ...sel, opacity: podCtx ? 0.7 : 1 }} value={slot.userId} onChange={e => updateSlot(i, 'userId', e.target.value)} disabled={!!podCtx}>
-                  <option value="">Giocatore...</option>
-                  {(podCtx ? podCtx.players.map(p => ({ id: p.userId, username: p.username })) : users).map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
-                </select>
-                <select style={sel} value={slot.deckId} onChange={e => updateSlot(i, 'deckId', e.target.value)} disabled={!slot.userId}>
-                  <option value="">Mazzo...</option>
-                  {userDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
+            <div key={i} style={{
+              borderRadius: 16, padding: 12, marginBottom: 10,
+              border: `1px solid ${deck ? t.primaryBorder : t.border}`, background: t.bgSurfaceAlt,
+            }}>
+              {/* riga riassunto */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                {u
+                  ? <PlayerAvatar username={u.username} avatarCardName={u.avatarCardName} avatarScryfallId={u.avatarScryfallId} size={42} />
+                  : <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px dashed ${t.borderStrong}`, color: t.textSub, fontWeight: 800 }}>{i + 1}</span>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: u ? t.text : t.textSub, wordBreak: 'break-word' }}>{u ? u.username : `Giocatore ${i + 1}`}</div>
+                  {deck ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 3 }}>
+                      <span style={{ fontSize: 14, color: t.textSub, wordBreak: 'break-word' }}>{deck.name}</span>
+                      <ManaPips colors={deck.colors} size={17} />
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 13, color: t.textMuted, marginTop: 2 }}>{u ? 'Scegli il mazzo' : 'Tocca un giocatore qui sotto'}</div>
+                  )}
+                </div>
+                {deck && !open && (
+                  <button onClick={() => setEditing(i)} className="ct-press" style={{ minHeight: 40, padding: '0 12px', borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.primary, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Cambia</button>
+                )}
+                {i >= 3 && !podCtx && (
+                  <button onClick={() => removeSlot(i)} aria-label="Rimuovi giocatore" className="ct-press" style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${t.border}`, background: 'transparent', color: t.textSub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={18} /></button>
+                )}
               </div>
-              {i >= 3 && !podCtx && (
-                <button onClick={() => removeSlot(i)} style={{ marginTop: 10, padding: '8px 11px', border: `1px solid ${t.border}`, borderRadius: 8, background: t.bgMuted, cursor: 'pointer', fontSize: 14, color: t.textSub, flexShrink: 0 }}>×</button>
+
+              {/* scelta giocatore */}
+              {open && !podCtx && (
+                <div className="ct-scroll-x ct-section-open" style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 12, paddingBottom: 2 }}>
+                  {userChoices.map(x => (
+                    <button key={x.id} onClick={() => pickUser(i, x.id)} className="ct-press" style={chip(t, String(x.id) === slot.userId)}>
+                      <PlayerAvatar username={x.username} avatarCardName={x.avatarCardName} avatarScryfallId={x.avatarScryfallId} size={32} />
+                      {x.username}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* scelta mazzo */}
+              {open && slot.userId && (
+                <div className="ct-section-open" style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                  {(byUser[slot.userId]?.decks || []).map(d => {
+                    const active = String(d.id) === slot.deckId
+                    return (
+                      <button key={d.id} onClick={() => pickDeck(i, d.id)} className="ct-press" style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: 8, minHeight: 56, borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+                        border: `1px solid ${active ? t.primaryBorder : t.border}`, background: active ? t.primaryBg : t.bgSurface, color: t.text,
+                      }}>
+                        <DeckThumb commander={d.commander} w={56} radius={10} preview={false} />
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 15, fontWeight: 700, wordBreak: 'break-word' }}>{d.name}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                            <ManaPips colors={d.colors} size={16} />
+                            <BracketBadge bracket={d.bracket} size="lg" />
+                          </span>
+                        </span>
+                        {active && <span style={{ color: t.primary, display: 'flex' }}><Icon name="check" size={20} stroke={2.6} /></span>}
+                      </button>
+                    )
+                  })}
+                  {(byUser[slot.userId]?.decks || []).length === 0 && (
+                    <div style={{ fontSize: 13, color: t.textMuted }}>Questo giocatore non ha mazzi registrati.</div>
+                  )}
+                </div>
               )}
             </div>
           )
         })}
+
         {slots.length < 5 && !podCtx && (
-          <button onClick={addSlot} style={{ marginTop: 4, padding: '8px 14px', border: `1px solid ${t.border}`, borderRadius: 10, background: t.bgMuted, cursor: 'pointer', fontSize: 13, color: t.textSub, fontWeight: 500 }}>
-            + Aggiungi giocatore
+          <button onClick={addSlot} className="ct-press" style={{
+            width: '100%', minHeight: 48, borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700,
+            border: `1.5px dashed ${t.borderStrong}`, background: 'transparent', color: t.textSub,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>
+            <Icon name="plus" size={18} /> Aggiungi {slots.length + 1}° giocatore
           </button>
         )}
       </div>
 
-      {/* Selezione vincitore */}
+      {/* 2 — Chi ha vinto */}
       {filledSlots.length >= 2 && (
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: t.text }}>Chi ha vinto?</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="ct-fade-up" style={card}>
+          <StepTitle n={2} t={t} title="Chi ha vinto" sub="Tocca il vincitore del tavolo" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
             {filledSlots.map((s, i) => {
               const active = isWinner(s)
+              const u = userOf(s.userId); const d = deckOf(s.deckId)
               return (
-                <button
-                  key={i}
-                  onClick={() => setWinnerId({ userId: parseInt(s.userId), deckId: parseInt(s.deckId) })}
-                  style={{
-                    padding: '8px 16px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                    background: active ? t.winBg : t.bgMuted,
-                    color: active ? t.win : t.textSub,
-                    border: active ? `1px solid ${t.win}` : `1px solid ${t.border}`,
-                    boxShadow: active ? t.glow : 'none',
-                    transition: 'all 0.18s ease'
-                  }}
-                >
-                  {getUserName(s.userId)} · {getDeckName(s.deckId)}
-                  {active && ' ✓'}
+                <button key={i} onClick={() => setWinnerId({ userId: parseInt(s.userId), deckId: parseInt(s.deckId) })} className="ct-press" style={{
+                  position: 'relative', textAlign: 'left', padding: 12, borderRadius: 16, cursor: 'pointer', minHeight: 96,
+                  border: `1.5px solid ${active ? t.primary : t.border}`, background: active ? t.winBg : t.bgSurfaceAlt,
+                  boxShadow: active ? t.glow : 'none', color: t.text, transition: 'all 0.18s ease',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <PlayerAvatar username={u?.username} avatarCardName={u?.avatarCardName} avatarScryfallId={u?.avatarScryfallId} size={34} highlight={active} />
+                    <span style={{
+                      width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: active ? t.primary : 'transparent', color: active ? t.primaryFg : t.textMuted,
+                      border: active ? 'none' : `1.5px solid ${t.borderStrong}`,
+                    }}><Icon name="trophy" size={15} stroke={2.2} /></span>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, wordBreak: 'break-word' }}>{u?.username}</div>
+                  <div style={{ fontSize: 13, color: t.textSub, marginTop: 2, wordBreak: 'break-word' }}>{d?.name}</div>
                 </button>
               )
             })}
@@ -253,107 +385,131 @@ export default function NewGamePage() {
         </div>
       )}
 
-      {/* Ordine di eliminazione (opzionale) */}
-      {winnerId && losers.length >= 2 && (
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: t.text }}>
-            Ordine di uscita <span style={{ fontWeight: 400, color: t.textMuted }}>(opzionale)</span>
-          </div>
-          <div style={{ fontSize: 12, color: t.textSub, marginBottom: 12 }}>
-            Clicca i giocatori nell'ordine in cui sono stati eliminati, dal primo all'ultimo. Il vincitore è automaticamente 1°.
-          </div>
+      {/* 3 — Ordine di eliminazione + chi ha eliminato chi (opzionali) */}
+      {winnerId && losers.length >= 1 && (
+        <div className="ct-fade-up" style={card}>
+          <StepTitle n={3} t={t} title="Ordine di eliminazione"
+            sub={losers.length >= 2 ? 'Tocca i giocatori dal primo eliminato all’ultimo. Facoltativo: completa i piazzamenti.' : 'Facoltativo: chi ha eliminato chi.'}
+            right={elimOrder.length > 0 && (
+              <button onClick={() => { setElimOrder([]) }} style={{ fontSize: 13, fontWeight: 700, color: t.primary, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', whiteSpace: 'nowrap' }}>Azzera</button>
+            )} />
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: elimOrder.length ? 14 : 0 }}>
-            {losers.map((s, i) => {
-              const key = slotKey(s)
-              const pos = elimOrder.indexOf(key)
-              const picked = pos !== -1
-              return (
-                <button
-                  key={i}
-                  onClick={() => toggleElim(key)}
-                  style={{
-                    padding: '8px 14px', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                    background: picked ? t.primaryBg : t.bgMuted,
-                    color: picked ? t.primary : t.textSub,
-                    border: picked ? `1px solid ${t.primaryBorder}` : `1px solid ${t.border}`,
-                    transition: 'all 0.15s ease',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  {picked && <span style={{ fontSize: 11, fontWeight: 800 }}>{filledSlots.length - pos}°</span>}
-                  {getUserName(s.userId)} · {getDeckName(s.deckId)}
+          {losers.map((s, i) => {
+            const key = slotKey(s)
+            const pos = elimOrder.indexOf(key)
+            const picked = pos !== -1
+            const u = userOf(s.userId); const d = deckOf(s.deckId)
+            const place = picked ? filledSlots.length - pos : null
+            return (
+              <div key={i} style={{
+                borderRadius: 16, padding: 12, marginBottom: 10,
+                border: `1px solid ${picked ? 'rgba(255,107,107,0.35)' : t.border}`, background: t.bgSurfaceAlt,
+              }}>
+                <button onClick={() => losers.length >= 2 && toggleElim(key)} className="ct-press" style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', padding: 0,
+                  cursor: losers.length >= 2 ? 'pointer' : 'default', textAlign: 'left', color: t.text,
+                }}>
+                  <span style={{
+                    minWidth: 44, height: 30, padding: '0 8px', borderRadius: 999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 800,
+                    background: picked ? t.dangerBg : 'transparent', color: picked ? t.danger : t.textMuted,
+                    border: `1px solid ${picked ? t.dangerBorder : t.borderStrong}`,
+                  }}>{picked ? `${pos + 1}° out` : '—'}</span>
+                  <PlayerAvatar username={u?.username} avatarCardName={u?.avatarCardName} avatarScryfallId={u?.avatarScryfallId} size={34} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 700, wordBreak: 'break-word' }}>{u?.username}</span>
+                    <span style={{ display: 'block', fontSize: 13, color: t.textSub, wordBreak: 'break-word' }}>{d?.name}</span>
+                  </span>
+                  {place && <span style={{ fontSize: 13, fontWeight: 700, color: t.textSub, flexShrink: 0 }}>{place}° posto</span>}
                 </button>
-              )
-            })}
-          </div>
 
-          {elimOrder.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: elimOrder.length === losers.length ? t.win : t.textMuted }}>
-                {elimOrder.length === losers.length
-                  ? '✓ Classifica completa'
-                  : `${elimOrder.length}/${losers.length} ordinati`}
-              </span>
-              <button onClick={() => setElimOrder([])} style={{ fontSize: 11, color: t.primary, background: 'none', border: 'none', cursor: 'pointer' }}>
-                ✕ azzera ordine
-              </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 13, color: t.textSub, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Icon name="swords" size={15} /> Eliminato da
+                  </span>
+                  {filledSlots.filter(o => slotKey(o) !== key).map((o, oi) => {
+                    const killer = userOf(o.userId)
+                    const sel = String(elimBy[key] || '') === String(parseInt(o.userId))
+                    return (
+                      <button key={oi} onClick={() => setElimBy(prev => ({ ...prev, [key]: sel ? '' : String(parseInt(o.userId)) }))}
+                        className="ct-press" style={chip(t, sel, { minHeight: 40, fontSize: 13, padding: '4px 10px 4px 4px' })}>
+                        <PlayerAvatar username={killer?.username} avatarCardName={killer?.avatarCardName} avatarScryfallId={killer?.avatarScryfallId} size={26} />
+                        {killer?.username}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+          {losers.length >= 2 && (
+            <div style={{ fontSize: 13, fontWeight: 600, color: elimOrder.length === losers.length ? t.win : t.textMuted }}>
+              {elimOrder.length === losers.length ? 'Piazzamenti completi' : `${elimOrder.length}/${losers.length} in ordine`}
             </div>
           )}
         </div>
       )}
 
-      {/* Eliminazioni: chi ha eliminato chi (opzionale) */}
-      {winnerId && losers.length >= 1 && (
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: t.text }}>
-            Eliminazioni <span style={{ fontWeight: 400, color: t.textMuted }}>(opzionale)</span>
+      {/* Anteprima punti stagione */}
+      {pointsPreview && (
+        <div className="ct-fade-up" style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: t.text }}>Punti stagione</div>
+            <span style={{ fontSize: 12, color: t.textSub, textAlign: 'right' }}>1°=3 · 2°=2 · 3°=1 · +1 a partita</span>
           </div>
-          <div style={{ fontSize: 12, color: t.textSub, marginBottom: 12 }}>
-            Per ogni giocatore eliminato, indica chi l'ha buttato fuori. Sblocca arcinemico, preda preferita e kill count.
-          </div>
-          {losers.map((s, i) => {
-            const key = slotKey(s)
+          {pointsPreview.map((p, i) => {
+            const u = userOf(p.userId)
             return (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: t.text, minWidth: 160 }}>{getUserName(s.userId)} · {getDeckName(s.deckId)}</span>
-                <span style={{ fontSize: 12, color: t.textMuted }}>eliminato da</span>
-                <select
-                  value={elimBy[key] || ''}
-                  onChange={e => setElimBy(prev => ({ ...prev, [key]: e.target.value }))}
-                  style={{ ...sel, minWidth: 150 }}
-                >
-                  <option value="">— sconosciuto</option>
-                  {filledSlots.filter(o => slotKey(o) !== key).map((o, oi) => (
-                    <option key={oi} value={parseInt(o.userId)}>{getUserName(o.userId)}</option>
-                  ))}
-                </select>
+              <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i ? `1px solid ${t.border}` : 'none' }}>
+                <span style={{ width: 30, fontSize: 14, fontWeight: 800, color: p.isWinner ? t.primary : t.textSub }}>
+                  {p.placement ? `${p.placement}°` : p.isWinner ? '1°' : '–'}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: t.text, wordBreak: 'break-word' }}>{u?.username}</span>
+                <span style={{ fontSize: 18, fontWeight: 900, color: p.isWinner ? t.primary : t.text, fontVariantNumeric: 'tabular-nums' }}>+{p.pts}</span>
               </div>
             )
           })}
+          {!computePlacements() && losers.length >= 2 && (
+            <div style={{ fontSize: 13, color: t.textMuted, marginTop: 6, lineHeight: 1.4 }}>
+              Senza ordine di eliminazione completo contano solo vittoria (+3) e presenza (+1).
+            </div>
+          )}
         </div>
       )}
 
       {/* Note */}
       <div style={card}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: t.text }}>Note (opzionale)</div>
-        <input
-          style={{ padding: '10px 12px', borderRadius: 10, border: `1px solid ${t.border}`, fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text }}
+        <div style={{ fontSize: 16, fontWeight: 800, color: t.text, marginBottom: 8 }}>Note <span style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>(facoltative)</span></div>
+        <textarea
+          rows={3}
+          maxLength={2000}
+          style={{ padding: '12px 14px', borderRadius: 14, border: `1px solid ${t.border}`, fontSize: 15, width: '100%', boxSizing: 'border-box', outline: 'none', background: t.inputBg, color: t.text, resize: 'vertical', fontFamily: 'inherit' }}
           placeholder="es. combo al turno 9, partita lunga..."
           value={notes}
           onChange={e => setNotes(e.target.value)}
         />
       </div>
 
-      {error && <div style={{ color: t.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+      {error && <div role="alert" style={{ color: t.danger, fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{error}</div>}
 
-      <button
-        onClick={submit}
-        disabled={saving}
-        style={{ padding: '12px 30px', background: t.primary, color: t.primaryFg, border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, boxShadow: t.glow, transition: 'all 0.18s ease' }}
-      >
-        {saving ? 'Salvataggio...' : 'Salva partita'}
-      </button>
+      {/* Salva: fisso in basso */}
+      <div style={{ position: 'sticky', bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 5, paddingTop: 4 }}>
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="ct-press"
+          style={{
+            width: '100%', minHeight: 56, borderRadius: 18, border: 'none', fontSize: 17, fontWeight: 800,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            background: canSave ? t.primary : t.bgMuted, color: canSave ? t.primaryFg : t.textSub,
+            boxShadow: canSave ? `${t.glow}, 0 10px 30px rgba(0,0,0,0.35)` : '0 10px 30px rgba(0,0,0,0.25)',
+            cursor: saving ? 'wait' : 'pointer', transition: 'all 0.2s ease',
+          }}
+        >
+          <Icon name="check" size={21} stroke={2.6} />
+          {saving ? 'Salvataggio…' : !filledSlots.length || filledSlots.length < 3 ? 'Completa almeno 3 giocatori' : !winnerId ? 'Scegli il vincitore' : 'Salva partita'}
+        </button>
+      </div>
     </div>
   )
 }

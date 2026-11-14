@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { seasonOf, listSeasons, computeStandings } from './seasons'
+import { seasonOf, listSeasons, computeStandings, pointsFor } from './seasons'
 
 const player = (id, { winner = false, placement = null } = {}) =>
   ({ user: { id, username: 'P' + id }, isWinner: winner, placement })
@@ -65,5 +65,19 @@ describe('computeStandings', () => {
     games[0].players.push(player(9, { winner: false, placement: 3 }))
     const { champion } = computeStandings(games, '2026-1')
     expect(champion.id).toBe(1)
+  })
+})
+
+describe('pointsFor (anteprima punti nel logger)', () => {
+  const game = (players) => ({ playedAt: '2026-11-14', players })
+  it('con piazzamenti completi: 1°=3+1, 2°=2+1, 3°=1+1, 4°=0+1', () => {
+    const ps = [player(1, { winner: true, placement: 1 }), player(2, { placement: 2 }), player(3, { placement: 3 }), player(4, { placement: 4 })]
+    const g = game(ps)
+    expect(ps.map(p => pointsFor(p, g))).toEqual([4, 3, 2, 1])
+  })
+  it('senza piazzamenti: vincitore 3+1, gli altri solo la presenza', () => {
+    const ps = [player(1, { winner: true }), player(2), player(3)]
+    const g = game(ps)
+    expect(ps.map(p => pointsFor(p, g))).toEqual([4, 1, 1])
   })
 })

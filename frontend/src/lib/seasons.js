@@ -28,7 +28,7 @@ export function listSeasons(games) {
 }
 
 // Punti di un giocatore in una partita (presenza + piazzamento).
-function pointsFor(player, game) {
+export function pointsFor(player, game) {
   let pts = 1 // bonus presenza
   const hasPlacement = game.players.every(p => p.placement != null)
   if (hasPlacement) {
