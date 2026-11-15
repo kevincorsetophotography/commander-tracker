@@ -30,12 +30,13 @@ const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURICom
 // (generate a parte); senza, si usa il file originale. Se un file manca, il tile mostra "Foto in arrivo".
 const PHOTO_DIR = '/Foto%20Commanderone'
 const GALLERY_SLOTS = [
-  { src: `${PHOTO_DIR}/DSC00807.jpg`, web: true, alt: 'Due giocatori mostrano orgogliosi le loro carte al tavolo' },
-  { src: `${PHOTO_DIR}/DSC00834.jpg`, web: true, alt: 'Un pod al completo: carte, dadi e box ovunque sul tavolo' },
-  { src: `${PHOTO_DIR}/DSC00820.jpg`, web: true, alt: 'Una mano di carte pronta a scendere in campo sul playmat di Unstable' },
-  { src: `${PHOTO_DIR}/DSC00881.jpg`, web: true, alt: 'Una serata qualunque negli spazi di Unstable' },
-  { src: `${PHOTO_DIR}/DSC00822.jpg`, web: true, alt: 'Quando la partita si fa surreale (sì, quella è una carta in fronte)' },
-  { src: `${PHOTO_DIR}/DSC00826.jpg`, web: true, alt: 'Anche il collo, a quanto pare, può essere zona di gioco' },
+  // caption = didascalia breve mostrata; alt = descrizione per screen reader
+  { src: `${PHOTO_DIR}/DSC00807.jpg`, web: true, caption: 'Carte in mostra', alt: 'Due giocatori mostrano una carta ciascuno' },
+  { src: `${PHOTO_DIR}/DSC00834.jpg`, web: true, caption: 'Tavolo pieno', alt: 'Un tavolo lungo pieno di giocatori, playmat, carte e dadi' },
+  { src: `${PHOTO_DIR}/DSC00820.jpg`, web: true, caption: 'La mano iniziale', alt: 'Un giocatore tiene in mano le sue carte sopra il playmat' },
+  { src: `${PHOTO_DIR}/DSC00881.jpg`, web: true, caption: 'Prima che arrivino tutti', alt: 'La sala quasi vuota, un giocatore già seduto al tavolo' },
+  { src: `${PHOTO_DIR}/DSC00822.jpg`, web: true, caption: 'Carta in fronte', alt: 'Un giocatore con una carta appoggiata sulla fronte' },
+  { src: `${PHOTO_DIR}/DSC00826.jpg`, web: true, caption: 'Carta sul collo', alt: 'Un giocatore al tavolo con una carta infilata nel colletto' },
 ]
 const photo = (slot, w) => (slot.web ? slot.src.replace(`${PHOTO_DIR}/`, `${PHOTO_DIR}/web/`).replace(/\.jpg$/i, `-${w}.webp`) : slot.src)
 
@@ -302,19 +303,105 @@ function Principles() {
 }
 
 // ── Rullino foto + lightbox ─────────────────────────────────────────────────
-function FilmTile({ slot, index, onOpen }) {
+function FilmTile({ slot, index, onOpen, clone }) {
   const [broken, setBroken] = useState(false)
   return (
-    <figure className="lp-film-frame">
-      <button type="button" className="lp-film-btn" onClick={broken ? undefined : onOpen} disabled={broken} aria-label={`Apri la foto: ${slot.alt}`}>
+    <figure className="lp-film-frame" aria-hidden={clone || undefined}>
+      <button type="button" className="lp-film-btn" onClick={broken ? undefined : onOpen} disabled={broken} tabIndex={clone ? -1 : undefined}
+        aria-label={`Apri la foto: ${slot.caption}`} draggable={false}>
         {!broken ? (
-          <img src={photo(slot, 800)} alt={slot.alt} loading="lazy" decoding="async" onError={() => setBroken(true)} />
+          <img src={photo(slot, 800)} alt={slot.alt} loading="lazy" decoding="async" draggable={false} onError={() => setBroken(true)} />
         ) : (
           <span className="lp-gallery-placeholder"><Camera size={24} /> Foto in arrivo</span>
         )}
       </button>
-      <figcaption><span className="lp-film-num">{String(index + 1).padStart(2, '0')}</span>{slot.alt}</figcaption>
+      <figcaption><span className="lp-film-num">{String(index + 1).padStart(2, '0')}</span>{slot.caption}</figcaption>
     </figure>
+  )
+}
+
+// Rullino: scorre da solo, lento e continuo (foto duplicate per un giro senza scatti).
+// Si ferma sotto il mouse/dito, a scheda nascosta, fuori schermo e con "riduci animazioni".
+// Trascinabile con mouse e dito, con un po' di inerzia; un tocco senza trascinare apre la foto.
+const FILM_SPEED = 24 // px/s
+function FilmStrip({ onOpen }) {
+  const viewRef = useRef(null), trackRef = useRef(null)
+  const st = useRef({ x: 0, v: 0, hover: false, drag: null, moved: false, visible: true, focus: false })
+  useEffect(() => {
+    const view = viewRef.current, track = trackRef.current, S = st.current
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)')
+    // periodo = distanza tra la prima foto e la sua copia (include il gap, niente scatti)
+    const wrap = () => { const k = track.children, h = k.length > GALLERY_SLOTS.length ? k[GALLERY_SLOTS.length].offsetLeft - k[0].offsetLeft : 0; if (h > 0) { S.x %= h; if (S.x > 0) S.x -= h } }
+    let raf = 0, last = performance.now()
+    const tick = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now
+      if (!S.drag) {
+        if (Math.abs(S.v) > 5) { S.x += S.v * dt; S.v *= Math.pow(0.04, dt) } // inerzia
+        else {
+          S.v = 0
+          if (!S.hover && !S.focus && S.visible && !document.hidden && !reduce.matches) S.x -= FILM_SPEED * dt
+        }
+      }
+      wrap(); track.style.transform = `translate3d(${S.x}px,0,0)`
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    const io = new IntersectionObserver(([e]) => { S.visible = e.isIntersecting })
+    io.observe(view)
+    const down = (e) => {
+      if (e.button !== 0) return
+      if (e.pointerType !== 'mouse') S.hover = true // dito appoggiato: pausa
+      S.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, xs: S.x, lastX: e.clientX, lastT: performance.now() }
+      S.moved = false; S.v = 0
+    }
+    const move = (e) => {
+      const d = S.drag; if (!d || d.id !== e.pointerId) return
+      const dx = e.clientX - d.x0
+      if (!S.moved) {
+        if (Math.abs(dx) < 6) return
+        if (Math.abs(e.clientY - d.y0) > Math.abs(dx)) { S.drag = null; return } // è uno scroll verticale
+        S.moved = true; view.setPointerCapture(e.pointerId); view.classList.add('is-dragging')
+      }
+      const now = performance.now(), dt = Math.max(1, now - d.lastT)
+      S.v = 0.7 * S.v + 0.3 * ((e.clientX - d.lastX) / dt * 1000)
+      d.lastX = e.clientX; d.lastT = now
+      S.x = d.xs + dx
+    }
+    const up = (e) => {
+      if (e.pointerType !== 'mouse') S.hover = false
+      const d = S.drag; if (!d || d.id !== e.pointerId) return
+      S.drag = null; view.classList.remove('is-dragging')
+      if (performance.now() - d.lastT > 80) S.v = 0
+      S.v = Math.max(-1500, Math.min(1500, S.v))
+    }
+    const click = (e) => { if (S.moved) { e.preventDefault(); e.stopPropagation(); S.moved = false } }
+    const enter = (e) => { if (e.pointerType === 'mouse') S.hover = true }
+    const leave = (e) => { if (e.pointerType === 'mouse') S.hover = false }
+    const focusIn = (e) => {
+      S.focus = true
+      const fig = e.target.closest('.lp-film-frame'); if (!fig) return
+      const left = fig.offsetLeft + S.x, right = left + fig.offsetWidth
+      if (left < 0 || right > view.clientWidth) S.x = -(fig.offsetLeft - 16)
+    }
+    const focusOut = () => { S.focus = false }
+    const on = [['pointerdown', down], ['pointermove', move], ['pointerup', up], ['pointercancel', up],
+      ['pointerenter', enter], ['pointerleave', leave], ['focusin', focusIn], ['focusout', focusOut]]
+    on.forEach(([t, f]) => view.addEventListener(t, f))
+    view.addEventListener('click', click, true)
+    return () => {
+      cancelAnimationFrame(raf); io.disconnect()
+      on.forEach(([t, f]) => view.removeEventListener(t, f))
+      view.removeEventListener('click', click, true)
+    }
+  }, [])
+  return (
+    <div className="lp-film" ref={viewRef} role="group" aria-label="Foto delle serate (trascina per scorrere)">
+      <div className="lp-film-track" ref={trackRef}>
+        {[0, 1].map(copy => GALLERY_SLOTS.map((slot, i) => (
+          <FilmTile key={`${copy}-${slot.src}`} slot={slot} index={i} clone={copy === 1} onOpen={() => onOpen(i)} />
+        )))}
+      </div>
+    </div>
   )
 }
 
@@ -344,7 +431,7 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
         ) : (
           <span className="lp-gallery-placeholder" style={{ width: 320, aspectRatio: '3 / 2', borderRadius: 14 }}><Camera size={24} /> Foto in arrivo</span>
         )}
-        <figcaption>{slot.alt} <span>· {index + 1}/{GALLERY_SLOTS.length}</span></figcaption>
+        <figcaption>{slot.caption} <span>· {index + 1}/{GALLERY_SLOTS.length}</span></figcaption>
       </figure>
       <button className="lp-lightbox-nav next" onClick={(e) => { e.stopPropagation(); onNext() }} aria-label="Successiva"><ChevronRight size={26} /></button>
     </div>
@@ -446,11 +533,7 @@ export default function LandingPage() {
             <h2 className="lp-h2">Non solo un nome online.</h2>
             <p className="lp-lead">Commanderone è un gruppo di persone reali che si trova davvero, ogni settimana, attorno a un tavolo.</p>
           </Reveal>
-          <div className="lp-film" aria-label="Foto delle serate">
-            {GALLERY_SLOTS.map((slot, i) => (
-              <FilmTile key={slot.src} slot={slot} index={i} onOpen={() => setLightboxIndex(i)} />
-            ))}
-          </div>
+          <FilmStrip onOpen={setLightboxIndex} />
         </Section>
 
         {/* ── CHI SIAMO ── */}

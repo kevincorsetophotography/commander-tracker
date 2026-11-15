@@ -200,14 +200,16 @@
 
 /* ── RULLINO FOTO ───────────────────────────────────────────────────── */
 .lp-film {
-  display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 18px 2px 22px; margin: 0 -16px; padding-left: 16px; padding-right: 16px;
-  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  overflow: hidden; padding: 18px 0 22px; margin: 0 -16px; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;
   background:
     repeating-linear-gradient(90deg, transparent 0 14px, rgba(236,237,251,0.12) 14px 24px) top / 100% 8px no-repeat,
     repeating-linear-gradient(90deg, transparent 0 14px, rgba(236,237,251,0.12) 14px 24px) bottom / 100% 8px no-repeat;
 }
-.lp-film::-webkit-scrollbar { display: none; }
-.lp-film-frame { flex: 0 0 min(78vw, 360px); scroll-snap-align: center; margin: 0; }
+.lp-film.is-dragging { cursor: grabbing; }
+.lp-film.is-dragging .lp-film-btn { pointer-events: none; }
+.lp-film-track { display: flex; gap: 14px; width: max-content; padding-left: 16px; will-change: transform; }
+.lp-film-frame { flex: 0 0 min(78vw, 360px); margin: 0; }
+.lp-film-btn img { -webkit-user-drag: none; }
 .lp-film-btn {
   display: block; width: 100%; aspect-ratio: 3 / 2; padding: 0; border: 1px solid var(--lp-border); border-radius: 14px; overflow: hidden;
   background: #141834; cursor: zoom-in; position: relative; transition: transform 0.2s ease, border-color 0.2s ease;
