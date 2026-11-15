@@ -578,3 +578,22 @@
 .lp-dial-ticks button:focus:not(:focus-visible), .lp-crest:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 
 @keyframes lp-frog-fade { 0% { opacity: 0; } 15%, 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Instagram: icona nella barra e carta in fondo al rullino */
+.lp-nav-insta {
+  flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; color: var(--lp-sub);
+  text-decoration: none; transition: color 0.15s ease, background 0.15s ease; -webkit-tap-highlight-color: transparent;
+}
+.lp-nav-insta:hover { color: var(--lp-text); background: rgba(130,140,190,0.12); }
+.lp-nav-insta:focus-visible { outline: 3px solid rgba(52,240,143,0.6); outline-offset: 1px; }
+.lp-film-insta {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; text-decoration: none; cursor: pointer;
+  color: var(--lp-text); padding: 12px;
+  background: radial-gradient(circle at 30% 20%, rgba(52,240,143,0.22), transparent 55%), linear-gradient(140deg, #2a1d55, #10142e 55%, #0f2b24);
+}
+.lp-film-insta svg { color: var(--lp-green); filter: drop-shadow(0 0 12px rgba(52,240,143,0.45)); }
+.lp-film-insta b { font-size: 17px; font-weight: 900; }
+.lp-film-insta span { font-size: 13px; font-weight: 600; color: var(--lp-sub); }
+
+/* telefoni: la barra è già piena (marchio, link di sezione, Accedi): l'icona Instagram resta nel rullino e nel footer */
+@media (max-width: 440px) { .lp-nav-insta { display: none; } }

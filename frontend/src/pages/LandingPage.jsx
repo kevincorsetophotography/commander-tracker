@@ -14,7 +14,7 @@ import './LandingPage.css'
 
 // Se in futuro viene aperta una pagina Instagram ufficiale, basta valorizzare
 // questa costante: il pulsante compare automaticamente in fondo alla pagina.
-const INSTAGRAM_URL = ''
+const INSTAGRAM_URL = 'https://www.instagram.com/commanderone.villastellone/'
 
 const ADDRESS_LINE1 = 'Unstable – Tana dei Goblin di Villastellone'
 const ADDRESS_LINE2 = 'Via Artemisia Gentileschi, 1'
@@ -382,7 +382,8 @@ function FilmStrip({ onOpen }) {
     const view = viewRef.current, track = trackRef.current, S = st.current
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)')
     // periodo = distanza tra la prima foto e la sua copia (include il gap, niente scatti)
-    const wrap = () => { const k = track.children, h = k.length > GALLERY_SLOTS.length ? k[GALLERY_SLOTS.length].offsetLeft - k[0].offsetLeft : 0; if (h > 0) { S.x %= h; if (S.x > 0) S.x -= h } }
+    const per = track.children.length / 2 // elementi per giro (foto + carta Instagram)
+    const wrap = () => { const k = track.children, h = k.length > per ? k[per].offsetLeft - k[0].offsetLeft : 0; if (h > 0) { S.x %= h; if (S.x > 0) S.x -= h } }
     let raf = 0, last = performance.now()
     const tick = (now) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
@@ -428,8 +429,12 @@ function FilmStrip({ onOpen }) {
     const click = (e) => { if (S.moved) { e.preventDefault(); e.stopPropagation(); S.moved = false } }
     const enter = (e) => { if (e.pointerType === 'mouse') S.hover = true }
     const leave = (e) => { if (e.pointerType === 'mouse') S.hover = false }
+    // il browser, al focus, scorrerebbe il contenitore (overflow hidden): lo riporta a 0, ci pensa il translate
+    const noNativeScroll = () => { if (view.scrollLeft) view.scrollLeft = 0 }
+    view.addEventListener('scroll', noNativeScroll)
     const focusIn = (e) => {
       S.focus = true
+      noNativeScroll()
       const fig = e.target.closest('.lp-film-frame'); if (!fig) return
       const left = fig.offsetLeft + S.x, right = left + fig.offsetWidth
       if (left < 0 || right > view.clientWidth) S.x = -(fig.offsetLeft - 16)
@@ -442,15 +447,29 @@ function FilmStrip({ onOpen }) {
     return () => {
       cancelAnimationFrame(raf); io.disconnect()
       on.forEach(([t, f]) => view.removeEventListener(t, f))
+      view.removeEventListener('scroll', noNativeScroll)
       view.removeEventListener('click', click, true)
     }
   }, [])
   return (
     <div className="lp-film" ref={viewRef} role="group" aria-label="Foto delle serate (trascina per scorrere)">
       <div className="lp-film-track" ref={trackRef}>
-        {[0, 1].map(copy => GALLERY_SLOTS.map((slot, i) => (
-          <FilmTile key={`${copy}-${slot.src}`} slot={slot} index={i} clone={copy === 1} onOpen={() => onOpen(i)} />
-        )))}
+        {[0, 1].map(copy => [
+          ...GALLERY_SLOTS.map((slot, i) => (
+            <FilmTile key={`${copy}-${slot.src}`} slot={slot} index={i} clone={copy === 1} onOpen={() => onOpen(i)} />
+          )),
+          INSTAGRAM_URL && (
+            <figure key={`${copy}-insta`} className="lp-film-frame" aria-hidden={copy === 1 || undefined}>
+              <a className="lp-film-btn lp-film-insta" href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer"
+                tabIndex={copy === 1 ? -1 : undefined} draggable={false}>
+                <Instagram size={40} />
+                <b>Altre serate su Instagram</b>
+                <span>@commanderone.villastellone</span>
+              </a>
+              <figcaption><span className="lp-film-num">+</span>Seguici per le foto nuove</figcaption>
+            </figure>
+          ),
+        ])}
       </div>
     </div>
   )
@@ -536,6 +555,11 @@ export default function LandingPage() {
               <ScrollLink className="lp-nav-link" to="quando-dove">Quando e dove</ScrollLink>
               <ScrollLink className="lp-nav-link" to="foto">Foto</ScrollLink>
             </div>
+            {INSTAGRAM_URL && (
+              <a className="lp-nav-insta" href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Commanderone Villastellone su Instagram" title="Instagram">
+                <Instagram size={20} />
+              </a>
+            )}
             <Link to="/login" className="lp-nav-login" title="Sei già dei nostri? Accedi al portale">
               Accedi <ArrowRight size={14} strokeWidth={2.4} />
             </Link>

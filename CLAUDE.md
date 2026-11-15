@@ -114,7 +114,7 @@ frontend/src/
                            manopola bracket B1-B4, d20 in "modo di giocare", La Tana tappabile, countdown al venerdì 21:30
                            ora di Roma (lib/nextNight.js, con test), numeri reali da /api/public/stats (nascosti se l'API fallisce).
                            Rullino foto: marquee trascinabile (FilmStrip). Stemma animato a ogni apertura.
-                           Instagram: valorizzare INSTAGRAM_URL in cima al file per far comparire il link in footer.
+                           Instagram (INSTAGRAM_URL in cima al file): carta in fondo al rullino, icona in barra (solo >440px), footer.
     Login.jsx             /login — form login/register con inviteCode
     FeedPage.jsx          / (autenticato) — home feed: snapshot stagione, classifica mini, deck spotlight, attività settimanale, ultime partite + notifiche
     GiocaPage.jsx         /gioca — landing "Gioca": CTA nuova partita, mazzi recenti, ultima partita
