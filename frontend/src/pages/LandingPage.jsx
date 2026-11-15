@@ -144,10 +144,10 @@ function Instagram({ size = 17 }) {
   )
 }
 
-// Stemma grande all'apertura: atterra con rimbalzo e rotazione, poi onda d'urto,
+// Stemma grande a ogni apertura della pagina (~1,3 s, non blocca nulla): atterra con rimbalzo e rotazione, poi onda d'urto,
 // raggi rotanti, alone che pulsa e i cinque simboli di mana in orbita.
 // Con "riduci animazioni" (MotionConfig + CSS) resta statico.
-function HeroCrest({ animate }) {
+function HeroCrest() {
   return (
     <div className="lp-crest">
       <span className="lp-crest-rays" aria-hidden="true" />
@@ -164,7 +164,7 @@ function HeroCrest({ animate }) {
       <m.img
         src="/logo-384.webp" alt="Stemma di Commanderone Villastellone" width="200" height="200"
         className="lp-crest-logo" fetchpriority="high"
-        initial={animate ? { scale: 0.2, rotate: -200, opacity: 0, y: -80 } : false}
+        initial={{ scale: 0.2, rotate: -200, opacity: 0, y: -80 }}
         animate={{ scale: [0.2, 1.25, 0.94, 1], rotate: 0, opacity: 1, y: 0 }}
         transition={{ duration: 0.9, times: [0, 0.55, 0.8, 1], ease: 'easeOut' }}
       />
@@ -440,11 +440,6 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
 
 export default function LandingPage() {
   const [lightboxIndex, setLightboxIndex] = useState(null)
-  // Entrata animata dello stemma: una sola volta per visita (sessionStorage), poi statica.
-  const [introAnim] = useState(() => {
-    try { return !sessionStorage.getItem('lp-intro-done') } catch { return true }
-  })
-  useEffect(() => { try { sessionStorage.setItem('lp-intro-done', '1') } catch { /* storage non disponibile */ } }, [])
 
   useEffect(() => {
     const prevTitle = document.title
@@ -495,8 +490,8 @@ export default function LandingPage() {
         </nav>
 
         {/* ── HERO ── */}
-        <header id="top" className={`lp-hero ${introAnim ? 'lp-intro' : 'lp-intro-done'}`}>
-          <HeroCrest animate={introAnim} />
+        <header id="top" className="lp-hero lp-intro">
+          <HeroCrest />
           <span className="lp-live-pill"><span className="lp-live-dot" />Il pod ti aspetta · ogni venerdì a Villastellone</span>
           <h1 className="lp-hero-title">
             <span className="lp-hero-line">Il tavolo da 4.</span>

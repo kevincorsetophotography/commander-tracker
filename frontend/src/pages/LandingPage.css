@@ -436,19 +436,12 @@
 .lp-intro .lp-hero-desc    { animation-delay: 1.14s; }
 .lp-intro .lp-hero-ctas    { animation-delay: 1.2s; }
 .lp-intro .lp-mana-row     { animation-delay: 1.28s; }
-/* visite successive: niente entrata, tutto già al suo posto */
-.lp-intro-done .lp-hero-line, .lp-intro-done .lp-hero-brand, .lp-intro-done .lp-crest-shock, .lp-intro-done .lp-crest-foil { animation: none; }
-.lp-intro-done .lp-crest-shock, .lp-intro-done .lp-crest-foil { display: none; }
-.lp-intro-done .lp-crest-rays { animation: lp-spin 18s linear infinite; opacity: 1; }
-.lp-intro-done .lp-crest-orbit { animation: lp-spin 22s linear infinite; }
-.lp-intro-done .lp-crest-orbit-slot { animation: none; opacity: 1; }
-.lp-intro-done .lp-crest-orbit-slot .lp-mana-svg { animation: lp-spin-rev 22s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
   .lp-intro .lp-live-pill, .lp-intro .lp-hero-line, .lp-intro .lp-hero-brand, .lp-intro .lp-hero-place,
   .lp-intro .lp-hero-tagline, .lp-intro .lp-hero-desc, .lp-intro .lp-hero-ctas, .lp-intro .lp-mana-row,
-  .lp-crest-foil, .lp-intro-done .lp-crest-rays, .lp-intro-done .lp-crest-orbit { animation: none; }
+  .lp-crest-foil { animation: none; }
   .lp-crest-foil { display: none; }
 }
 
 @media (min-width: 720px) { .lp-section { padding: 64px 16px; } .lp-hero { padding-bottom: 36px; } }
-@media (prefers-reduced-motion: reduce) { .lp-crest-orbit-slot .lp-mana-svg, .lp-intro-done .lp-crest-orbit-slot .lp-mana-svg { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .lp-crest-orbit-slot .lp-mana-svg { animation: none; } }
