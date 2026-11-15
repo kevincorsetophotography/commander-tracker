@@ -23,27 +23,17 @@ export function Icon({ name, size = 22, stroke = 1.9, style }) {
   return <C size={size} strokeWidth={stroke} aria-hidden="true" style={{ flexShrink: 0, ...style }} />
 }
 
-// Pip di mana con la lettera (W U B R G). Colori fissi: sono l'identità del mazzo, non del tema.
-const MANA = {
-  W: { bg: '#F8F6D8', fg: '#2a2618' },
-  U: { bg: '#3B82F6', fg: '#fff' },
-  B: { bg: '#2B2533', fg: '#E8E2F0', ring: 'rgba(232,226,240,0.45)' },
-  R: { bg: '#EF4444', fg: '#fff' },
-  G: { bg: '#16A34A', fg: '#fff' },
-}
+// Simboli di mana ufficiali (SVG Scryfall salvati in public/mana). Testo alternativo = lettera.
+const MANA_NAME = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde', C: 'Incolore' }
 
 export function ManaPips({ colors, size = 18 }) {
-  const list = (colors || '').toUpperCase().split('').filter(c => MANA[c])
+  const list = (colors || '').toUpperCase().split('').filter(c => MANA_NAME[c])
   if (!list.length) return null
   return (
-    <span style={{ display: 'inline-flex', gap: 3, flexShrink: 0 }} aria-label={`Colori: ${list.join(' ')}`}>
+    <span style={{ display: 'inline-flex', gap: 3, flexShrink: 0 }} role="img" aria-label={`Colori: ${list.join(' ')}`}>
       {list.map((c, i) => (
-        <span key={i} style={{
-          width: size, height: size, borderRadius: '50%', background: MANA[c].bg, color: MANA[c].fg,
-          border: `1px solid ${MANA[c].ring || 'rgba(0,0,0,0.25)'}`,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: Math.max(10, Math.round(size * 0.58)), fontWeight: 800, lineHeight: 1,
-        }}>{c}</span>
+        <img key={i} src={`/mana/${c}.svg`} alt={c} title={MANA_NAME[c]} width={size} height={size}
+          style={{ width: size, height: size, display: 'block', borderRadius: '50%', boxShadow: '0 1px 2px rgba(0,0,0,0.45)' }} />
       ))}
     </span>
   )

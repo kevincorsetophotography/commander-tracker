@@ -123,12 +123,8 @@
 @media (max-width: 420px) { .lp-cta-primary, .lp-cta-ghost { width: 100%; } }
 
 .lp-mana-row { display: flex; gap: 9px; justify-content: center; margin: 0 0 8px; }
-.lp-mana-pip {
-  width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 900; border: 1.5px solid rgba(255,255,255,0.18);
-  box-shadow: 0 0 14px var(--glow, transparent), inset 0 0 4px rgba(0,0,0,0.25);
-  animation: lp-pip-float 5s ease-in-out infinite;
-}
+.lp-mana-svg { display: block; border-radius: 50%; box-shadow: 0 0 14px var(--glow, transparent), 0 2px 4px rgba(0,0,0,0.5); flex-shrink: 0; }
+.lp-mana-float { animation: lp-pip-float 5s ease-in-out infinite; }
 @keyframes lp-pip-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
 /* ── VENTAGLIO DI CARTE ─────────────────────────────────────────────── */
@@ -159,9 +155,10 @@
 }
 .lp-mtg-title { font-size: 15px; color: var(--lp-text); }
 .lp-mtg-cost { display: inline-flex; gap: 3px; }
-.lp-mtg-cost i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); display: block; }
+.lp-mtg-cost .lp-mana-svg { box-shadow: 0 1px 2px rgba(0,0,0,0.6); }
 .lp-mtg-art { position: relative; flex: 0 0 auto; aspect-ratio: 16 / 9; border-radius: 9px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); background: #141834; }
 .lp-mtg-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lp-mtg-credit { position: absolute; left: 6px; bottom: 5px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.9); letter-spacing: 0.01em; }
 .lp-mtg-foil {
   position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color-dodge; opacity: 0;
   background: linear-gradient(115deg, transparent 30%, rgba(52,240,143,0.55) 45%, rgba(139,92,246,0.55) 55%, transparent 70%);
@@ -242,11 +239,7 @@
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 .lp-pip-btn:active { transform: scale(0.95); }
-.lp-pip-btn-dot {
-  width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: var(--pip-bg); color: var(--pip-fg); font-weight: 900; font-size: 16px; border: 1.5px solid rgba(255,255,255,0.2);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
+.lp-pip-btn-dot { transition: box-shadow 0.2s ease, transform 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 .lp-pip-btn-name { font-size: 12px; font-weight: 700; }
 .lp-pip-btn.on { border-color: rgba(52,240,143,0.55); background: rgba(52,240,143,0.08); color: var(--lp-text); }
 .lp-pip-btn.on .lp-pip-btn-dot { box-shadow: 0 0 18px var(--glow); transform: translateY(-2px) scale(1.06); }
@@ -255,7 +248,7 @@
   background: linear-gradient(160deg, rgba(30,34,68,0.75), rgba(10,12,28,0.75)); border: 1px solid var(--lp-border);
   box-shadow: 0 0 40px var(--glow);
 }
-.lp-principle-pip { position: absolute; top: -14px; left: 20px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; border: 1.5px solid rgba(255,255,255,0.25); }
+.lp-principle-pip { position: absolute; top: -17px; left: 20px; }
 .lp-principle-card h3 { font-size: 20px; font-weight: 900; margin: 6px 0 8px; }
 .lp-principle-card p { font-size: 15px; line-height: 1.6; color: var(--lp-sub); margin: 0; }
 
@@ -365,7 +358,7 @@
 .lp-footer-fine { font-size: 12px; color: #6A73A0; letter-spacing: 0.02em; }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-glow::before, .lp-glow::after, .lp-lightbox, .lp-mana-pip, .lp-live-dot, .lp-hero-line, .lp-hero-brand,
+  .lp-glow::before, .lp-glow::after, .lp-lightbox, .lp-mana-float, .lp-live-dot, .lp-hero-line, .lp-hero-brand,
   .lp-mtg-card.is-active .lp-mtg-foil, .lp-tana-ring { animation: none; }
   .lp-reveal { opacity: 1; transform: none; transition: none; }
 }

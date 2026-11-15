@@ -39,23 +39,33 @@ const GALLERY_SLOTS = [
 ]
 const photo = (slot, w) => (slot.web ? slot.src.replace(`${PHOTO_DIR}/`, `${PHOTO_DIR}/web/`).replace(/\.jpg$/i, `-${w}.webp`) : slot.src)
 
+// Simboli di mana ufficiali (SVG Scryfall salvati in public/mana).
 const MANA = {
-  W: { bg: '#F8F6D8', fg: '#4A4630', glow: 'rgba(248,246,216,0.40)', name: 'Bianco' },
-  U: { bg: '#0E68AB', fg: '#EAF4FF', glow: 'rgba(14,104,171,0.55)', name: 'Blu' },
-  B: { bg: '#1B1B22', fg: '#ECEDFB', glow: 'rgba(139,92,246,0.45)', name: 'Nero' },
-  R: { bg: '#D3202A', fg: '#FFF3F0', glow: 'rgba(211,32,42,0.50)', name: 'Rosso' },
-  G: { bg: '#00733E', fg: '#EAFFF3', glow: 'rgba(0,115,62,0.50)', name: 'Verde' },
+  W: { glow: 'rgba(248,246,216,0.45)', name: 'Bianco' },
+  U: { glow: 'rgba(14,104,171,0.60)', name: 'Blu' },
+  B: { glow: 'rgba(139,92,246,0.50)', name: 'Nero' },
+  R: { glow: 'rgba(211,32,42,0.55)', name: 'Rosso' },
+  G: { glow: 'rgba(0,115,62,0.55)', name: 'Verde' },
+  C: { glow: 'rgba(185,195,208,0.45)', name: 'Incolore' },
+}
+function ManaSymbol({ c, size = 32, className = '', style }) {
+  return <img src={`/mana/${c}.svg`} alt={c} title={MANA[c].name} width={size} height={size} className={`lp-mana-svg ${className}`} style={{ '--glow': MANA[c].glow, ...style }} />
 }
 
 // I formati, presentati come carte da gioco (testi identici alla versione precedente).
+// Illustrazioni: art_crop Scryfall di carte iconiche, salvate in WebP in public/landing-art/ (credito artista sulla carta).
 const FORMAT_CARDS = [
-  { key: 'commander', name: 'Commander', type: 'Formato principale', rarity: 'mythic', Icon: Crown, art: GALLERY_SLOTS[1],
+  { key: 'commander', name: 'Commander', type: 'Formato principale', rarity: 'mythic', Icon: Crown, cost: ['W', 'U', 'B', 'R', 'G'],
+    art: { src: '/landing-art/commander.webp', card: 'Grolnok, the Omnivore', artist: 'Simon Dominic' },
     text: 'Il cuore del gruppo. Si gioca principalmente for fun, con grande attenzione alla Rule 0 e alla compatibilità tra i giocatori del pod.' },
-  { key: 'cube', name: 'Vintage Cube', type: 'Draft', rarity: 'rare', Icon: Box, art: GALLERY_SLOTS[2], badge: 'Completo di terre',
+  { key: 'cube', name: 'Vintage Cube', type: 'Draft', rarity: 'rare', Icon: Box, cost: ['C'], badge: 'Completo di terre',
+    art: { src: '/landing-art/cube.webp', card: 'Black Lotus', artist: 'Chris Rahn' },
     text: "Il gruppo ha un Vintage Cube completo, terre incluse. Basta un tavolo e un po' di tempo per fare draft." },
-  { key: 'constructed', name: 'Constructed', type: 'Pauper · Modern', rarity: 'uncommon', Icon: Layers, art: GALLERY_SLOTS[0],
+  { key: 'constructed', name: 'Constructed', type: 'Pauper · Modern', rarity: 'uncommon', Icon: Layers, cost: ['R'],
+    art: { src: '/landing-art/constructed.webp', card: 'Lightning Bolt', artist: 'Christopher Moeller' },
     text: 'Principalmente Pauper e Modern, ma non chiudiamo la porta ad altri formati se qualcuno si organizza.' },
-  { key: 'eventi', name: 'Eventi e serate speciali', type: 'Draft · tornei · sfide', rarity: 'common', Icon: Dices, art: GALLERY_SLOTS[3],
+  { key: 'eventi', name: 'Eventi e serate speciali', type: 'Draft · tornei · sfide', rarity: 'common', Icon: Dices, cost: ['W'],
+    art: { src: '/landing-art/eventi.webp', card: 'Wedding Announcement', artist: 'Caroline Gariba' },
     text: "Draft, tornei, sfide, serate a tema: quando c'è voglia di organizzare qualcosa di diverso, lo facciamo." },
 ]
 
@@ -90,8 +100,8 @@ function ScrollLink({ to, className, children, ...rest }) {
 function ManaRow() {
   return (
     <div className="lp-mana-row" aria-hidden="true">
-      {Object.entries(MANA).map(([l, c], i) => (
-        <span key={l} className="lp-mana-pip" style={{ background: c.bg, color: c.fg, '--glow': c.glow, animationDelay: `${i * 0.25}s` }}>{l}</span>
+      {['W', 'U', 'B', 'R', 'G'].map((l, i) => (
+        <ManaSymbol key={l} c={l} size={34} className="lp-mana-float" style={{ animationDelay: `${i * 0.25}s` }} />
       ))}
     </div>
   )
@@ -189,11 +199,13 @@ function CardFan() {
                 <header className="lp-mtg-title">
                   <span>{card.name}</span>
                   <span className="lp-mtg-cost" aria-hidden="true">
-                    {card.key === 'commander' ? ['W', 'U', 'B', 'R', 'G'].map(c => <i key={c} style={{ background: MANA[c].bg }} />) : <i style={{ background: '#8B5CF6' }} />}
+                    {card.cost.map(c => <ManaSymbol key={c} c={c} size={16} />)}
                   </span>
                 </header>
                 <div className="lp-mtg-art">
-                  <img src={photo(card.art, 800)} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                  <img src={card.art.src} alt={`Illustrazione di ${card.art.card} (${card.art.artist})`} title={`${card.art.card} — illustrazione di ${card.art.artist}`}
+                    loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                  <span className="lp-mtg-credit">Illus. {card.art.artist}</span>
                   <span className="lp-mtg-foil" aria-hidden="true" />
                 </div>
                 <div className="lp-mtg-type">
@@ -240,8 +252,8 @@ function Principles() {
         {PRINCIPLES.map(x => (
           <button key={x.c} type="button" role="tab" aria-selected={sel === x.c} aria-label={`${MANA[x.c].name}: ${x.title}`}
             className={`lp-pip-btn ${sel === x.c ? 'on' : ''}`} onClick={() => setSel(x.c)}
-            style={{ '--pip-bg': MANA[x.c].bg, '--pip-fg': MANA[x.c].fg, '--glow': MANA[x.c].glow }}>
-            <span className="lp-pip-btn-dot">{x.c}</span>
+            style={{ '--glow': MANA[x.c].glow }}>
+            <ManaSymbol c={x.c} size={40} className="lp-pip-btn-dot" />
             <span className="lp-pip-btn-name">{MANA[x.c].name}</span>
           </button>
         ))}
@@ -251,7 +263,7 @@ function Principles() {
           style={{ '--glow': MANA[sel].glow }}
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22 }}>
-          <span className="lp-principle-pip" style={{ background: MANA[sel].bg, color: MANA[sel].fg }}>{sel}</span>
+          <ManaSymbol c={sel} size={34} className="lp-principle-pip" />
           <h3>{p.title}</h3>
           <p>{p.text}</p>
         </m.div>
