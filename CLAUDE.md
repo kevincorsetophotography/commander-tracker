@@ -98,10 +98,17 @@ frontend/src/
                            Magic: ManaRow (pip WUBRG in hero/footer), rarity-dot colorato sulle card "Cosa facciamo",
                            watermark di simboli tenue sulle sezioni alt, decorazioni d'angolo (dado/carte, nascoste
                            sotto 720px).
+                           Restyle 2026-11 (mockup Stitch "Deck Carte Interattive in Primo Piano"): hero "Il tavolo
+                           da 4. Il tuo pod." + CTA "Entra nel pod" (/login); i 4 formati come CARTE in un ventaglio
+                           (motion, frecce/puntini/swipe/tastiera); rullino foto orizzontale con lightbox; selettore
+                           WUBRG con 5 principi (frasi reali, colore decorativo); bracket dell'app in Rule 0; "La Tana"
+                           con mappa stilizzata + link Google Maps. SOLO contenuti reali (niente dati inventati da Stitch).
                            Foto reali: file in frontend/public/Foto Commanderone/ (nome con spazio, referenziato come
-                           /Foto%20Commanderone/... in GALLERY_SLOTS), aspect-ratio tile 3:2 (foto paesaggio). Per
-                           aggiungerne altre: copiare il file lì e aggiungere una riga a GALLERY_SLOTS — finché un
-                           file non esiste, il tile mostra un placeholder "Foto in arrivo" invece di un'icona rotta.
+                           /Foto%20Commanderone/... in GALLERY_SLOTS). Versioni leggere in Foto Commanderone/web/
+                           (<nome>-800.webp per rullino/carte, -1600.webp per il lightbox; `web: true` nello slot).
+                           Per aggiungerne altre: copiare il file, generare le due webp (o omettere `web`) e aggiungere
+                           una riga a GALLERY_SLOTS — se un file manca, il tile mostra "Foto in arrivo".
+                           Logo leggero per la landing: public/logo-192.webp e logo-384.webp (logo.png resta per favicon/OG).
                            Instagram: valorizzare INSTAGRAM_URL in cima al file per far comparire il link in footer.
     Login.jsx             /login — form login/register con inviteCode
     FeedPage.jsx          / (autenticato) — home feed: snapshot stagione, classifica mini, deck spotlight, attività settimanale, ultime partite + notifiche

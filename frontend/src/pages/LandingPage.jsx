@@ -1,6 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { m, AnimatePresence } from 'motion/react'
+import {
+  Crown, Box, Layers, Dices, CalendarDays, MapPin, Check, ChevronLeft, ChevronRight, ChevronDown,
+  Camera, X, ArrowRight, ShieldCheck, Sparkles, MessagesSquare, Users,
+} from 'lucide-react'
+import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import './LandingPage.css'
+
+// Landing pubblica /info — restyle dal mockup Stitch "Deck Carte Interattive in Primo Piano".
+// Solo contenuti reali (gli stessi della versione precedente), palette dell'app (lib/theme.js dark).
+// Pagina scollegata dal portale: nessuna dipendenza da useAuth, nessun redirect.
 
 // Se in futuro viene aperta una pagina Instagram ufficiale, basta valorizzare
 // questa costante: il pulsante compare automaticamente in fondo alla pagina.
@@ -14,25 +24,48 @@ const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURICom
   `${ADDRESS_LINE1}, ${ADDRESS_LINE2}, ${ADDRESS_LINE3}`
 )}`
 
-// Foto reali delle serate. Per aggiungerne altre in futuro: mettere il file in
+// Foto reali delle serate. Per aggiungerne altre: copiare il file in
 // frontend/public/Foto Commanderone/ e aggiungere una riga qui sotto.
-// Finché un file non esiste (o viene rimosso), il tile mostra un placeholder invece di un'icona rotta.
+// `web: true` = esistono anche le versioni leggere in Foto Commanderone/web/<nome>-800.webp e -1600.webp
+// (generate a parte); senza, si usa il file originale. Se un file manca, il tile mostra "Foto in arrivo".
 const PHOTO_DIR = '/Foto%20Commanderone'
 const GALLERY_SLOTS = [
-  { src: `${PHOTO_DIR}/DSC00807.jpg`, alt: 'Due giocatori mostrano orgogliosi le loro carte al tavolo' },
-  { src: `${PHOTO_DIR}/DSC00834.jpg`, alt: 'Un pod al completo: carte, dadi e box ovunque sul tavolo' },
-  { src: `${PHOTO_DIR}/DSC00820.jpg`, alt: 'Una mano di carte pronta a scendere in campo sul playmat di Unstable' },
-  { src: `${PHOTO_DIR}/DSC00881.jpg`, alt: 'Una serata qualunque negli spazi di Unstable' },
-  { src: `${PHOTO_DIR}/DSC00822.jpg`, alt: 'Quando la partita si fa surreale (sì, quella è una carta in fronte)' },
-  { src: `${PHOTO_DIR}/DSC00826.jpg`, alt: 'Anche il collo, a quanto pare, può essere zona di gioco' },
+  { src: `${PHOTO_DIR}/DSC00807.jpg`, web: true, alt: 'Due giocatori mostrano orgogliosi le loro carte al tavolo' },
+  { src: `${PHOTO_DIR}/DSC00834.jpg`, web: true, alt: 'Un pod al completo: carte, dadi e box ovunque sul tavolo' },
+  { src: `${PHOTO_DIR}/DSC00820.jpg`, web: true, alt: 'Una mano di carte pronta a scendere in campo sul playmat di Unstable' },
+  { src: `${PHOTO_DIR}/DSC00881.jpg`, web: true, alt: 'Una serata qualunque negli spazi di Unstable' },
+  { src: `${PHOTO_DIR}/DSC00822.jpg`, web: true, alt: 'Quando la partita si fa surreale (sì, quella è una carta in fronte)' },
+  { src: `${PHOTO_DIR}/DSC00826.jpg`, web: true, alt: 'Anche il collo, a quanto pare, può essere zona di gioco' },
+]
+const photo = (slot, w) => (slot.web ? slot.src.replace(`${PHOTO_DIR}/`, `${PHOTO_DIR}/web/`).replace(/\.jpg$/i, `-${w}.webp`) : slot.src)
+
+const MANA = {
+  W: { bg: '#F8F6D8', fg: '#4A4630', glow: 'rgba(248,246,216,0.40)', name: 'Bianco' },
+  U: { bg: '#0E68AB', fg: '#EAF4FF', glow: 'rgba(14,104,171,0.55)', name: 'Blu' },
+  B: { bg: '#1B1B22', fg: '#ECEDFB', glow: 'rgba(139,92,246,0.45)', name: 'Nero' },
+  R: { bg: '#D3202A', fg: '#FFF3F0', glow: 'rgba(211,32,42,0.50)', name: 'Rosso' },
+  G: { bg: '#00733E', fg: '#EAFFF3', glow: 'rgba(0,115,62,0.50)', name: 'Verde' },
+}
+
+// I formati, presentati come carte da gioco (testi identici alla versione precedente).
+const FORMAT_CARDS = [
+  { key: 'commander', name: 'Commander', type: 'Formato principale', rarity: 'mythic', Icon: Crown, art: GALLERY_SLOTS[1],
+    text: 'Il cuore del gruppo. Si gioca principalmente for fun, con grande attenzione alla Rule 0 e alla compatibilità tra i giocatori del pod.' },
+  { key: 'cube', name: 'Vintage Cube', type: 'Draft', rarity: 'rare', Icon: Box, art: GALLERY_SLOTS[2], badge: 'Completo di terre',
+    text: "Il gruppo ha un Vintage Cube completo, terre incluse. Basta un tavolo e un po' di tempo per fare draft." },
+  { key: 'constructed', name: 'Constructed', type: 'Pauper · Modern', rarity: 'uncommon', Icon: Layers, art: GALLERY_SLOTS[0],
+    text: 'Principalmente Pauper e Modern, ma non chiudiamo la porta ad altri formati se qualcuno si organizza.' },
+  { key: 'eventi', name: 'Eventi e serate speciali', type: 'Draft · tornei · sfide', rarity: 'common', Icon: Dices, art: GALLERY_SLOTS[3],
+    text: "Draft, tornei, sfide, serate a tema: quando c'è voglia di organizzare qualcosa di diverso, lo facciamo." },
 ]
 
-const MANA_PIPS = [
-  { l: 'W', bg: '#F8F6D8', fg: '#4A4630', glow: 'rgba(248,246,216,0.35)' },
-  { l: 'U', bg: '#0E68AB', fg: '#EAF4FF', glow: 'rgba(14,104,171,0.45)' },
-  { l: 'B', bg: '#1B1B22', fg: '#ECEDFB', glow: 'rgba(139,92,246,0.35)' },
-  { l: 'R', bg: '#D3202A', fg: '#FFF3F0', glow: 'rgba(211,32,42,0.4)' },
-  { l: 'G', bg: '#00733E', fg: '#EAFFF3', glow: 'rgba(0,115,62,0.4)' },
+// Cinque principi del tavolo: frasi reali della community; il colore è solo decorativo.
+const PRINCIPLES = [
+  { c: 'W', title: 'Il pod ha spazio per tutti', text: 'Non serve appartenere a una categoria per essere parte del gruppo: mazzi casual o ottimizzati, giocatori esperti o alle prime armi.' },
+  { c: 'U', title: 'Parliamone prima', text: 'Meglio parlarne prima che discuterne dopo. Prima di sedersi al tavolo vale la pena allinearsi con il pod.' },
+  { c: 'B', title: 'Giochiamo seriamente', text: 'Non ci prendiamo troppo sul serio. Ironia, battute, trash talking e goliardia sono benvenuti — sempre nel rispetto di chi hai davanti.' },
+  { c: 'R', title: 'Competizione sì, ma tra amici', text: "Quando c'è un torneo ha una struttura seria, ma resta un torneo tra amici. Niente montepremi: gli eventuali premi sono simbolici." },
+  { c: 'G', title: '100% proxy friendly', text: 'Il valore economico di una carta non determina il valore di chi la gioca.' },
 ]
 
 // Scroll animato verso una sezione, con offset per non finire sotto la nav sticky.
@@ -57,18 +90,17 @@ function ScrollLink({ to, className, children, ...rest }) {
 function ManaRow() {
   return (
     <div className="lp-mana-row" aria-hidden="true">
-      {MANA_PIPS.map((m, i) => (
-        <span key={m.l} className="lp-mana-pip" style={{ background: m.bg, color: m.fg, '--glow': m.glow, animationDelay: `${i * 0.25}s` }}>{m.l}</span>
+      {Object.entries(MANA).map(([l, c], i) => (
+        <span key={l} className="lp-mana-pip" style={{ background: c.bg, color: c.fg, '--glow': c.glow, animationDelay: `${i * 0.25}s` }}>{l}</span>
       ))}
     </div>
   )
 }
 
-// ── reveal-on-scroll (IntersectionObserver, niente librerie) ───────────────
+// ── reveal-on-scroll (IntersectionObserver) ────────────────────────────────
 function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
   const ref = useRef(null)
   const [inView, setInView] = useState(false)
-
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -77,104 +109,179 @@ function Reveal({ as: Tag = 'div', className = '', children, ...rest }) {
       { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
     )
     io.observe(el)
-    // Rete di sicurezza: se per qualsiasi motivo l'observer non scatta mai
-    // (browser bizzarro, tab in background, ecc.) il contenuto non deve restare invisibile.
+    // Rete di sicurezza: se l'observer non scatta mai, il contenuto non deve restare invisibile.
     const fallback = setTimeout(() => setInView(true), 2500)
     return () => { io.disconnect(); clearTimeout(fallback) }
   }, [])
-
-  return (
-    <Tag ref={ref} className={`lp-reveal ${inView ? 'in' : ''} ${className}`} {...rest}>
-      {children}
-    </Tag>
-  )
+  return <Tag ref={ref} className={`lp-reveal ${inView ? 'in' : ''} ${className}`} {...rest}>{children}</Tag>
 }
 
-function Section({ id, alt, children }) {
+function Section({ id, alt, children, className = '' }) {
   return (
-    <section id={id} className={`lp-section ${alt ? 'lp-alt' : ''}`}>
+    <section id={id} className={`lp-section ${alt ? 'lp-alt' : ''} ${className}`}>
       <div className="lp-section-inner">{children}</div>
     </section>
   )
 }
 
-// ── icone (inline SVG, nessun asset esterno) ───────────────────────────────
-const Icon = {
-  check: (p) => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  ),
-  crown: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M3 18h18l-1.5-9-4.5 4-3-6-3 6-4.5-4L3 18z" />
-      <path d="M5 21h14" />
-    </svg>
-  ),
-  cube: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" />
-    </svg>
-  ),
-  cards: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <rect x="7" y="3" width="10" height="15" rx="1.5" transform="rotate(-8 12 10)" />
-      <rect x="5" y="6" width="10" height="15" rx="1.5" />
-    </svg>
-  ),
-  dice: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M12 2l9 5v10l-9 5-9-5V7l9-5z" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-  calendar: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  ),
-  pin: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-    </svg>
-  ),
-  frog: (p) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <ellipse cx="12" cy="14" rx="8" ry="6" /><circle cx="7" cy="7" r="2.4" /><circle cx="17" cy="7" r="2.4" />
-      <circle cx="7" cy="7" r="0.6" fill="currentColor" /><circle cx="17" cy="7" r="0.6" fill="currentColor" />
-    </svg>
-  ),
-  instagram: (p) => (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}>
+// lucide-react 1.x non include più i loghi dei brand: icona Instagram inline.
+function Instagram({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
     </svg>
-  ),
+  )
 }
 
-function GalleryTile({ src, alt, onOpen }) {
+function Kicker({ children }) {
+  return <span className="lp-kicker"><span className="lp-kicker-dot" />{children}</span>
+}
+
+// ── Ventaglio di carte (formati) ────────────────────────────────────────────
+function CardFan() {
+  const [active, setActive] = useState(0)
+  const touch = useRef(null)
+  const n = FORMAT_CARDS.length
+  const go = useCallback((i) => setActive(((i % n) + n) % n), [n])
+
+  const onKey = (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(active - 1) }
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(active + 1) }
+  }
+  const onTouchStart = (e) => { touch.current = e.touches[0].clientX }
+  const onTouchEnd = (e) => {
+    if (touch.current == null) return
+    const dx = e.changedTouches[0].clientX - touch.current
+    if (Math.abs(dx) > 40) go(active + (dx < 0 ? 1 : -1))
+    touch.current = null
+  }
+
+  return (
+    <div className="lp-fan-wrap">
+      <div className="lp-fan" role="group" aria-roledescription="carosello" aria-label="I nostri formati"
+        tabIndex={0} onKeyDown={onKey} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        {FORMAT_CARDS.map((card, i) => {
+          // posizione relativa alla carta attiva, sul cerchio (−2..+2)
+          let off = i - active
+          if (off > n / 2) off -= n
+          if (off < -n / 2) off += n
+          const isActive = off === 0
+          const hidden = Math.abs(off) > 1
+          return (
+            <m.article
+              key={card.key}
+              className={`lp-mtg-card ${card.rarity} ${isActive ? 'is-active' : ''}`}
+              aria-hidden={!isActive}
+              onClick={() => !isActive && go(i)}
+              initial={false}
+              animate={{
+                x: `${off * 62}%`,
+                rotate: off * 9,
+                scale: isActive ? 1 : 0.84,
+                y: isActive ? 0 : 18,
+                opacity: hidden ? 0 : isActive ? 1 : 0.62,
+                zIndex: 10 - Math.abs(off),
+              }}
+              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+              style={{ pointerEvents: hidden ? 'none' : 'auto', cursor: isActive ? 'default' : 'pointer' }}
+            >
+              <div className="lp-mtg-frame">
+                <header className="lp-mtg-title">
+                  <span>{card.name}</span>
+                  <span className="lp-mtg-cost" aria-hidden="true">
+                    {card.key === 'commander' ? ['W', 'U', 'B', 'R', 'G'].map(c => <i key={c} style={{ background: MANA[c].bg }} />) : <i style={{ background: '#8B5CF6' }} />}
+                  </span>
+                </header>
+                <div className="lp-mtg-art">
+                  <img src={photo(card.art, 800)} alt="" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                  <span className="lp-mtg-foil" aria-hidden="true" />
+                </div>
+                <div className="lp-mtg-type">
+                  <span>{card.type}</span>
+                  <card.Icon size={16} aria-hidden="true" />
+                </div>
+                <div className="lp-mtg-text">
+                  <p>{card.text}</p>
+                  {card.badge && <span className="lp-mtg-badge">{card.badge}</span>}
+                </div>
+                <footer className="lp-mtg-foot">
+                  <span>Commanderone · Villastellone</span>
+                  <span className={`lp-gem ${card.rarity}`} aria-hidden="true" />
+                </footer>
+              </div>
+            </m.article>
+          )
+        })}
+      </div>
+
+      <div className="lp-fan-controls">
+        <button type="button" className="lp-round-btn" onClick={() => go(active - 1)} aria-label="Formato precedente"><ChevronLeft size={20} /></button>
+        <div className="lp-dots" role="tablist" aria-label="Scegli il formato">
+          {FORMAT_CARDS.map((c, i) => (
+            <button key={c.key} type="button" role="tab" aria-selected={i === active} aria-label={c.name}
+              className={`lp-dot ${i === active ? 'on' : ''}`} onClick={() => go(i)} />
+          ))}
+        </div>
+        <button type="button" className="lp-round-btn" onClick={() => go(active + 1)} aria-label="Formato successivo"><ChevronRight size={20} /></button>
+      </div>
+      <p className="lp-fan-hint">Tocca una carta laterale o usa le frecce per scorrere i formati</p>
+      <p className="sr-only" aria-live="polite">{FORMAT_CARDS[active].name}: {FORMAT_CARDS[active].text}</p>
+    </div>
+  )
+}
+
+// ── Cinque principi (selettore WUBRG) ───────────────────────────────────────
+function Principles() {
+  const [sel, setSel] = useState('W')
+  const p = PRINCIPLES.find(x => x.c === sel)
+  return (
+    <div className="lp-principles">
+      <div className="lp-pip-picker" role="tablist" aria-label="I cinque principi del tavolo">
+        {PRINCIPLES.map(x => (
+          <button key={x.c} type="button" role="tab" aria-selected={sel === x.c} aria-label={`${MANA[x.c].name}: ${x.title}`}
+            className={`lp-pip-btn ${sel === x.c ? 'on' : ''}`} onClick={() => setSel(x.c)}
+            style={{ '--pip-bg': MANA[x.c].bg, '--pip-fg': MANA[x.c].fg, '--glow': MANA[x.c].glow }}>
+            <span className="lp-pip-btn-dot">{x.c}</span>
+            <span className="lp-pip-btn-name">{MANA[x.c].name}</span>
+          </button>
+        ))}
+      </div>
+      <AnimatePresence mode="wait">
+        <m.div key={sel} className="lp-principle-card" role="tabpanel"
+          style={{ '--glow': MANA[sel].glow }}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22 }}>
+          <span className="lp-principle-pip" style={{ background: MANA[sel].bg, color: MANA[sel].fg }}>{sel}</span>
+          <h3>{p.title}</h3>
+          <p>{p.text}</p>
+        </m.div>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ── Rullino foto + lightbox ─────────────────────────────────────────────────
+function FilmTile({ slot, index, onOpen }) {
   const [broken, setBroken] = useState(false)
   return (
-    <div
-      className="lp-gallery-tile ct-press"
-      onClick={broken ? undefined : onOpen}
-      style={broken ? { cursor: 'default' } : undefined}
-    >
-      {!broken ? (
-        <img src={src} alt={alt} loading="lazy" onError={() => setBroken(true)} />
-      ) : (
-        <div className="lp-gallery-placeholder">
-          <Icon.frog />
-          <span>Foto in arrivo</span>
-        </div>
-      )}
-    </div>
+    <figure className="lp-film-frame">
+      <button type="button" className="lp-film-btn" onClick={broken ? undefined : onOpen} disabled={broken} aria-label={`Apri la foto: ${slot.alt}`}>
+        {!broken ? (
+          <img src={photo(slot, 800)} alt={slot.alt} loading="lazy" decoding="async" onError={() => setBroken(true)} />
+        ) : (
+          <span className="lp-gallery-placeholder"><Camera size={24} /> Foto in arrivo</span>
+        )}
+      </button>
+      <figcaption><span className="lp-film-num">{String(index + 1).padStart(2, '0')}</span>{slot.alt}</figcaption>
+    </figure>
   )
 }
 
 function Lightbox({ index, onClose, onPrev, onNext }) {
   const [broken, setBroken] = useState(false)
+  const closeRef = useRef(null)
   useEffect(() => { setBroken(false) }, [index])
-
+  useEffect(() => { closeRef.current?.focus() }, [])
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') onClose()
@@ -187,18 +294,18 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
 
   const slot = GALLERY_SLOTS[index]
   return (
-    <div className="lp-lightbox" onClick={onClose}>
-      <button className="lp-lightbox-close" onClick={onClose} aria-label="Chiudi">✕</button>
-      <button className="lp-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); onPrev() }} aria-label="Precedente">‹</button>
-      {!broken ? (
-        <img src={slot.src} alt={slot.alt} onClick={(e) => e.stopPropagation()} onError={() => setBroken(true)} />
-      ) : (
-        <div className="lp-gallery-placeholder" style={{ position: 'static', width: 320, aspectRatio: '3 / 2', borderRadius: 14 }} onClick={(e) => e.stopPropagation()}>
-          <Icon.frog />
-          <span>Foto in arrivo</span>
-        </div>
-      )}
-      <button className="lp-lightbox-nav next" onClick={(e) => { e.stopPropagation(); onNext() }} aria-label="Successiva">›</button>
+    <div className="lp-lightbox" onClick={onClose} role="dialog" aria-modal="true" aria-label={slot.alt}>
+      <button ref={closeRef} className="lp-lightbox-close" onClick={onClose} aria-label="Chiudi"><X size={22} /></button>
+      <button className="lp-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); onPrev() }} aria-label="Precedente"><ChevronLeft size={26} /></button>
+      <figure className="lp-lightbox-figure" onClick={(e) => e.stopPropagation()}>
+        {!broken ? (
+          <img src={photo(slot, 1600)} alt={slot.alt} onError={() => setBroken(true)} />
+        ) : (
+          <span className="lp-gallery-placeholder" style={{ width: 320, aspectRatio: '3 / 2', borderRadius: 14 }}><Camera size={24} /> Foto in arrivo</span>
+        )}
+        <figcaption>{slot.alt} <span>· {index + 1}/{GALLERY_SLOTS.length}</span></figcaption>
+      </figure>
+      <button className="lp-lightbox-nav next" onClick={(e) => { e.stopPropagation(); onNext() }} aria-label="Successiva"><ChevronRight size={26} /></button>
     </div>
   )
 }
@@ -235,10 +342,10 @@ export default function LandingPage() {
 
       <div className="lp-content">
         {/* ── NAV ── */}
-        <nav className="lp-nav">
+        <nav className="lp-nav" aria-label="Sezioni">
           <div className="lp-nav-inner">
             <ScrollLink to="top" className="lp-nav-brand">
-              <img src="/logo.png" alt="Commanderone Villastellone" />
+              <img src="/logo-192.webp" alt="Commanderone Villastellone" width="30" height="30" />
               <span className="lp-nav-brand-word">COMMANDERONE</span>
             </ScrollLink>
             <div className="lp-nav-links">
@@ -249,35 +356,60 @@ export default function LandingPage() {
               <ScrollLink className="lp-nav-link" to="foto">Foto</ScrollLink>
             </div>
             <Link to="/login" className="lp-nav-login" title="Sei già dei nostri? Accedi al portale">
-              Accedi
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              Accedi <ArrowRight size={14} strokeWidth={2.4} />
             </Link>
           </div>
         </nav>
 
         {/* ── HERO ── */}
         <header id="top" className="lp-hero">
-          <div className="lp-float-card a" /><div className="lp-float-card b" /><div className="lp-float-card c" /><div className="lp-float-card d" />
-          <img src="/logo.png" alt="Commanderone Villastellone" className="lp-hero-logo" />
+          <span className="lp-live-pill"><span className="lp-live-dot" />Il pod ti aspetta · ogni venerdì a Villastellone</span>
           <h1 className="lp-hero-title">
-            COMMANDERONE <span className="lp-grad-text">VILLASTELLONE</span>
+            <span className="lp-hero-line">Il tavolo da 4.</span>
+            <span className="lp-hero-line">Il tuo pod.</span>
+            <span className="lp-hero-brand lp-grad-text">COMMANDERONE</span>
+            <span className="lp-hero-place">Villastellone</span>
           </h1>
           <p className="lp-hero-tagline">Più rane. Più mana. Più divertimento.</p>
-          <ManaRow />
           <p className="lp-hero-desc">
             Una community di giocatori di Magic: The Gathering nata dalla passione per il Commander
             e dalla voglia di condividere serate di gioco vere, ogni venerdì sera.
           </p>
-          <ScrollLink to="chi-siamo" className="lp-hero-cta">
-            Scopri chi siamo
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
-          </ScrollLink>
+          <div className="lp-hero-ctas">
+            <Link to="/login" className="lp-cta-primary">Entra nel pod <ArrowRight size={18} strokeWidth={2.6} /></Link>
+            <ScrollLink to="chi-siamo" className="lp-cta-ghost">Scopri chi siamo <ChevronDown size={17} /></ScrollLink>
+          </div>
+          <ManaRow />
         </header>
+
+        {/* ── COSA FACCIAMO: ventaglio di carte ── */}
+        <Section id="cosa-facciamo" className="lp-fan-section">
+          <Reveal className="lp-center">
+            <Kicker>Cosa facciamo</Kicker>
+            <h2 className="lp-h2">Commander prima di tutto. Non solo Commander.</h2>
+            <p className="lp-lead lp-center-lead">Il formato principale è Commander, ma le nostre serate non finiscono lì.</p>
+          </Reveal>
+          <CardFan />
+        </Section>
+
+        {/* ── FOTO: rullino ── */}
+        <Section id="foto" alt>
+          <Reveal>
+            <Kicker>Dalle nostre serate</Kicker>
+            <h2 className="lp-h2">Non solo un nome online.</h2>
+            <p className="lp-lead">Commanderone è un gruppo di persone reali che si trova davvero, ogni settimana, attorno a un tavolo.</p>
+          </Reveal>
+          <div className="lp-film" aria-label="Foto delle serate">
+            {GALLERY_SLOTS.map((slot, i) => (
+              <FilmTile key={slot.src} slot={slot} index={i} onOpen={() => setLightboxIndex(i)} />
+            ))}
+          </div>
+        </Section>
 
         {/* ── CHI SIAMO ── */}
         <Section id="chi-siamo">
           <Reveal>
-            <span className="lp-kicker">Chi siamo</span>
+            <Kicker>Chi siamo</Kicker>
             <h2 className="lp-h2">Una community, non un torneo.</h2>
             <p className="lp-lead">
               Commanderone Villastellone è un gruppo di giocatori di Magic: The Gathering. Il Commander è il
@@ -287,61 +419,46 @@ export default function LandingPage() {
             </p>
           </Reveal>
           <Reveal className="lp-tag-row" style={{ transitionDelay: '0.08s' }}>
-            <span className="lp-tag">Mazzi casual</span>
-            <span className="lp-tag">Mazzi ottimizzati</span>
-            <span className="lp-tag">Deck tematici</span>
-            <span className="lp-tag">Strategie competitive</span>
-            <span className="lp-tag">Giocatori esperti</span>
-            <span className="lp-tag">Giocatori alle prime armi</span>
+            {['Mazzi casual', 'Mazzi ottimizzati', 'Deck tematici', 'Strategie competitive', 'Giocatori esperti', 'Giocatori alle prime armi'].map(tg => (
+              <span key={tg} className="lp-tag">{tg}</span>
+            ))}
           </Reveal>
           <Reveal className="lp-callout" style={{ transitionDelay: '0.14s' }}>
-            Non serve appartenere a una categoria per essere parte del gruppo. Il pod ha spazio per tutti.
+            <Users size={20} aria-hidden="true" />
+            <span>Non serve appartenere a una categoria per essere parte del gruppo. Il pod ha spazio per tutti.</span>
           </Reveal>
         </Section>
 
-        {/* ── COSA FACCIAMO ── */}
-        <Section id="cosa-facciamo" alt>
-          <Reveal>
-            <span className="lp-kicker">Cosa facciamo</span>
-            <h2 className="lp-h2">Commander prima di tutto. Non solo Commander.</h2>
-            <p className="lp-lead">
-              Il formato principale è Commander, ma le nostre serate non finiscono lì.
+        {/* ── CINQUE PRINCIPI ── */}
+        <Section alt>
+          <Reveal className="lp-center">
+            <Kicker>La filosofia del tavolo</Kicker>
+            <h2 className="lp-h2">Cinque colori, un solo tavolo.</h2>
+            <p className="lp-lead lp-center-lead">Tocca un colore per leggere uno dei principi del gruppo.</p>
+          </Reveal>
+          <Reveal style={{ transitionDelay: '0.08s' }}><Principles /></Reveal>
+        </Section>
+
+        {/* ── PROXY FRIENDLY ── */}
+        <Section>
+          <Reveal className="lp-proxy">
+            <span className="lp-proxy-icon"><ShieldCheck size={26} /></span>
+            <div className="lp-proxy-percent lp-grad-text">100%</div>
+            <div className="lp-proxy-label">Proxy Friendly</div>
+            <p className="lp-proxy-desc">
+              Nessuno viene giudicato o discriminato per l'uso di proxy. Servono per provare mazzi nuovi,
+              testare carte, giocare pezzi dal valore elevato senza svenarsi, sperimentare. Il valore economico
+              di una carta non determina il valore di chi la gioca.
             </p>
+            <span className="lp-proxy-req"><Layers size={15} /> Unico requisito: leggibili e riconoscibili</span>
           </Reveal>
-          <div className="lp-cards">
-            <Reveal className="lp-card" as="div">
-              <span className="lp-card-rarity mythic" title="Mythic" />
-              <div className="lp-card-icon"><Icon.crown /></div>
-              <h3>Commander</h3>
-              <p>Il cuore del gruppo. Si gioca principalmente for fun, con grande attenzione alla Rule 0 e alla compatibilità tra i giocatori del pod.</p>
-            </Reveal>
-            <Reveal className="lp-card" style={{ transitionDelay: '0.06s' }}>
-              <span className="lp-card-rarity rare" title="Rare" />
-              <div className="lp-card-icon"><Icon.cube /></div>
-              <h3>Vintage Cube</h3>
-              <p>Il gruppo ha un Vintage Cube completo, terre incluse. Basta un tavolo e un po' di tempo per fare draft.</p>
-              <span className="lp-card-badge">Completo di terre</span>
-            </Reveal>
-            <Reveal className="lp-card" style={{ transitionDelay: '0.12s' }}>
-              <span className="lp-card-rarity uncommon" title="Uncommon" />
-              <div className="lp-card-icon"><Icon.cards /></div>
-              <h3>Constructed</h3>
-              <p>Principalmente Pauper e Modern, ma non chiudiamo la porta ad altri formati se qualcuno si organizza.</p>
-            </Reveal>
-            <Reveal className="lp-card" style={{ transitionDelay: '0.18s' }}>
-              <span className="lp-card-rarity common" title="Common" />
-              <div className="lp-card-icon"><Icon.dice /></div>
-              <h3>Eventi e serate speciali</h3>
-              <p>Draft, tornei, sfide, serate a tema: quando c'è voglia di organizzare qualcosa di diverso, lo facciamo.</p>
-            </Reveal>
-          </div>
         </Section>
 
-        {/* ── IL NOSTRO MODO DI GIOCARE ── */}
-        <Section id="modo-di-giocare">
+        {/* ── IL NOSTRO MODO DI GIOCARE + MOOD ── */}
+        <Section id="modo-di-giocare" alt>
           <div className="lp-split">
             <Reveal>
-              <span className="lp-kicker">Il nostro modo di giocare</span>
+              <Kicker>Il nostro modo di giocare</Kicker>
               <h2 className="lp-h2">For fun. Ma con le regole chiare.</h2>
               <p className="lp-lead" style={{ marginBottom: 22 }}>
                 Commanderone nasce come gruppo for fun. Questo non significa che il gioco competitivo sia
@@ -349,9 +466,9 @@ export default function LandingPage() {
                 Ma il contesto resta quello di una community e di un tavolo da kitchen table.
               </p>
               <ul className="lp-check-list">
-                <li><Icon.check /> Niente montepremi: gli eventuali premi sono simbolici.</li>
-                <li><Icon.check /> Quando c'è un torneo, ha una struttura seria — ma resta un torneo tra amici.</li>
-                <li><Icon.check /> L'obiettivo non è eliminare la competitività, ma non lasciarle rovinare il divertimento.</li>
+                <li><Check size={18} /> Niente montepremi: gli eventuali premi sono simbolici.</li>
+                <li><Check size={18} /> Quando c'è un torneo, ha una struttura seria — ma resta un torneo tra amici.</li>
+                <li><Check size={18} /> L'obiettivo non è eliminare la competitività, ma non lasciarle rovinare il divertimento.</li>
               </ul>
             </Reveal>
             <Reveal className="lp-die-panel" style={{ transitionDelay: '0.1s' }}>
@@ -361,112 +478,88 @@ export default function LandingPage() {
               <div className="row"><span>Chi può giocare</span><span>Chiunque abbia voglia</span></div>
             </Reveal>
           </div>
-        </Section>
-
-        {/* ── PROXY FRIENDLY ── */}
-        <Section alt>
-          <Icon.cards width={130} height={130} className="lp-corner-deco" style={{ top: 12, left: 24, color: '#8B5CF6', transform: 'rotate(-12deg)' }} />
-          <Icon.dice width={110} height={110} className="lp-corner-deco" style={{ bottom: 8, right: 28, color: '#34F08F', transform: 'rotate(14deg)' }} />
-          <Reveal className="lp-proxy">
-            <div className="lp-proxy-percent lp-grad-text">100%</div>
-            <div className="lp-proxy-label">Proxy Friendly</div>
-            <p className="lp-proxy-desc">
-              Nessuno viene giudicato o discriminato per l'uso di proxy. Servono per provare mazzi nuovi,
-              testare carte, giocare pezzi dal valore elevato senza svenarsi, sperimentare. Il valore economico
-              di una carta non determina il valore di chi la gioca.
-            </p>
-            <span className="lp-proxy-req"><Icon.cards width={15} height={15} /> Unico requisito: leggibili e riconoscibili</span>
-          </Reveal>
-        </Section>
-
-        {/* ── RULE 0 ── */}
-        <Section id="rule-0">
-          <Icon.dice width={120} height={120} className="lp-corner-deco" style={{ top: 20, right: 20, color: '#34F08F', transform: 'rotate(-8deg)' }} />
-          <div className="lp-split">
-            <Reveal>
-              <span className="lp-kicker">Rule 0</span>
-              <h2 className="lp-h2">Parliamone prima.</h2>
-              <p className="lp-lead" style={{ marginBottom: 0 }}>
-                Usiamo il sistema ufficiale dei Bracket come riferimento per il power level dei mazzi. Ma il
-                Bracket non sostituisce la comunicazione: prima di sedersi al tavolo vale la pena allinearsi
-                con il pod. Non serve rivelare la decklist — basta evitare aspettative incompatibili.
-              </p>
-              <div className="lp-quote">Meglio parlarne prima che discuterne dopo.</div>
-            </Reveal>
-            <Reveal style={{ transitionDelay: '0.1s' }}>
-              <ul className="lp-check-list">
-                <li><Icon.check /> Power level e Bracket del mazzo</li>
-                <li><Icon.check /> Combo particolari in gioco</li>
-                <li><Icon.check /> Strategie molto forti o veloci</li>
-                <li><Icon.check /> Condizioni di vittoria rilevanti</li>
-                <li><Icon.check /> Qualsiasi cosa possa cambiare l'esperienza degli altri al tavolo</li>
-              </ul>
-            </Reveal>
-          </div>
-        </Section>
-
-        {/* ── MOOD ── */}
-        <Section alt>
-          <Reveal style={{ textAlign: 'center' }}>
-            <span className="lp-kicker">Mood e comunità</span>
-            <p className="lp-lead" style={{ margin: '0 auto' }}>
+          <Reveal className="lp-mood" style={{ transitionDelay: '0.12s' }}>
+            <span className="lp-kicker-inline"><Sparkles size={15} /> Mood e comunità</span>
+            <p>
               Giochiamo seriamente. Non ci prendiamo troppo sul serio. Ironia, battute, trash talking e
               goliardia sono benvenuti — sempre nel rispetto di chi hai davanti al tavolo.
             </p>
-            <div className="lp-mood-rule">
-              L'unica regola che conta:<br /><span className="lp-grad-text">Non fare lo stronzo.</span>
-            </div>
-            <p className="lp-lead" style={{ margin: '0 auto' }}>
+            <div className="lp-mood-rule">L'unica regola che conta: <span className="lp-grad-text">Non fare lo stronzo.</span></div>
+            <p>
               Si può scherzare con gli altri senza mettere gli altri a disagio. Un ambiente rilassato, adulto,
               inclusivo e rispettoso — questo è il vero regolamento del gruppo.
             </p>
           </Reveal>
         </Section>
 
-        {/* ── QUANDO E DOVE ── */}
-        <Section id="quando-dove">
-          <Reveal>
-            <span className="lp-kicker">Quando e dove</span>
-            <h2 className="lp-h2">Un appuntamento fisso.</h2>
-          </Reveal>
-          <div className="lp-when-grid">
-            <Reveal as="div" className="lp-when-card day">
-              <div className="lp-when-icon"><Icon.calendar /></div>
-              <h3>Quando</h3>
-              <p className="lp-when-big">Ogni venerdì</p>
-              <p className="lp-when-sub">Dalle 21:30</p>
+        {/* ── RULE 0 + BRACKET ── */}
+        <Section id="rule-0">
+          <div className="lp-split">
+            <Reveal>
+              <Kicker>Rule 0</Kicker>
+              <h2 className="lp-h2">Parliamone prima.</h2>
+              <p className="lp-lead" style={{ marginBottom: 0 }}>
+                Usiamo il sistema ufficiale dei Bracket come riferimento per il power level dei mazzi. Ma il
+                Bracket non sostituisce la comunicazione: prima di sedersi al tavolo vale la pena allinearsi
+                con il pod. Non serve rivelare la decklist — basta evitare aspettative incompatibili.
+              </p>
+              <div className="lp-quote"><MessagesSquare size={18} /> Meglio parlarne prima che discuterne dopo.</div>
             </Reveal>
-            <Reveal as="div" className="lp-when-card place" style={{ transitionDelay: '0.08s' }}>
-              <div className="lp-when-icon"><Icon.pin /></div>
-              <h3>Dove</h3>
-              <p className="lp-when-big">{ADDRESS_LINE1}</p>
-              <p className="lp-when-sub">{ADDRESS_LINE2}<br />{ADDRESS_LINE3}</p>
-              <a className="lp-map-btn" href={MAPS_URL} target="_blank" rel="noopener noreferrer">
-                <Icon.pin width={15} height={15} /> Apri in Google Maps
-              </a>
+            <Reveal style={{ transitionDelay: '0.1s' }}>
+              <div className="lp-brackets" aria-label="Livelli usati nel portale">
+                {BRACKET_OPTIONS.map(b => (
+                  <span key={b} className="lp-bracket" style={{ '--bc': BRACKETS[b].color }}>
+                    <b>B{b}</b> {BRACKETS[b].label}
+                  </span>
+                ))}
+              </div>
+              <ul className="lp-check-list">
+                <li><Check size={18} /> Power level e Bracket del mazzo</li>
+                <li><Check size={18} /> Combo particolari in gioco</li>
+                <li><Check size={18} /> Strategie molto forti o veloci</li>
+                <li><Check size={18} /> Condizioni di vittoria rilevanti</li>
+                <li><Check size={18} /> Qualsiasi cosa possa cambiare l'esperienza degli altri al tavolo</li>
+              </ul>
             </Reveal>
           </div>
         </Section>
 
-        {/* ── FOTO ── */}
-        <Section id="foto" alt>
+        {/* ── QUANDO E DOVE ── */}
+        <Section id="quando-dove" alt>
           <Reveal>
-            <span className="lp-kicker">Dalle nostre serate</span>
-            <h2 className="lp-h2">Non solo un nome online.</h2>
-            <p className="lp-lead">
-              Commanderone è un gruppo di persone reali che si trova davvero, ogni settimana, attorno a un tavolo.
-            </p>
+            <Kicker>Quando e dove</Kicker>
+            <h2 className="lp-h2">Un appuntamento fisso.</h2>
           </Reveal>
-          <Reveal className="lp-gallery">
-            {GALLERY_SLOTS.map((slot, i) => (
-              <GalleryTile key={slot.src} src={slot.src} alt={slot.alt} onOpen={() => setLightboxIndex(i)} />
-            ))}
+          <Reveal className="lp-tana">
+            <div className="lp-tana-map" aria-hidden="true">
+              <span className="lp-tana-pin"><MapPin size={26} /></span>
+              <span className="lp-tana-ring" />
+            </div>
+            <div className="lp-tana-body">
+              <div className="lp-tana-grid">
+                <div className="lp-when-card">
+                  <span className="lp-when-icon"><CalendarDays size={20} /></span>
+                  <span className="lp-when-label">Quando</span>
+                  <span className="lp-when-big">Ogni venerdì</span>
+                  <span className="lp-when-sub">Dalle 21:30</span>
+                </div>
+                <div className="lp-when-card">
+                  <span className="lp-when-icon"><MapPin size={20} /></span>
+                  <span className="lp-when-label">Dove</span>
+                  <span className="lp-when-big">{ADDRESS_LINE1}</span>
+                  <span className="lp-when-sub">{ADDRESS_LINE2}<br />{ADDRESS_LINE3}</span>
+                </div>
+              </div>
+              <a className="lp-map-btn" href={MAPS_URL} target="_blank" rel="noopener noreferrer">
+                <MapPin size={16} /> Apri in Google Maps
+              </a>
+            </div>
           </Reveal>
         </Section>
 
         {/* ── CONCLUSIONE ── */}
         <footer className="lp-footer">
-          <img src="/logo.png" alt="Commanderone Villastellone" className="lp-footer-logo" />
+          <img src="/logo-384.webp" alt="Commanderone Villastellone" className="lp-footer-logo" width="96" height="96" loading="lazy" />
           <ManaRow />
           <h2 className="lp-footer-title">Ci vediamo al tavolo.</h2>
           <p className="lp-footer-desc">
@@ -474,12 +567,13 @@ export default function LandingPage() {
             la passione per il gioco.
           </p>
           <div className="lp-footer-links">
+            <Link to="/login" className="lp-cta-primary">Entra nel pod <ArrowRight size={18} strokeWidth={2.6} /></Link>
             {INSTAGRAM_URL && (
               <a className="lp-footer-link" href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
-                <Icon.instagram /> Seguici su Instagram
+                <Instagram size={17} /> Seguici su Instagram
               </a>
             )}
-            <ScrollLink className="lp-footer-link" to="quando-dove"><Icon.pin width={15} height={15} /> Vieni a trovarci il venerdì sera</ScrollLink>
+            <ScrollLink className="lp-footer-link" to="quando-dove"><MapPin size={15} /> Vieni a trovarci il venerdì sera</ScrollLink>
           </div>
           <div className="lp-footer-fine">Commanderone Villastellone · Villastellone (TO)</div>
         </footer>
