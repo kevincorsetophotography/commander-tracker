@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { m, AnimatePresence } from 'motion/react'
+import { m, AnimatePresence, useMotionValue, useSpring } from 'motion/react'
 import {
   Crown, Box, Layers, Dices, CalendarDays, MapPin, Check, ChevronLeft, ChevronRight, ChevronDown,
   Camera, X, ArrowRight, ShieldCheck, Sparkles, MessagesSquare, Users,
 } from 'lucide-react'
-import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
+import { HeroTrail, CrestSparks, useFrogTaps, FrogRain, CommunityStats, Countdown, BracketDial, DieRoller, TanaCard, useSeen, prefersReduced } from './LandingExtras'
 import './LandingPage.css'
 
 // Landing pubblica /info — restyle dal mockup Stitch "Deck Carte Interattive in Primo Piano".
@@ -147,9 +147,10 @@ function Instagram({ size = 17 }) {
 // Stemma grande a ogni apertura della pagina (~1,3 s, non blocca nulla): atterra con rimbalzo e rotazione, poi onda d'urto,
 // raggi rotanti, alone che pulsa e i cinque simboli di mana in orbita.
 // Con "riduci animazioni" (MotionConfig + CSS) resta statico.
-function HeroCrest() {
+function HeroCrest({ onTap }) {
   return (
-    <div className="lp-crest">
+    <div className="lp-crest" onClick={onTap}>
+      <CrestSparks />
       <span className="lp-crest-rays" aria-hidden="true" />
       <span className="lp-crest-halo" aria-hidden="true" />
       <span className="lp-crest-shock" aria-hidden="true" />
@@ -178,11 +179,50 @@ function Kicker({ children }) {
 }
 
 // ── Ventaglio di carte (formati) ────────────────────────────────────────────
+// ordine in cui le carte lasciano il mazzo (attiva, poi le laterali, poi le nascoste)
+const DEAL_ORDER = { 0: 0, '-1': 1, 1: 2 }
 function CardFan() {
   const [active, setActive] = useState(0)
   const touch = useRef(null)
+  const wrapRef = useRef(null)
   const n = FORMAT_CARDS.length
   const go = useCallback((i) => setActive(((i % n) + n) % n), [n])
+
+  // pescata: quando il ventaglio entra in vista le carte escono dal mazzo una alla volta
+  const seen = useSeen(wrapRef, 0.25)
+  const [dealt, setDealt] = useState(() => (prefersReduced() ? n : 0))
+  useEffect(() => {
+    if (!seen || dealt >= n) return
+    const t = setTimeout(() => setDealt(d => d + 1), dealt === 0 ? 250 : 170)
+    return () => clearTimeout(t)
+  }, [seen, dealt, n])
+
+  // tilt 3D della carta attiva (mouse/dito; giroscopio solo dove non serve un permesso)
+  const rx = useMotionValue(0), ry = useMotionValue(0)
+  const srx = useSpring(rx, { stiffness: 220, damping: 20 }), sry = useSpring(ry, { stiffness: 220, damping: 20 })
+  const activeRef = useRef(null)
+  const setFoil = (px, py) => { const el = activeRef.current; if (el) { el.style.setProperty('--mx', `${px * 100}%`); el.style.setProperty('--my', `${py * 100}%`) } }
+  const onTiltMove = (e) => {
+    if (prefersReduced()) return
+    const r = e.currentTarget.getBoundingClientRect()
+    const px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), py = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))
+    ry.set((px - 0.5) * 18); rx.set((0.5 - py) * 14); setFoil(px, py)
+  }
+  const onTiltLeave = () => { rx.set(0); ry.set(0) }
+  useEffect(() => {
+    if (prefersReduced() || typeof DeviceOrientationEvent === 'undefined') return
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') return // iOS: niente prompt, solo tocco
+    if (!window.matchMedia('(pointer: coarse)').matches) return
+    let base = null
+    const onOri = (e) => {
+      if (e.beta == null || e.gamma == null) return
+      base ??= { b: e.beta, g: e.gamma }
+      const g = Math.max(-1, Math.min(1, (e.gamma - base.g) / 25)), b = Math.max(-1, Math.min(1, (e.beta - base.b) / 25))
+      ry.set(g * 10); rx.set(-b * 8); setFoil(0.5 + g / 2, 0.5 + b / 2)
+    }
+    window.addEventListener('deviceorientation', onOri)
+    return () => window.removeEventListener('deviceorientation', onOri)
+  }, [rx, ry])
 
   const onKey = (e) => {
     if (e.key === 'ArrowLeft') { e.preventDefault(); go(active - 1) }
@@ -197,7 +237,7 @@ function CardFan() {
   }
 
   return (
-    <div className="lp-fan-wrap">
+    <div className="lp-fan-wrap" ref={wrapRef}>
       <div className="lp-fan" role="group" aria-roledescription="carosello" aria-label="I nostri formati"
         tabIndex={0} onKeyDown={onKey} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {FORMAT_CARDS.map((card, i) => {
@@ -207,14 +247,22 @@ function CardFan() {
           if (off < -n / 2) off += n
           const isActive = off === 0
           const hidden = Math.abs(off) > 1
+          const inDeck = (DEAL_ORDER[off] ?? 3) >= dealt
           return (
             <m.article
               key={card.key}
+              ref={isActive ? activeRef : undefined}
               className={`lp-mtg-card ${card.rarity} ${isActive ? 'is-active' : ''}`}
               aria-hidden={!isActive}
               onClick={() => !isActive && go(i)}
+              onPointerMove={isActive ? onTiltMove : undefined}
+              onPointerLeave={isActive ? onTiltLeave : undefined}
+              onPointerUp={isActive ? onTiltLeave : undefined}
               initial={false}
-              animate={{
+              animate={inDeck ? {
+                x: `${(i - 1.5) * 2}%`, rotate: (i - 1.5) * 3, scale: 0.84, y: 30 - i * 4,
+                opacity: 1, zIndex: 20 + i,
+              } : {
                 x: `${off * 62}%`,
                 rotate: off * 9,
                 scale: isActive ? 1 : 0.84,
@@ -223,7 +271,10 @@ function CardFan() {
                 zIndex: 10 - Math.abs(off),
               }}
               transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-              style={{ pointerEvents: hidden ? 'none' : 'auto', cursor: isActive ? 'default' : 'pointer' }}
+              style={{
+                pointerEvents: hidden ? 'none' : 'auto', cursor: isActive ? 'default' : 'pointer',
+                ...(isActive ? { rotateX: srx, rotateY: sry, transformPerspective: 900 } : {}),
+              }}
             >
               <div className="lp-mtg-frame">
                 <header className="lp-mtg-title">
@@ -440,6 +491,8 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
 
 export default function LandingPage() {
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  const heroRef = useRef(null)
+  const { rain, onTap } = useFrogTaps()
 
   useEffect(() => {
     const prevTitle = document.title
@@ -490,8 +543,9 @@ export default function LandingPage() {
         </nav>
 
         {/* ── HERO ── */}
-        <header id="top" className="lp-hero lp-intro">
-          <HeroCrest />
+        <header id="top" className="lp-hero lp-intro" ref={heroRef}>
+          <HeroTrail hostRef={heroRef} />
+          <HeroCrest onTap={onTap} />
           <span className="lp-live-pill"><span className="lp-live-dot" />Il pod ti aspetta · ogni venerdì a Villastellone</span>
           <h1 className="lp-hero-title">
             <span className="lp-hero-line">Il tavolo da 4.</span>
@@ -552,6 +606,7 @@ export default function LandingPage() {
             <Users size={20} aria-hidden="true" />
             <span>Non serve appartenere a una categoria per essere parte del gruppo. Il pod ha spazio per tutti.</span>
           </Reveal>
+          <CommunityStats />
         </Section>
 
         {/* ── CINQUE PRINCIPI ── */}
@@ -601,6 +656,7 @@ export default function LandingPage() {
               <div className="row"><span>Spirito</span><span>Kitchen table</span></div>
               <div className="row"><span>Montepremi</span><span>Simbolico</span></div>
               <div className="row"><span>Chi può giocare</span><span>Chiunque abbia voglia</span></div>
+              <DieRoller />
             </Reveal>
           </div>
           <Reveal className="lp-mood" style={{ transitionDelay: '0.12s' }}>
@@ -631,13 +687,7 @@ export default function LandingPage() {
               <div className="lp-quote"><MessagesSquare size={18} /> Meglio parlarne prima che discuterne dopo.</div>
             </Reveal>
             <Reveal style={{ transitionDelay: '0.1s' }}>
-              <div className="lp-brackets" aria-label="Livelli usati nel portale">
-                {BRACKET_OPTIONS.map(b => (
-                  <span key={b} className="lp-bracket" style={{ '--bc': BRACKETS[b].color }}>
-                    <b>B{b}</b> {BRACKETS[b].label}
-                  </span>
-                ))}
-              </div>
+              <BracketDial />
               <ul className="lp-check-list">
                 <li><Check size={18} /> Power level e Bracket del mazzo</li>
                 <li><Check size={18} /> Combo particolari in gioco</li>
@@ -656,11 +706,9 @@ export default function LandingPage() {
             <h2 className="lp-h2">Un appuntamento fisso.</h2>
           </Reveal>
           <Reveal className="lp-tana">
-            <div className="lp-tana-map" aria-hidden="true">
-              <span className="lp-tana-pin"><MapPin size={26} /></span>
-              <span className="lp-tana-ring" />
-            </div>
+            <TanaCard />
             <div className="lp-tana-body">
+              <Countdown />
               <div className="lp-tana-grid">
                 <div className="lp-when-card">
                   <span className="lp-when-icon"><CalendarDays size={20} /></span>
@@ -704,6 +752,7 @@ export default function LandingPage() {
         </footer>
       </div>
 
+      <FrogRain rain={rain} />
       {lightboxIndex !== null && (
         <Lightbox
           index={lightboxIndex}

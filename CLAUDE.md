@@ -109,6 +109,11 @@ frontend/src/
                            Per aggiungerne altre: copiare il file, generare le due webp (o omettere `web`) e aggiungere
                            una riga a GALLERY_SLOTS — se un file manca, il tile mostra "Foto in arrivo".
                            Logo leggero per la landing: public/logo-192.webp e logo-384.webp (logo.png resta per favicon/OG).
+                           Interattivi (LandingExtras.jsx): scia di mana nell'hero (canvas), scintille e pioggia di rane
+                           (5 tocchi sullo stemma), ventaglio che parte impilato + tilt 3D (giroscopio solo senza prompt),
+                           manopola bracket B1-B4, d20 in "modo di giocare", La Tana tappabile, countdown al venerdì 21:30
+                           ora di Roma (lib/nextNight.js, con test), numeri reali da /api/public/stats (nascosti se l'API fallisce).
+                           Rullino foto: marquee trascinabile (FilmStrip). Stemma animato a ogni apertura.
                            Instagram: valorizzare INSTAGRAM_URL in cima al file per far comparire il link in footer.
     Login.jsx             /login — form login/register con inviteCode
     FeedPage.jsx          / (autenticato) — home feed: snapshot stagione, classifica mini, deck spotlight, attività settimanale, ultime partite + notifiche
@@ -236,6 +241,9 @@ DELETE /api/tables/:id        creatore o admin, solo senza risultato
 POST /api/tables/:id/join | /leave   (leave del creatore: passa al primo seduto; tavolo vuoto = cancellato)
 DELETE /api/tables/:id/seats/:userId creatore o admin
 POST /api/tables/:id/result   {gameId} giocatore seduto o admin; giocatori partita == seduti
+
+// PUBBLICO (nessun login, publicLimiter 60/min, cache 5 min)
+GET  /api/public/stats        {games, players, decks, nights} — SOLO totali aggregati per la landing /info
 
 // UTENTE CORRENTE
 GET  /api/me                  utente aggiornato (role, isOrganizer, avatar) — fuori da /api/auth per non consumare il rate limit del login

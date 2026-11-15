@@ -52,6 +52,14 @@ const apiLimiter = rateLimit({
   message: { error: 'Troppo traffico, rallenta un po\'.' },
 });
 
+// Endpoint pubblici (landing /info): pochi accessi, limite più stretto
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Troppo traffico, riprova tra poco.' },
+});
 
 const allowedOrigins = new Set([
   process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -80,6 +88,7 @@ app.use('/api/me',            apiLimiter, require('./routes/me'));
 app.use('/api/tables',        apiLimiter, require('./routes/tables'));
 app.use('/api/notifications', apiLimiter, notificationRoutes);
 app.use('/api/judge',         judgeRoutes);
+app.use('/api/public',        publicLimiter, require('./routes/public'));
 app.use('/api/scryfall',      apiLimiter, scryfallRoutes);
 
 // Global error handler
