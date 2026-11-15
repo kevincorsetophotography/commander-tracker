@@ -149,7 +149,7 @@ function Instagram({ size = 17 }) {
 // Con "riduci animazioni" (MotionConfig + CSS) resta statico.
 function HeroCrest({ onTap }) {
   return (
-    <div className="lp-crest" onClick={onTap}>
+    <div className="lp-crest" onClick={onTap} onMouseDown={e => { if (e.detail > 1) e.preventDefault() }}>
       <CrestSparks />
       <span className="lp-crest-rays" aria-hidden="true" />
       <span className="lp-crest-halo" aria-hidden="true" />
@@ -164,7 +164,7 @@ function HeroCrest({ onTap }) {
       </div>
       <m.img
         src="/logo-384.webp" alt="Stemma di Commanderone Villastellone" width="200" height="200"
-        className="lp-crest-logo" fetchpriority="high"
+        className="lp-crest-logo" fetchpriority="high" draggable={false}
         initial={{ scale: 0.2, rotate: -200, opacity: 0, y: -80 }}
         animate={{ scale: [0.2, 1.25, 0.94, 1], rotate: 0, opacity: 1, y: 0 }}
         transition={{ duration: 0.9, times: [0, 0.55, 0.8, 1], ease: 'easeOut' }}
@@ -239,7 +239,7 @@ function CardFan() {
   return (
     <div className="lp-fan-wrap" ref={wrapRef}>
       <div className="lp-fan" role="group" aria-roledescription="carosello" aria-label="I nostri formati"
-        tabIndex={0} onKeyDown={onKey} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        tabIndex={0} onKeyDown={onKey} onMouseDown={e => { if (e.detail > 1) e.preventDefault() }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {FORMAT_CARDS.map((card, i) => {
           // posizione relativa alla carta attiva, sul cerchio (−2..+2)
           let off = i - active
@@ -285,7 +285,7 @@ function CardFan() {
                 </header>
                 <div className="lp-mtg-art">
                   <img src={card.art.src} alt={`Illustrazione di ${card.art.card} (${card.art.artist})`} title={`${card.art.card} — illustrazione di ${card.art.artist}`}
-                    loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+                    loading={i === 0 ? 'eager' : 'lazy'} decoding="async" draggable={false} />
                   <span className="lp-mtg-credit">Illus. {card.art.artist}</span>
                   <span className="lp-mtg-foil" aria-hidden="true" />
                 </div>

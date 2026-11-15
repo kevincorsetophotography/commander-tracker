@@ -241,7 +241,7 @@ export function DieRoller() {
   }
   return (
     <div className="lp-die-roll">
-      <button type="button" className={`lp-d20 ${rolling ? 'is-rolling' : ''}`} onClick={roll} aria-label="Tira il d20">
+      <button type="button" className={`lp-d20 ${rolling ? 'is-rolling' : ''}`} onClick={roll} onMouseDown={e => { if (e.detail > 1) e.preventDefault() }} aria-label="Tira il d20">
         <span>{val}</span>
       </button>
       <div>
@@ -256,7 +256,7 @@ export function DieRoller() {
 export function TanaCard() {
   const [tapped, setTapped] = useState(false)
   return (
-    <button type="button" className={`lp-tana-map ${tapped ? 'is-tapped' : ''}`} onClick={() => setTapped(t => !t)}
+    <button type="button" className={`lp-tana-map ${tapped ? 'is-tapped' : ''}`} onClick={() => setTapped(t => !t)} onMouseDown={e => { if (e.detail > 1) e.preventDefault() }}
       aria-pressed={tapped} aria-label={tapped ? 'Stappa la carta La Tana' : 'Tappa la carta La Tana e mostra la mappa'}>
       <span className="lp-tana-pin" aria-hidden="true"><MapPin size={26} /></span>
       <span className="lp-tana-ring" aria-hidden="true" />
