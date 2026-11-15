@@ -149,7 +149,7 @@ function Instagram({ size = 17 }) {
 // Con "riduci animazioni" (MotionConfig + CSS) resta statico.
 function HeroCrest({ onTap }) {
   return (
-    <div className="lp-crest" onClick={onTap} onMouseDown={e => { if (e.detail > 1) e.preventDefault() }}>
+    <div className="lp-crest" onPointerUp={onTap} onMouseDown={e => { if (e.detail > 1) e.preventDefault() }}>
       <CrestSparks />
       <span className="lp-crest-rays" aria-hidden="true" />
       <span className="lp-crest-halo" aria-hidden="true" />

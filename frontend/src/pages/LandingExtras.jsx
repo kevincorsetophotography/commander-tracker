@@ -87,9 +87,11 @@ export function CrestSparks() {
 export function useFrogTaps() {
   const [rain, setRain] = useState(0)
   const taps = useRef([])
-  const onTap = () => {
+  // pointerup (non click): sui telefoni i tocchi rapidi possono essere "mangiati" dal doppio tocco per lo zoom
+  const onTap = (e) => {
+    if (e && e.button > 0) return
     const now = Date.now()
-    taps.current = [...taps.current.filter(t => now - t < 2500), now]
+    taps.current = [...taps.current.filter(t => now - t < 3000), now]
     if (taps.current.length >= 5) { taps.current = []; setRain(r => r + 1) }
   }
   useEffect(() => {
@@ -105,7 +107,7 @@ export function FrogRain({ rain }) {
     <div className="lp-frogs" key={rain} aria-hidden="true">
       {Array.from({ length: 24 }, (_, i) => (
         <span key={i} style={{
-          left: `${(i * 41) % 100}%`, animationDelay: `${(i % 6) * 0.1}s`,
+          left: `${(i * 41) % 100}%`, '--top': `${8 + (i * 37) % 80}%`, animationDelay: `${(i % 6) * 0.1}s`,
           animationDuration: `${1.2 + (i % 5) * 0.12}s`, fontSize: `${22 + (i % 4) * 7}px`, '--spin': `${(i % 2 ? 1 : -1) * (120 + i * 9)}deg`,
         }}>🐸</span>
       ))}
