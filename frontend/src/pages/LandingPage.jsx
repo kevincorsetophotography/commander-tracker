@@ -55,8 +55,8 @@ function ManaSymbol({ c, size = 32, className = '', style }) {
 // I formati, presentati come carte da gioco (testi identici alla versione precedente).
 // Illustrazioni: art_crop Scryfall di carte iconiche, salvate in WebP in public/landing-art/ (credito artista sulla carta).
 const FORMAT_CARDS = [
-  { key: 'commander', name: 'Commander', type: 'Formato principale', rarity: 'mythic', Icon: Crown, cost: ['W', 'U', 'B', 'R', 'G'],
-    art: { src: '/landing-art/commander.webp', card: 'Grolnok, the Omnivore', artist: 'Simon Dominic' },
+  { key: 'commander', name: 'Commander', type: 'Formato principale', rarity: 'mythic', Icon: Crown, cost: ['G', 'U', 'R'],
+    art: { src: '/landing-art/commander.webp', card: 'Flubs, the Fool', artist: 'Adam Rex' },
     text: 'Il cuore del gruppo. Si gioca principalmente for fun, con grande attenzione alla Rule 0 e alla compatibilità tra i giocatori del pod.' },
   { key: 'cube', name: 'Vintage Cube', type: 'Draft', rarity: 'rare', Icon: Box, cost: ['C'], badge: 'Completo di terre',
     art: { src: '/landing-art/cube.webp', card: 'Black Lotus', artist: 'Chris Rahn' },
