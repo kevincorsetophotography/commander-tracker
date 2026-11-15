@@ -50,7 +50,8 @@
 .lp-nav-inner { max-width: 1080px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .lp-nav-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; min-height: 44px; }
 .lp-nav-brand img { height: 30px; width: 30px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(52,240,143,0.45)); }
-.lp-nav-brand-word { font-weight: 900; font-size: 13px; letter-spacing: 0.05em; color: var(--lp-text); white-space: nowrap; }
+.lp-nav-brand-word { display: flex; flex-direction: column; font-weight: 900; font-size: 13px; letter-spacing: 0.05em; color: var(--lp-text); white-space: nowrap; line-height: 1.15; }
+.lp-nav-brand-word small { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; color: var(--lp-muted); }
 .lp-nav-links { flex: 1 1 auto; min-width: 0; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .lp-nav-links::-webkit-scrollbar { display: none; }
 .lp-nav-link {
@@ -65,10 +66,10 @@
   box-shadow: 0 0 18px rgba(52,240,143,0.35); transition: transform 0.18s ease;
 }
 .lp-nav-login:hover { transform: translateY(-1px); }
-@media (max-width: 380px) { .lp-nav-brand-word { display: none; } }
+@media (max-width: 340px) { .lp-nav-brand-word { display: none; } }
 
 /* ── base sezioni ────────────────────────────────────────────────────── */
-.lp-section { padding: 64px 16px; position: relative; overflow: hidden; scroll-margin-top: 70px; }
+.lp-section { padding: 44px 16px; position: relative; overflow: hidden; scroll-margin-top: 70px; }
 .lp-section-inner { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
 .lp-alt { background: rgba(255,255,255,0.018); border-top: 1px solid rgba(86,94,150,0.14); border-bottom: 1px solid rgba(86,94,150,0.14); }
 .lp-center { text-align: center; display: flex; flex-direction: column; align-items: center; }
@@ -88,7 +89,7 @@
 .lp-reveal.in { opacity: 1; transform: none; }
 
 /* ── HERO ────────────────────────────────────────────────────────────── */
-.lp-hero { position: relative; padding: 56px 16px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.lp-hero { position: relative; padding: 24px 16px 28px; text-align: center; display: flex; flex-direction: column; align-items: center; }
 .lp-live-pill {
   display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; margin-bottom: 22px;
   font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lp-green);
@@ -131,7 +132,7 @@
 .lp-fan-section { padding-top: 40px; }
 .lp-fan-wrap { display: flex; flex-direction: column; align-items: center; margin-top: 8px; }
 .lp-fan {
-  position: relative; width: 100%; max-width: 560px; height: clamp(470px, 136vw, 520px);
+  position: relative; width: 100%; max-width: 560px; height: clamp(500px, 146vw, 560px);
   display: flex; align-items: center; justify-content: center; outline: none; touch-action: pan-y;
 }
 .lp-fan:focus-visible { box-shadow: 0 0 0 2px rgba(52,240,143,0.6); border-radius: 22px; }
@@ -156,7 +157,7 @@
 .lp-mtg-title { font-size: 15px; color: var(--lp-text); }
 .lp-mtg-cost { display: inline-flex; gap: 3px; }
 .lp-mtg-cost .lp-mana-svg { box-shadow: 0 1px 2px rgba(0,0,0,0.6); }
-.lp-mtg-art { position: relative; flex: 0 0 auto; aspect-ratio: 16 / 9; border-radius: 9px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); background: #141834; }
+.lp-mtg-art { position: relative; flex: 0 0 auto; aspect-ratio: 626 / 457; border-radius: 9px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); background: #141834; }
 .lp-mtg-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .lp-mtg-credit { position: absolute; left: 6px; bottom: 5px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.9); letter-spacing: 0.01em; }
 .lp-mtg-foil {
@@ -345,7 +346,7 @@
 .lp-lightbox-nav.prev { left: 12px; } .lp-lightbox-nav.next { right: 12px; }
 
 /* ── FOOTER ─────────────────────────────────────────────────────────── */
-.lp-footer { padding: 72px 16px 48px; text-align: center; }
+.lp-footer { padding: 48px 16px 40px; text-align: center; }
 .lp-footer-logo { width: 96px; height: 96px; object-fit: contain; margin: 0 auto 18px; display: block; filter: drop-shadow(0 0 20px rgba(52,240,143,0.3)); }
 .lp-footer-title { font-size: clamp(26px, 6vw, 38px); font-weight: 900; margin: 12px 0 10px; }
 .lp-footer-desc { font-size: 15px; color: var(--lp-sub); max-width: 480px; margin: 0 auto 24px; line-height: 1.6; }
@@ -362,3 +363,90 @@
   .lp-mtg-card.is-active .lp-mtg-foil, .lp-tana-ring { animation: none; }
   .lp-reveal { opacity: 1; transform: none; transition: none; }
 }
+
+/* ── STEMMA HERO (entrata "tamarra") ────────────────────────────────── */
+.lp-crest { position: relative; width: clamp(190px, 52vw, 250px); aspect-ratio: 1; margin: 6px auto 18px; display: grid; place-items: center; }
+.lp-crest-logo {
+  position: relative; z-index: 3; width: 72%; height: auto; object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(52,240,143,0.35)) drop-shadow(0 0 18px rgba(139,92,246,0.25));
+  animation: lp-crest-glow 3.2s 1.2s ease-in-out infinite;
+}
+@keyframes lp-crest-glow {
+  0%,100% { filter: drop-shadow(0 0 8px rgba(52,240,143,0.35)) drop-shadow(0 0 18px rgba(139,92,246,0.25)); }
+  50%     { filter: drop-shadow(0 0 12px rgba(52,240,143,0.50)) drop-shadow(0 0 26px rgba(139,92,246,0.35)); }
+}
+.lp-crest-rays {
+  position: absolute; inset: -18%; border-radius: 50%; z-index: 0; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, rgba(52,240,143,0.16) 0deg 4deg, transparent 4deg 22deg, rgba(139,92,246,0.16) 22deg 26deg, transparent 28deg 45deg);
+  -webkit-mask: radial-gradient(circle, transparent 36%, #000 48%, transparent 70%); mask: radial-gradient(circle, transparent 36%, #000 48%, transparent 70%);
+  animation: lp-rays-in 0.6s 0.7s ease-out forwards, lp-spin 18s 0.7s linear infinite;
+}
+@keyframes lp-rays-in { to { opacity: 1; } }
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+.lp-crest-halo {
+  position: absolute; inset: 22%; border-radius: 50%; z-index: 1;
+  background: radial-gradient(circle, rgba(52,240,143,0.16), rgba(139,92,246,0.10) 50%, transparent 72%);
+  animation: lp-halo 3.2s 1.2s ease-in-out infinite;
+}
+@keyframes lp-halo { 0%,100% { transform: scale(0.95); opacity: 0.6; } 50% { transform: scale(1.04); opacity: 0.85; } }
+.lp-crest-shock {
+  position: absolute; inset: 18%; border-radius: 50%; z-index: 2; border: 3px solid rgba(52,240,143,0.9); opacity: 0;
+  animation: lp-shock 1s 0.62s cubic-bezier(0.2,0.8,0.3,1) forwards;
+}
+.lp-crest-shock.two { border-color: rgba(139,92,246,0.9); animation-delay: 0.8s; }
+@keyframes lp-shock { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.1); opacity: 0; } }
+.lp-crest-orbit { position: absolute; inset: -4%; z-index: 4; animation: lp-burst 0.55s 0.75s cubic-bezier(0.34,1.56,0.64,1) both, lp-spin 22s 1.3s linear infinite; }
+@keyframes lp-burst { from { scale: 0; } to { scale: 1; } }
+.lp-crest-orbit-slot .lp-mana-svg { animation: lp-spin-rev 22s 1.3s linear infinite; }
+@keyframes lp-spin-rev { to { transform: rotate(-360deg); } }
+/* bagliore foil che attraversa lo stemma una volta, appena atterrato */
+.lp-crest-foil {
+  position: absolute; inset: 14%; z-index: 5; border-radius: 50%; pointer-events: none; overflow: hidden; opacity: 0;
+  background: linear-gradient(115deg, transparent 44%, rgba(255,255,255,0.45) 49%, rgba(52,240,143,0.30) 51%, transparent 56%);
+  background-size: 260% 100%; mix-blend-mode: overlay;
+  animation: lp-crest-foil 0.5s 0.85s ease-in-out forwards;
+}
+@keyframes lp-crest-foil { 0% { opacity: 1; background-position: 120% 0; } 100% { opacity: 0; background-position: -30% 0; } }
+.lp-crest-orbit-slot {
+  position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; opacity: 0;
+  transform: rotate(calc(var(--i) * 72deg - 90deg)) translate(calc(clamp(190px, 52vw, 250px) * 0.54)) rotate(calc(var(--i) * -72deg + 90deg));
+  animation: lp-orbit-in 0.3s calc(0.78s + var(--i) * 0.05s) ease-out forwards;
+}
+@keyframes lp-orbit-in { from { opacity: 0; scale: 0.2; } to { opacity: 1; scale: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .lp-crest-logo, .lp-crest-halo, .lp-crest-orbit { animation: none; }
+  .lp-crest-rays { animation: none; opacity: 1; }
+  .lp-crest-shock { display: none; }
+  .lp-crest-orbit-slot { animation: none; opacity: 1; }
+}
+
+/* testo dell'introduzione a cascata dopo lo stemma (solo alla prima apertura) */
+.lp-intro .lp-live-pill, .lp-intro .lp-hero-line, .lp-intro .lp-hero-brand, .lp-intro .lp-hero-place,
+.lp-intro .lp-hero-tagline, .lp-intro .lp-hero-desc, .lp-intro .lp-hero-ctas, .lp-intro .lp-mana-row {
+  animation: lp-rise 0.55s cubic-bezier(0.2,0.9,0.3,1) both;
+}
+.lp-intro .lp-live-pill    { animation-delay: 0.55s; }
+.lp-intro .lp-hero-line    { animation-delay: 0.68s; }
+.lp-intro .lp-hero-line:nth-child(2) { animation-delay: 0.78s; }
+.lp-intro .lp-hero-brand   { animation-delay: 0.88s; }
+.lp-intro .lp-hero-place   { animation-delay: 0.98s; }
+.lp-intro .lp-hero-tagline { animation-delay: 1.06s; }
+.lp-intro .lp-hero-desc    { animation-delay: 1.14s; }
+.lp-intro .lp-hero-ctas    { animation-delay: 1.2s; }
+.lp-intro .lp-mana-row     { animation-delay: 1.28s; }
+/* visite successive: niente entrata, tutto già al suo posto */
+.lp-intro-done .lp-hero-line, .lp-intro-done .lp-hero-brand, .lp-intro-done .lp-crest-shock, .lp-intro-done .lp-crest-foil { animation: none; }
+.lp-intro-done .lp-crest-shock, .lp-intro-done .lp-crest-foil { display: none; }
+.lp-intro-done .lp-crest-rays { animation: lp-spin 18s linear infinite; opacity: 1; }
+.lp-intro-done .lp-crest-orbit { animation: lp-spin 22s linear infinite; }
+.lp-intro-done .lp-crest-orbit-slot { animation: none; opacity: 1; }
+.lp-intro-done .lp-crest-orbit-slot .lp-mana-svg { animation: lp-spin-rev 22s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .lp-intro .lp-live-pill, .lp-intro .lp-hero-line, .lp-intro .lp-hero-brand, .lp-intro .lp-hero-place,
+  .lp-intro .lp-hero-tagline, .lp-intro .lp-hero-desc, .lp-intro .lp-hero-ctas, .lp-intro .lp-mana-row,
+  .lp-crest-foil, .lp-intro-done .lp-crest-rays, .lp-intro-done .lp-crest-orbit { animation: none; }
+  .lp-crest-foil { display: none; }
+}
+
+@media (min-width: 720px) { .lp-section { padding: 64px 16px; } .lp-hero { padding-bottom: 36px; } }
+@media (prefers-reduced-motion: reduce) { .lp-crest-orbit-slot .lp-mana-svg, .lp-intro-done .lp-crest-orbit-slot .lp-mana-svg { animation: none; } }

@@ -143,6 +143,35 @@ function Instagram({ size = 17 }) {
   )
 }
 
+// Stemma grande all'apertura: atterra con rimbalzo e rotazione, poi onda d'urto,
+// raggi rotanti, alone che pulsa e i cinque simboli di mana in orbita.
+// Con "riduci animazioni" (MotionConfig + CSS) resta statico.
+function HeroCrest({ animate }) {
+  return (
+    <div className="lp-crest">
+      <span className="lp-crest-rays" aria-hidden="true" />
+      <span className="lp-crest-halo" aria-hidden="true" />
+      <span className="lp-crest-shock" aria-hidden="true" />
+      <span className="lp-crest-shock two" aria-hidden="true" />
+      <div className="lp-crest-orbit" aria-hidden="true">
+        {['W', 'U', 'B', 'R', 'G'].map((c, i) => (
+          <span key={c} className="lp-crest-orbit-slot" style={{ '--i': i }}>
+            <ManaSymbol c={c} size={30} />
+          </span>
+        ))}
+      </div>
+      <m.img
+        src="/logo-384.webp" alt="Stemma di Commanderone Villastellone" width="200" height="200"
+        className="lp-crest-logo" fetchpriority="high"
+        initial={animate ? { scale: 0.2, rotate: -200, opacity: 0, y: -80 } : false}
+        animate={{ scale: [0.2, 1.25, 0.94, 1], rotate: 0, opacity: 1, y: 0 }}
+        transition={{ duration: 0.9, times: [0, 0.55, 0.8, 1], ease: 'easeOut' }}
+      />
+      <span className="lp-crest-foil" aria-hidden="true" />
+    </div>
+  )
+}
+
 function Kicker({ children }) {
   return <span className="lp-kicker"><span className="lp-kicker-dot" />{children}</span>
 }
@@ -324,6 +353,11 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
 
 export default function LandingPage() {
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  // Entrata animata dello stemma: una sola volta per visita (sessionStorage), poi statica.
+  const [introAnim] = useState(() => {
+    try { return !sessionStorage.getItem('lp-intro-done') } catch { return true }
+  })
+  useEffect(() => { try { sessionStorage.setItem('lp-intro-done', '1') } catch { /* storage non disponibile */ } }, [])
 
   useEffect(() => {
     const prevTitle = document.title
@@ -358,7 +392,7 @@ export default function LandingPage() {
           <div className="lp-nav-inner">
             <ScrollLink to="top" className="lp-nav-brand">
               <img src="/logo-192.webp" alt="Commanderone Villastellone" width="30" height="30" />
-              <span className="lp-nav-brand-word">COMMANDERONE</span>
+              <span className="lp-nav-brand-word">COMMANDERONE<small>VILLASTELLONE</small></span>
             </ScrollLink>
             <div className="lp-nav-links">
               <ScrollLink className="lp-nav-link" to="chi-siamo">Chi siamo</ScrollLink>
@@ -374,7 +408,8 @@ export default function LandingPage() {
         </nav>
 
         {/* ── HERO ── */}
-        <header id="top" className="lp-hero">
+        <header id="top" className={`lp-hero ${introAnim ? 'lp-intro' : 'lp-intro-done'}`}>
+          <HeroCrest animate={introAnim} />
           <span className="lp-live-pill"><span className="lp-live-dot" />Il pod ti aspetta · ogni venerdì a Villastellone</span>
           <h1 className="lp-hero-title">
             <span className="lp-hero-line">Il tavolo da 4.</span>
