@@ -35,6 +35,11 @@ process.on('unhandledRejection', (reason) => {
 
 const app = express();
 
+// Tempi per richiesta (Server-Timing + log delle richieste lente)
+const serverTiming = require('./lib/serverTiming');
+serverTiming.attachPrisma(require('./lib/prisma'));
+app.use(serverTiming.middleware);
+
 // Dietro il proxy di Railway: necessario perché il rate limiter veda l'IP reale
 // del client (e non quello del proxy, condiviso da tutti).
 app.set('trust proxy', 1);
