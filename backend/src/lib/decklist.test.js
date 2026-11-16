@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseDecklist, EXPECTED_TOTAL } from './decklist.js'
+import { parseDecklist, replaceCommanderLine, EXPECTED_TOTAL } from './decklist.js'
 
 describe('parseDecklist', () => {
   it('conta quantità e nomi nel formato "N Nome"', () => {
@@ -25,5 +25,22 @@ describe('parseDecklist', () => {
 
   it('EXPECTED_TOTAL è 100 (Commander)', () => {
     expect(EXPECTED_TOTAL).toBe(100)
+  })
+})
+
+describe('replaceCommanderLine', () => {
+  const list = '1 The Ur-Dragon\n1 Sol Ring\n30 Mountain'
+  it('sostituisce la riga del vecchio commander', () => {
+    expect(replaceCommanderLine(list, 'The Ur-Dragon', "Atraxa, Praetors' Voice")).toBe("1 Atraxa, Praetors' Voice\n1 Sol Ring\n30 Mountain")
+  })
+  it('riconosce maiuscole diverse, "1x" e bifronte con una sola faccia', () => {
+    expect(replaceCommanderLine('1x esika, god of the tree\n1 Sol Ring', 'Esika, God of the Tree // The Prismatic Bridge', 'Atraxa'))
+      .toBe('1 Atraxa\n1 Sol Ring')
+  })
+  it("lascia la lista com'è se il vecchio commander non c'è, o se nulla cambia", () => {
+    expect(replaceCommanderLine(list, 'Kenrith', 'Atraxa')).toBe(list)
+    expect(replaceCommanderLine(list, 'The Ur-Dragon', 'the ur-dragon')).toBe(list)
+    expect(replaceCommanderLine('', 'The Ur-Dragon', 'Atraxa')).toBe('')
+    expect(replaceCommanderLine(list, null, 'Atraxa')).toBe(list)
   })
 })

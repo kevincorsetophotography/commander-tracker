@@ -1,6 +1,6 @@
 ﻿const router = require('express').Router();
 const auth = require('../middleware/auth');
-const { validateDecklist } = require('../lib/decklist');
+const { validateDecklist, replaceCommanderLine } = require('../lib/decklist');
 const { checkAchievements } = require('../lib/notify');
 const prisma = require('../lib/prisma');
 
@@ -109,7 +109,10 @@ router.patch('/:id', auth, async (req, res) => {
       where: { id: deck.id },
       data: {
         name, commander, colors,
-        decklist: decklist ?? undefined,
+        // Commander cambiato senza toccare la lista (es. da admin): la riga del commander nella lista segue
+        decklist: decklist ?? (typeof commander === 'string' && deck.decklist
+          ? replaceCommanderLine(deck.decklist, deck.commander, commander)
+          : undefined),
         bracket: bracket === undefined ? undefined : parseBracket(bracket),
         archetype: archetype === undefined ? undefined : parseArchetype(archetype),
         userId: nextOwnerId

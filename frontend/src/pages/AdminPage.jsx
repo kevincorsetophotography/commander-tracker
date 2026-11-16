@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import DeckListPanel from '../components/DeckListPanel'
+import DeckThumb from '../components/DeckThumb'
 import { useTheme } from '../hooks/useTheme'
 import { Icon, Segmented } from '../components/ui'
 import { fetchCommanderColors } from '../lib/scryfall'
@@ -628,14 +629,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {deck.commander && (
-                    <img
-                      src={`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(deck.commander)}&format=image&version=art_crop`}
-                      alt=""
-                      onError={e => { e.currentTarget.style.display = 'none' }}
-                      style={{ width: 72, height: 52, objectFit: 'cover', objectPosition: 'center top', borderRadius: 6, flexShrink: 0 }}
-                    />
-                  )}
+                  {deck.commander && <DeckThumb commander={deck.commander} w={72} radius={6} preview={false} />}
                   <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, color: t.text, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span onClick={() => navigate(`/mazzo/${deck.id}`)} title="Apri il profilo del mazzo" style={{ cursor: 'pointer', wordBreak: 'break-word' }}>{deck.name}</span>

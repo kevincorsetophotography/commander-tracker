@@ -84,4 +84,24 @@ async function validateDecklist(text) {
   return { valid: errors.length === 0, errors };
 }
 
-module.exports = { parseDecklist, validateDecklist, EXPECTED_TOTAL };
+// Nuovo commander su un mazzo che ha già la lista: la riga del vecchio commander
+// (di solito la prima) diventa "1 <nuovo>", così lista, sezione Commander e immagini restano
+// coerenti. Senza la riga del vecchio commander la lista resta com'è. Puro.
+function replaceCommanderLine(decklist, oldCommander, newCommander) {
+  const text = String(decklist || '');
+  const oldName = String(oldCommander || '').trim().toLowerCase();
+  const newName = String(newCommander || '').trim();
+  if (!text.trim() || !oldName || !newName || oldName === newName.toLowerCase()) return text;
+  const lines = text.split('\n');
+  const i = lines.findIndex((raw) => {
+    const m = raw.trim().match(/^(\d+)x?\s+(.+)$/);
+    if (!m) return false;
+    const n = m[2].trim().toLowerCase();
+    return n === oldName || n.startsWith(oldName + ' //') || oldName.startsWith(n + ' //');
+  });
+  if (i === -1) return text;
+  lines[i] = `1 ${newName}`;
+  return lines.join('\n');
+}
+
+module.exports = { parseDecklist, validateDecklist, replaceCommanderLine, EXPECTED_TOTAL };
