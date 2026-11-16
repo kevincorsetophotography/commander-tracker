@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { statusBarFallback } from './safeArea'
+import { statusBarFallback, headerTopGap, IOS_APP_TOP_GAP } from './safeArea'
+
+describe('headerTopGap', () => {
+  it('margine in più solo nella web app iOS da Home', () => {
+    expect(headerTopGap({ ios: true, standalone: true })).toBe(IOS_APP_TOP_GAP)
+    expect(headerTopGap({ ios: true, standalone: false })).toBe(0)
+    expect(headerTopGap({ ios: false, standalone: true })).toBe(0)
+  })
+})
 
 const base = { ios: true, standalone: true, portrait: true, innerHeight: 844, screenH: 844 }
 

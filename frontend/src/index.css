@@ -8,6 +8,7 @@
   /* Margini sicuri (notch, status bar, home indicator). --sat ha un minimo di riserva
      per la web app iOS da Home: vedi lib/safeArea.js */
   --sat-min: 0px;
+  --sat-gap: 0px; /* margine extra sotto la Island per l'header (lib/safeArea.js) */
   --sat: max(env(safe-area-inset-top, 0px), var(--sat-min));
   --sar: env(safe-area-inset-right, 0px);
   --sal: env(safe-area-inset-left, 0px);

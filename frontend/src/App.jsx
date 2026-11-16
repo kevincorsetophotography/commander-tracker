@@ -321,7 +321,7 @@ function Layout() {
 
         {isMobile ? (
           /* ── HEADER MOBILE v2: brand · campanella · avatar (menu account) ── */
-          <div style={{ ...navBar, paddingTop: 'var(--sat)', paddingBottom: 0, paddingLeft: 'calc(0.85rem + var(--sal))', paddingRight: 'calc(0.85rem + var(--sar))' }}>
+          <div style={{ ...navBar, paddingTop: 'calc(var(--sat) + var(--sat-gap))', paddingBottom: 0, paddingLeft: 'calc(0.85rem + var(--sal))', paddingRight: 'calc(0.85rem + var(--sar))' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 60 }}>
               {/* Logo + scritta come su main (wordmark sfumato); cede per primo se lo spazio manca */}
               <div style={{ minWidth: 0, overflow: 'hidden', flexShrink: 1 }}>
@@ -335,7 +335,7 @@ function Layout() {
           </div>
         ) : (
           /* ── NAVBAR DESKTOP ── */
-          <div style={{ ...navBar, paddingTop: 'var(--sat)', paddingBottom: 0, paddingLeft: 'calc(1rem + var(--sal))', paddingRight: 'calc(1rem + var(--sar))' }}>
+          <div style={{ ...navBar, paddingTop: 'calc(var(--sat) + var(--sat-gap))', paddingBottom: 0, paddingLeft: 'calc(1rem + var(--sal))', paddingRight: 'calc(1rem + var(--sar))' }}>
             <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 62, padding: '8px 0', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <div style={{ marginRight: 8 }}><Brand /></div>

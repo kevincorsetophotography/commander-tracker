@@ -24,6 +24,13 @@ export function statusBarFallback({ ios, standalone, portrait, innerHeight, scre
   return screenH >= 812 ? 50 : 20
 }
 
+// Da iOS 26 la web app da Home sfuma (blur) anche una fascia SOTTO la status bar/Island:
+// un margine in più tiene logo, campanella e avatar dell'header fuori dalla sfumatura.
+export const IOS_APP_TOP_GAP = 16
+export function headerTopGap({ ios, standalone }) {
+  return ios && standalone ? IOS_APP_TOP_GAP : 0
+}
+
 export function installSafeAreaFallback() {
   if (typeof window === 'undefined') return
   const apply = () => {
@@ -36,6 +43,7 @@ export function installSafeAreaFallback() {
       screenH: Math.max(window.screen.width, window.screen.height),
     })
     document.documentElement.style.setProperty('--sat-min', `${px}px`)
+    document.documentElement.style.setProperty('--sat-gap', `${headerTopGap({ ios: isIOS(), standalone: isStandalone() })}px`)
   }
   apply()
   window.addEventListener('resize', apply)
