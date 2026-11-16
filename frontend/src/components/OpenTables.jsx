@@ -126,7 +126,7 @@ function TableCard({ table, me, t, onChange, showEvent }) {
           )}
           {openPage && (
             <button onClick={openPage} className="ct-press" style={btn(true, { flex: '1 1 100%' })}>
-              <Icon name="cards" size={17} stroke={2.2} /> Apri il tavolo · mazzi e segnapunti
+              <Icon name="cards" size={17} stroke={2.2} /> Apri il tavolo
             </button>
           )}
           {seated && (
