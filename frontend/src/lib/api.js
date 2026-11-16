@@ -32,6 +32,11 @@ const req = async (method, path, body) => {
     throw payload || { error: 'Errore di rete' };
   }
 
+  // Mazzi, partite e profilo cambiano l'avatar di default: invalida la cache condivisa
+  if (method !== 'GET' && /^\/(decks|games|tables\/\d+\/result|auth\/profile)/.test(path)) {
+    window.dispatchEvent(new CustomEvent('ct:avatars-stale'));
+  }
+
   return payload;
 };
 
@@ -105,5 +110,6 @@ export const api = {
   statsPlayers:  () => req('GET', '/stats/players'),
   statsDecks:    () => req('GET', '/stats/decks'),
   statsMatchups: () => req('GET', '/stats/matchups'),
+  defaultAvatars: () => req('GET', '/stats/default-avatars'),
   playerAchievements: (userId) => req('GET', `/stats/achievements/${userId}`),
 };

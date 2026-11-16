@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const prisma = require('../lib/prisma');
+const { loadDefaultAvatars } = require('../lib/defaultAvatar');
 
 const PLAYER_ONLY = { role: 'PLAYER' };
 
@@ -15,6 +16,17 @@ router.get('/achievements/:userId', auth, async (req, res) => {
   } catch (error) {
     console.error('get achievements error', error);
     res.status(500).json({ error: 'Errore durante il caricamento degli achievement' });
+  }
+});
+
+// GET /api/stats/default-avatars — { [username]: commander } per chi non ha scelto
+// un avatar: commander più giocato, altrimenti mazzo creato per ultimo. Calcolato al volo.
+router.get('/default-avatars', auth, async (req, res) => {
+  try {
+    res.json(await loadDefaultAvatars(prisma));
+  } catch (error) {
+    console.error('default avatars error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento degli avatar' });
   }
 });
 

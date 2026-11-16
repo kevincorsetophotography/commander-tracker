@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
+import { useCardArt } from '../lib/cardCache'
+import { useDefaultAvatar } from '../lib/defaultAvatars'
 
 const cdnArt = (id) =>
   `https://cards.scryfall.io/art_crop/front/${id[0]}/${id[1]}/${id}.jpg`
@@ -9,13 +11,23 @@ const scryfallArt = (name) =>
 
 export default function PlayerAvatar({ username, avatarCardName, avatarScryfallId, size = 32, highlight = false }) {
   const { t } = useTheme()
-  const [imgError, setImgError] = useState(false)
+  const [errSrc, setErrSrc] = useState(null)
 
-  const imgSrc = avatarScryfallId
+  // Avatar scelto dall'utente: ha sempre la precedenza
+  const chosenSrc = avatarScryfallId
     ? cdnArt(avatarScryfallId)
     : (avatarCardName ? scryfallArt(avatarCardName) : null)
 
-  const showImg = !!imgSrc && !imgError
+  // Nessuna scelta: commander più giocato (o creato per ultimo), risolto via cache Scryfall
+  const defaultCmd = useDefaultAvatar(chosenSrc ? null : username)
+  const art = useCardArt(defaultCmd)
+  const defaultSrc = !defaultCmd ? null
+    : art.status === 'ready' ? art.art
+    : art.status === 'missing' ? scryfallArt(defaultCmd)
+    : null // in risoluzione: per un attimo restano le iniziali
+
+  const imgSrc = chosenSrc || defaultSrc
+  const showImg = !!imgSrc && errSrc !== imgSrc
 
   return (
     <div style={{
@@ -29,8 +41,9 @@ export default function PlayerAvatar({ username, avatarCardName, avatarScryfallI
         ? <img
             src={imgSrc}
             alt={username}
+            title={!chosenSrc && defaultCmd ? defaultCmd : undefined}
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }}
-            onError={() => setImgError(true)}
+            onError={() => setErrSrc(imgSrc)}
           />
         : <span style={{
             fontSize: size * 0.4, fontWeight: 700,

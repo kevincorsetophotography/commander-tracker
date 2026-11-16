@@ -18,6 +18,7 @@ import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
 import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
 import { fetchCommanderColors, getCardPrintings } from '../lib/scryfall'
 import { seasonOf, computeStandings } from '../lib/seasons'
+import { useDefaultAvatar } from '../lib/defaultAvatars'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
@@ -118,6 +119,10 @@ export default function PlayerProfilePage() {
       setAvatarScryfallId(p?.avatarScryfallId ?? null)
     }
   }, [loading, players, pid, isOwnProfile, user])
+
+  // Avatar di default (commander più giocato / creato per ultimo) se non ne è stato scelto uno
+  const profileUsername = isOwnProfile ? user?.username : players.find(pl => pl.id === pid)?.username
+  const defaultCmd = useDefaultAvatar(avatarCard || avatarScryfallId ? null : profileUsername)
 
   // ── Carica mazzi completi (solo profilo proprio) ──
   const loadMyDecks = async () => {
@@ -364,8 +369,8 @@ export default function PlayerProfilePage() {
 
   const { player, myGames, wins, total, winRate, streak, nemesis, favDeck, myDecks, trend, avgPlacement, firstOuts, placed, achievements, kills, deaths, archNemesis, favoritePrey, hasKillData } = profile
 
-  // Hero card: avatar scelto, altrimenti commander del mazzo migliore
-  const heroCard    = avatarCard || myDecks.find(d => d.commander)?.commander || null
+  // Hero card: avatar scelto, altrimenti commander più giocato / più recente (default), poi mazzo migliore
+  const heroCard    = avatarCard || defaultCmd || myDecks.find(d => d.commander)?.commander || null
   const hasArt      = !!heroCard
   const cdnArt      = (id) => `https://cards.scryfall.io/art_crop/front/${id[0]}/${id[1]}/${id}.jpg`
   const heroImgSrc  = avatarScryfallId ? cdnArt(avatarScryfallId) : (avatarCard ? artUrl(avatarCard) : null)
