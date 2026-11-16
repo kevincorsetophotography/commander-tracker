@@ -4,7 +4,7 @@ const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
 const { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, isTableClosed, canPickDeck, MAX_SEATS } = require('../lib/openTables');
-const { viewFor, applyAction } = require('../lib/scoreboard');
+const { viewFor, applyAction, undoLast } = require('../lib/scoreboard');
 
 // Tavoli aperti creati dai giocatori (separati dai pod di torneo generati dall'admin).
 
@@ -315,6 +315,7 @@ router.get('/:id/scoreboard', auth, async (req, res) => {
 });
 
 // POST /api/tables/:id/scoreboard { type, userId, fromUserId?, delta } — qualsiasi membro.
+// { type: 'undo' } annulla l'ultima azione dello storico condiviso (anche questo: qualsiasi membro).
 // Lock di riga (SELECT … FOR UPDATE): tocchi simultanei di più giocatori vengono applicati
 // uno dopo l'altro, nessuno si perde. scoreVersion cresce a ogni modifica (il client scarta
 // le letture più vecchie di quello che ha già).
@@ -331,14 +332,16 @@ router.post('/:id/scoreboard', auth, async (req, res) => {
       if (!seats.some(s => s.userId === req.user.id)) throw new HttpError(403, 'Solo chi è seduto al tavolo può aprirlo');
       if (row.gameId) throw new HttpError(400, 'Il tavolo ha già un risultato');
       const seatIds = seats.map(s => s.userId);
-      const out = applyAction(row.scoreboard, seatIds, req.body);
+      const out = req.body?.type === 'undo'
+        ? undoLast(row.scoreboard, seatIds)
+        : applyAction(row.scoreboard, seatIds, req.body, req.user.id);
       if (out.error) throw new HttpError(400, out.error);
       const updated = await tx.openTable.update({
         where: { id },
         data: { scoreboard: out.state, scoreVersion: { increment: 1 } },
         select: { scoreVersion: true },
       });
-      return { ...viewFor(out.state, seatIds), version: updated.scoreVersion };
+      return { ...viewFor(out.state, seatIds), version: updated.scoreVersion, ...(out.undone ? { undone: out.undone } : {}) };
     }, { maxWait: 10000, timeout: 10000 });
     res.json(result);
   } catch (error) {

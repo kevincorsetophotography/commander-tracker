@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { viewFor, applyAction, eliminationOf, START_LIFE } from './scoreboard.js';
+import { viewFor, applyAction, undoLast, eliminationOf, START_LIFE, HISTORY_MAX, MERGE_MS } from './scoreboard.js';
 
 const seats = [1, 2, 3];
 
@@ -64,5 +64,71 @@ describe('applyAction', () => {
     expect(applyAction(null, seats, { type: 'life', userId: 1, delta: 1.5 }).error).toBeTruthy();
     expect(applyAction(null, seats, { type: 'cmd', userId: 1, fromUserId: 1, delta: 1 }).error).toBeTruthy();
     expect(applyAction(null, seats, { type: 'boh', userId: 1, delta: 1 }).error).toBeTruthy();
+  });
+});
+
+describe('storico e annulla', () => {
+  const T0 = 1_000_000;
+  const act = (s, a, by = 1, at = T0) => applyAction(s, seats, a, by, at).state;
+
+  it('registra chi, cosa e la variazione applicata', () => {
+    const s = act(null, { type: 'cmd', userId: 2, fromUserId: 3, delta: 4 }, 3);
+    expect(viewFor(s, seats).history).toEqual([{ by: 3, type: 'cmd', userId: 2, fromUserId: 3, d: { life: -4, poison: 0, cmd: 4 }, at: T0 }]);
+  });
+
+  it('tocchi ripetuti sullo stesso contatore entro pochi secondi = una voce sola', () => {
+    let s = null;
+    for (let i = 0; i < 5; i++) s = act(s, { type: 'life', userId: 2, delta: -1 }, 1, T0 + i * 500);
+    s = act(s, { type: 'life', userId: 2, delta: -1 }, 1, T0 + 2000 + MERGE_MS + 1); // troppo tardi: voce nuova
+    s = act(s, { type: 'life', userId: 2, delta: -1 }, 3, T0 + 2000 + MERGE_MS + 2); // altro autore: voce nuova
+    const h = viewFor(s, seats).history;
+    expect(h.map(e => e.d.life)).toEqual([-5, -1, -1]);
+  });
+
+  it('+1 e -1 che si annullano spariscono dallo storico', () => {
+    let s = act(null, { type: 'life', userId: 2, delta: 1 });
+    s = act(s, { type: 'life', userId: 2, delta: -1 }, 1, T0 + 100);
+    expect(viewFor(s, seats).history).toEqual([]);
+  });
+
+  it('annulla ripetuto riporta indietro una voce alla volta (anche i danni da commander)', () => {
+    let s = act(null, { type: 'life', userId: 1, delta: -7 }, 2);
+    s = act(s, { type: 'poison', userId: 1, delta: 3 }, 2);
+    s = act(s, { type: 'cmd', userId: 1, fromUserId: 3, delta: 6 }, 3);
+    let u = undoLast(s, seats);
+    expect(u.undone).toMatchObject({ type: 'cmd', by: 3 });
+    expect(viewFor(u.state, seats).players[1]).toMatchObject({ life: 33, poison: 3, cmd: { 3: 0 } });
+    u = undoLast(u.state, seats);
+    expect(viewFor(u.state, seats).players[1]).toMatchObject({ life: 33, poison: 0 });
+    u = undoLast(u.state, seats);
+    expect(viewFor(u.state, seats).players[1]).toMatchObject({ life: 40, poison: 0 });
+    expect(undoLast(u.state, seats).error).toBeTruthy();
+  });
+
+  it('annulla solo ciò che è stato applicato davvero (veleno già a 0, commander a 0)', () => {
+    let s = act(null, { type: 'poison', userId: 1, delta: -3 });
+    expect(viewFor(s, seats).history).toEqual([]);
+    s = act(s, { type: 'cmd', userId: 1, fromUserId: 2, delta: 2 });
+    s = act(s, { type: 'cmd', userId: 1, fromUserId: 2, delta: -5 }, 1, T0 + MERGE_MS + 1);
+    s = undoLast(s, seats).state;
+    expect(viewFor(s, seats).players[1]).toMatchObject({ life: 38, cmd: { 2: 2 } });
+  });
+
+  it('salta le voci di chi non è più seduto', () => {
+    let s = act(null, { type: 'life', userId: 1, delta: -2 });
+    s = act(s, { type: 'life', userId: 2, delta: -9 }, 1, T0 + MERGE_MS + 1);
+    const u = undoLast(s, [1, 3]);
+    expect(u.undone.userId).toBe(1);
+    expect(viewFor(u.state, [1, 3]).players[1].life).toBe(40);
+  });
+
+  it(`tiene al massimo ${HISTORY_MAX} voci`, () => {
+    let s = null;
+    for (let i = 0; i < HISTORY_MAX + 10; i++) s = act(s, { type: 'life', userId: 1 + (i % 3), delta: -1 }, 1, T0 + i);
+    expect(viewFor(s, seats).history).toHaveLength(HISTORY_MAX);
+  });
+
+  it('il reset (stato null) azzera anche lo storico', () => {
+    expect(viewFor(null, seats).history).toEqual([]);
   });
 });

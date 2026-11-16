@@ -6,7 +6,8 @@ import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { applyLocal, REASON_LABEL, CMD_LETHAL, POISON_LETHAL } from '../lib/scoreboard'
+import { applyLocal, REASON_LABEL } from '../lib/scoreboard'
+import LifeCounter, { enterFullscreen } from '../components/LifeCounter'
 import { Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import PlayerAvatar from '../components/PlayerAvatar'
@@ -25,94 +26,6 @@ const hhmm = (d) => { const x = new Date(d); return `${pad(x.getHours())}:${pad(
 const openKey = (id) => `ct_score_open_${id}`
 const readOpen = (id) => { try { return localStorage.getItem(openKey(id)) === '1' } catch { return false } }
 const writeOpen = (id, v) => { try { v ? localStorage.setItem(openKey(id), '1') : localStorage.removeItem(openKey(id)) } catch { /* storage non disponibile */ } }
-
-// ── Segnapunti: un giocatore ──────────────────────────────────────────────────
-function PlayerScore({ seat, p, seats, t, onAct }) {
-  const [cmdOpen, setCmdOpen] = useState(false)
-  const opponents = seats.filter(s => s.userId !== seat.userId)
-  const maxCmd = Math.max(0, ...opponents.map(o => p.cmd?.[o.userId] || 0))
-  const out = p.eliminated
-
-  const stepBtn = (label, onClick, opts = {}) => (
-    <button onClick={onClick} className="ct-press" aria-label={opts.aria || label} style={{
-      flex: opts.flex ?? 1, minWidth: 44, minHeight: opts.h || 48, borderRadius: 14, cursor: 'pointer',
-      border: `1px solid ${opts.strong ? t.primaryBorder : t.border}`,
-      background: opts.strong ? t.primaryBg : t.bgSurface, color: opts.strong ? t.primary : t.text,
-      fontSize: opts.fs || 17, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
-      WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation', userSelect: 'none',
-    }}>{label}</button>
-  )
-
-  return (
-    <div style={{
-      borderRadius: 18, padding: 12, boxSizing: 'border-box', minWidth: 0,
-      border: `1px solid ${out ? t.dangerBorder : t.border}`,
-      background: out ? t.dangerBg : t.bgSurfaceAlt,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <PlayerAvatar username={seat.user.username} avatarCardName={seat.user.avatarCardName} avatarScryfallId={seat.user.avatarScryfallId} size={30} />
-        <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.user.username}</span>
-        {out && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 800, color: t.danger, whiteSpace: 'nowrap' }}>
-            <Icon name="skull" size={14} /> Eliminato
-          </span>
-        )}
-      </div>
-
-      {/* vita */}
-      <div aria-live="polite" style={{ textAlign: 'center', margin: '6px 0 2px', fontSize: 56, lineHeight: 1.05, fontWeight: 900, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', color: out ? t.danger : t.text }}>
-        {p.life}
-      </div>
-      <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: out ? t.danger : t.textMuted, marginBottom: 8, minHeight: 16 }}>
-        {out ? REASON_LABEL[p.reason] : 'punti vita'}
-      </div>
-      <div style={{ display: 'flex', gap: 6 }}>
-        {stepBtn('−5', () => onAct({ type: 'life', userId: seat.userId, delta: -5 }), { aria: `${seat.user.username}: meno 5 vita` })}
-        {stepBtn('−1', () => onAct({ type: 'life', userId: seat.userId, delta: -1 }), { aria: `${seat.user.username}: meno 1 vita`, strong: true })}
-        {stepBtn('+1', () => onAct({ type: 'life', userId: seat.userId, delta: 1 }), { aria: `${seat.user.username}: più 1 vita`, strong: true })}
-        {stepBtn('+5', () => onAct({ type: 'life', userId: seat.userId, delta: 5 }), { aria: `${seat.user.username}: più 5 vita` })}
-      </div>
-
-      {/* veleno */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: p.poison >= POISON_LETHAL ? t.danger : t.textSub }}>Veleno</span>
-        {stepBtn('−', () => onAct({ type: 'poison', userId: seat.userId, delta: -1 }), { flex: '0 0 44px', h: 40, aria: `${seat.user.username}: meno 1 veleno` })}
-        <span style={{ minWidth: 34, textAlign: 'center', fontSize: 18, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: p.poison >= POISON_LETHAL ? t.danger : t.text }}>{p.poison}</span>
-        {stepBtn('+', () => onAct({ type: 'poison', userId: seat.userId, delta: 1 }), { flex: '0 0 44px', h: 40, aria: `${seat.user.username}: più 1 veleno` })}
-      </div>
-
-      {/* danni da commander */}
-      {opponents.length > 0 && (
-        <div style={{ marginTop: 10, borderTop: `1px solid ${t.border}`, paddingTop: 6 }}>
-          <button onClick={() => setCmdOpen(o => !o)} aria-expanded={cmdOpen} style={{
-            width: '100%', minHeight: 40, display: 'flex', alignItems: 'center', gap: 8, padding: 0,
-            background: 'none', border: 'none', cursor: 'pointer', color: t.textSub, fontSize: 14, fontWeight: 700, textAlign: 'left',
-          }}>
-            <span style={{ flex: 1 }}>Danni da commander</span>
-            {maxCmd > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: maxCmd >= CMD_LETHAL ? t.danger : t.text }}>max {maxCmd}</span>}
-            <Icon name="chevron" size={16} style={{ transform: cmdOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.18s' }} />
-          </button>
-          {cmdOpen && (
-            <div className="ct-section-open">
-              {opponents.map(o => {
-                const v = p.cmd?.[o.userId] || 0
-                return (
-                  <div key={o.userId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>da {o.user.username}</span>
-                    {stepBtn('−', () => onAct({ type: 'cmd', userId: seat.userId, fromUserId: o.userId, delta: -1 }), { flex: '0 0 44px', h: 40, aria: `Danno da ${o.user.username} a ${seat.user.username}: meno 1` })}
-                    <span style={{ minWidth: 34, textAlign: 'center', fontSize: 18, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: v >= CMD_LETHAL ? t.danger : t.text }}>{v}</span>
-                    {stepBtn('+', () => onAct({ type: 'cmd', userId: seat.userId, fromUserId: o.userId, delta: 1 }), { flex: '0 0 44px', h: 40, aria: `Danno da ${o.user.username} a ${seat.user.username}: più 1` })}
-                  </div>
-                )
-              })}
-              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 6, lineHeight: 1.4 }}>Il danno da commander toglie anche la vita. 21 da uno stesso commander = eliminato.</div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Pagina ────────────────────────────────────────────────────────────────────
 export default function TablePage() {
@@ -139,7 +52,7 @@ export default function TablePage() {
     if (!sb || pending.current > 0) return
     if (typeof sb.version === 'number' && sb.version < lastVersion.current) return
     lastVersion.current = sb.version ?? lastVersion.current
-    setScore({ players: sb.players, version: sb.version })
+    setScore({ players: sb.players, history: sb.history || [], version: sb.version })
   }, [])
 
   const loadDetail = useCallback(() => api.getTable(tid)
@@ -169,7 +82,9 @@ export default function TablePage() {
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis) }
   }, [scoreOpen, concluded, error, tid, acceptScore, loadDetail])
 
-  const toggleScore = () => setScoreOpen(o => { writeOpen(tid, !o); return !o })
+  // apertura dal pulsante (gesto dell'utente → si può chiedere lo schermo intero); chiusura dal menu centrale
+  const openScore = () => { enterFullscreen(); writeOpen(tid, true); setScoreOpen(true) }
+  const closeScore = () => { writeOpen(tid, false); setScoreOpen(false) }
 
   // tocco sul segnapunti: aggiornamento ottimistico, invio in coda, la risposta del server vince
   const act = (action) => {
@@ -180,7 +95,7 @@ export default function TablePage() {
       .then(res => {
         pending.current -= 1
         lastVersion.current = Math.max(lastVersion.current, res.version)
-        if (pending.current === 0) setScore({ players: res.players, version: res.version })
+        if (pending.current === 0) setScore({ players: res.players, history: res.history || [], version: res.version })
       })
       .catch(e => {
         pending.current -= 1
@@ -189,16 +104,33 @@ export default function TablePage() {
       })
   }
 
+  // annulla l'ultima azione dello storico condiviso (qualsiasi membro); in coda dopo i tocchi in volo
+  const undoScore = () => {
+    pending.current += 1
+    chain.current = chain.current
+      .then(() => api.scoreAction(tid, { type: 'undo' }))
+      .then(res => {
+        pending.current -= 1
+        lastVersion.current = Math.max(lastVersion.current, res.version)
+        if (pending.current === 0) setScore({ players: res.players, history: res.history || [], version: res.version })
+      })
+      .catch(e => {
+        pending.current -= 1
+        sonner.error(e.error || 'Niente da annullare')
+        if (pending.current === 0) api.getScoreboard(tid).then(sb => { lastVersion.current = -1; acceptScore(sb) }).catch(() => {})
+      })
+  }
+
+  // ripristino (solo chi ha aperto il tavolo; la conferma è nel menu del segnapunti)
   const resetScore = async () => {
-    const ok = await confirm({ title: 'Azzerare il segnapunti?', message: 'Tutti tornano a 40 vita, 0 veleni e 0 danni da commander. Vale per tutti i giocatori del tavolo.', confirmLabel: 'Azzera', danger: true })
-    if (!ok) return
     try {
       await chain.current
       const sb = await api.resetScoreboard(tid)
       lastVersion.current = sb.version
-      setScore({ players: sb.players, version: sb.version })
-      sonner.success('Segnapunti azzerato')
-    } catch (e) { sonner.error(e.error || 'Impossibile azzerare') }
+      setScore({ players: sb.players, history: sb.history || [], version: sb.version })
+      sonner.success('Punti vita ripristinati')
+      return true
+    } catch (e) { sonner.error(e.error || 'Impossibile ripristinare'); return false }
   }
 
   const pickDeck = async (userId, deckId) => {
@@ -334,27 +266,30 @@ export default function TablePage() {
         {isOwner && seats.length > 1 && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8 }}>Hai aperto tu il tavolo: puoi scegliere il mazzo per chiunque.</div>}
       </div>
 
-      {/* segnapunti */}
+      {/* segnapunti: riepilogo qui, il contatore vero è a schermo intero */}
       <div className="ct-fade-up" style={bento(t, { padding: '1rem', marginBottom: 14, animationDelay: '80ms' })}>
-        <SectionLabel t={t} icon="flame" right={scoreOpen && isOwner && (
-          <button onClick={resetScore} className="ct-press" style={{ minHeight: 36, padding: '0 12px', borderRadius: 10, border: `1px solid ${t.dangerBorder}`, background: t.dangerBg, color: t.danger, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Azzera</button>
-        )}>Segnapunti</SectionLabel>
-        <button onClick={toggleScore} aria-expanded={scoreOpen} className="ct-press" style={btn(!scoreOpen, { width: '100%' })}>
-          <Icon name={scoreOpen ? 'close' : 'flame'} size={17} /> {scoreOpen ? 'Chiudi segnapunti' : 'Apri segnapunti'}
-        </button>
-        {!scoreOpen && <div style={{ fontSize: 13, color: t.textSub, marginTop: 8, lineHeight: 1.45 }}>Vita, veleno e danni da commander, condivisi con tutto il tavolo. Puoi chiuderlo e riaprirlo: i punteggi restano.</div>}
-        {scoreOpen && (
-          <div className="ct-section-open" style={{ marginTop: 12 }}>
-            {!score ? <Skeleton h={200} r={18} /> : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 10 }}>
-                {seats.map(s => score.players[s.userId] && (
-                  <PlayerScore key={s.userId} seat={s} p={score.players[s.userId]} seats={seats} t={t} onAct={act} />
-                ))}
-              </div>
-            )}
-            <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8 }}>Si aggiorna da solo ogni pochi secondi per tutti i giocatori del tavolo.</div>
+        <SectionLabel t={t} icon="flame">Segnapunti</SectionLabel>
+        {score && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: 8, marginBottom: 12 }}>
+            {seats.map(s => {
+              const p = score.players[s.userId]
+              if (!p) return null
+              return (
+                <div key={s.userId} style={{ minWidth: 0, padding: '8px 10px', borderRadius: 12, border: `1px solid ${p.eliminated ? t.dangerBorder : t.border}`, background: p.eliminated ? t.dangerBg : t.bgSurfaceAlt }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: t.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.user.username}</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: p.eliminated ? t.danger : t.text }}>{p.life}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: p.eliminated ? t.danger : t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.eliminated ? REASON_LABEL[p.reason] : [p.poison > 0 && `veleno ${p.poison}`, Math.max(0, ...Object.values(p.cmd || {})) > 0 && `cmd ${Math.max(...Object.values(p.cmd))}`].filter(Boolean).join(' · ') || 'vita'}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
+        <button onClick={openScore} className="ct-press" style={btn(true, { width: '100%' })}>
+          <Icon name="flame" size={17} /> Apri segnapunti
+        </button>
+        <div style={{ fontSize: 13, color: t.textSub, marginTop: 8, lineHeight: 1.45 }}>A schermo intero, con il telefono al centro del tavolo: tocca la metà sinistra o destra del tuo numero per −1/+1 (tieni premuto per ±10), scorri per veleno e danni da commander. Condiviso con tutto il tavolo.</div>
       </div>
 
       {/* azioni */}
@@ -400,6 +335,10 @@ export default function TablePage() {
           </div>
         ))}
       </Sheet>
+
+      {scoreOpen && score && (
+        <LifeCounter tableId={tid} seats={seats} score={score} isOwner={isOwner} onAct={act} onUndo={undoScore} onReset={resetScore} onClose={closeScore} />
+      )}
     </div>
   )
 }
