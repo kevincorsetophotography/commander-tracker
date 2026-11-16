@@ -189,10 +189,30 @@ export default function OpenTables({ eventId = null, title = 'Tavoli aperti', sh
   const [tables, setTables] = useState(null)
   const [creating, setCreating] = useState(false)
 
+  const [refreshing, setRefreshing] = useState(false)
+
   const load = useCallback(() => {
     api.getTables(eventId).then(setTables).catch(() => setTables([]))
   }, [eventId])
   useEffect(() => { load() }, [load])
+
+  // Tasto aggiorna: ricarica la lista (nuovi tavoli, posti presi). Gira almeno 500 ms
+  // così il tocco si vede anche quando la risposta è immediata. I tavoli in creazione restano.
+  const refresh = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    const minSpin = new Promise(r => setTimeout(r, 500))
+    try {
+      const fresh = await api.getTables(eventId)
+      setTables(prev => {
+        const keys = new Map((prev || []).filter(x => x.clientKey).map(x => [x.id, x.clientKey]))
+        const pending = (prev || []).filter(x => x.pending)
+        return [...fresh.map(x => keys.has(x.id) ? { ...x, clientKey: keys.get(x.id) } : x), ...pending]
+      })
+    } catch (e) { sonner.error(e.error || 'Impossibile aggiornare i tavoli') }
+    await minSpin
+    setRefreshing(false)
+  }
 
   const onChange = (id, res) => {
     if (res?.deleted) setTables(prev => prev.filter(tb => tb.id !== id))
@@ -230,7 +250,17 @@ export default function OpenTables({ eventId = null, title = 'Tavoli aperti', sh
 
   return (
     <div style={{ ...bento(t, { padding: '1rem', marginBottom: 14 }), ...style }}>
-      <SectionLabel t={t} icon="groups" right={active.length > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: t.primary }}>{active.length} {active.length === 1 ? 'attivo' : 'attivi'}</span>}>{title}</SectionLabel>
+      <SectionLabel t={t} icon="groups" right={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {active.length > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: t.primary }}>{active.length} {active.length === 1 ? 'attivo' : 'attivi'}</span>}
+          <button onClick={refresh} disabled={refreshing} aria-label="Aggiorna i tavoli" title="Aggiorna" className="ct-press" style={{
+            width: 36, height: 36, margin: '-8px -6px -8px 0', borderRadius: 12, border: 'none', background: 'transparent',
+            color: t.primary, cursor: refreshing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span className={refreshing ? 'ct-spin' : undefined} style={{ display: 'flex' }}><Icon name="refresh" size={18} stroke={2.2} /></span>
+          </button>
+        </span>
+      }>{title}</SectionLabel>
 
       {tables === null && <div style={{ fontSize: 14, color: t.textSub, marginBottom: 10 }}>Caricamento…</div>}
       {tables && list.length === 0 && (

@@ -4,7 +4,7 @@
 import {
   Rows3, CalendarDays, Swords, Users, User, Bell, Sun, Moon, BookOpen, ShieldCheck, LogOut, Layers,
   MapPin, Check, Trophy, ChevronRight, X, MessageCircle, Flame, ChartColumn, Sparkles, Plus, Skull,
-  Pencil, Trash2, Clock, Crown, Medal, Shuffle, ArrowLeft,
+  Pencil, Trash2, Clock, Crown, Medal, Shuffle, ArrowLeft, RefreshCw,
 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 
@@ -14,7 +14,7 @@ const ICONS = {
   sun: Sun, moon: Moon, book: BookOpen, shield: ShieldCheck, logout: LogOut, cards: Layers,
   pin: MapPin, check: Check, trophy: Trophy, chevron: ChevronRight, close: X, comment: MessageCircle,
   flame: Flame, chart: ChartColumn, sparkle: Sparkles, plus: Plus, skull: Skull,
-  edit: Pencil, trash: Trash2, clock: Clock, crown: Crown, medal: Medal, shuffle: Shuffle, back: ArrowLeft,
+  edit: Pencil, trash: Trash2, clock: Clock, crown: Crown, medal: Medal, shuffle: Shuffle, back: ArrowLeft, refresh: RefreshCw,
 }
 
 export function Icon({ name, size = 22, stroke = 1.9, style }) {

@@ -214,6 +214,9 @@ body {
 .ct-bell-ring { display: flex; transform-origin: 50% 10%; animation: ct-bell-ring 0.9s ease-in-out; }
 
 /* Fiammella della serie di vittorie */
+@keyframes ct-spin { to { transform: rotate(360deg); } }
+.ct-spin { animation: ct-spin 0.8s linear infinite; }
+
 @keyframes ct-flame { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.12) rotate(-4deg); } }
 .ct-flame { display: inline-flex; transform-origin: 50% 90%; animation: ct-flame 1.6s ease-in-out infinite; }
 
@@ -222,6 +225,6 @@ body {
   .ct-aurora::before, .ct-aurora::after,
   .ct-fade-up, .ct-bar-fill, .ct-section-open, .ct-modal-in,
   .ct-ring-fill, .ct-sheet-in, .ct-glow-pulse, .ct-pop,
-  .ct-life-bump, .ct-delta-in, .ct-badge-pop, .ct-bell-ring, .ct-flame { animation: none; }
+  .ct-life-bump, .ct-delta-in, .ct-badge-pop, .ct-bell-ring, .ct-flame, .ct-spin { animation: none; }
   .ct-lift:active, .ct-press:active { transform: none; }
 }
