@@ -120,7 +120,7 @@ frontend/src/
     GiocaPage.jsx         /gioca — landing "Gioca": CTA nuova partita, mazzi recenti, ultima partita
     GruppoPage.jsx        /gruppo — statistiche gruppo con 4 tab URL-based: Stagione (classifica + Primati + Meta), Giocatori, Mazzi, Storico
     DashboardPage.jsx     /dashboard — 6 tab stats LEGACY (ancora funzionante, non nel dock)
-    DecksPage.jsx         /mazzi — lista mazzi + form creazione
+    DecksPage.jsx         /mazzi — involucro di components/MyDecks (griglia completa con ricerca + ordinamento)
     DeckProfilePage.jsx   /mazzo/:id — profilo mazzo (tab perf/lista, stima prezzo €)
     PlayerProfilePage.jsx /giocatore/:id — profilo giocatore (progressive disclosure 6 sezioni)
     GamePage.jsx          /partita/:id — dettaglio partita + social
@@ -149,6 +149,10 @@ frontend/src/
   components/
     DeckThumb.jsx         thumbnail commander (art piccola o avatar con iniziali)
     DeckListPanel.jsx     modal/panel edit decklist + import da URL (Archidekt/Moxfield)
+    MyDecks.jsx           "I miei mazzi" (2026-11): griglia di carte compatte (art, colori, livello, win rate);
+                          tocco → Sheet "gestisci" (archetipo, livello, Lista/DeckListPanel, Apri, Elimina); Sheet
+                          "Nuovo mazzo". /mazzi = completo (ricerca + ordinamento, scelta in localStorage ct_deck_sort,
+                          logica pura in lib/deckList.js con test); profilo proprio = limit 4 più giocati + "Vedi tutti".
     GameSocial.jsx        commenti + reazioni emoji per partita
     NotificationBell.jsx  bell icon con badge unread, polling 60s, dropdown
     BracketBadge.jsx      badge colorato power level (Casual/Bilanciato/Potente/cEDH)

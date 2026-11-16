@@ -2,28 +2,23 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
-import { Icon, ManaPips, bento } from '../components/ui'
+import { Icon, bento } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useFeedback } from '../hooks/useFeedback'
 import { SkeletonList, Skeleton } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
+import MyDecks from '../components/MyDecks'
 import DeckThumb from '../components/DeckThumb'
-import DeckListPanel from '../components/DeckListPanel'
 import CommanderInput from '../components/CommanderInput'
-import BracketBadge from '../components/BracketBadge'
-import ArchetypeBadge from '../components/ArchetypeBadge'
 import { getAchievements } from '../lib/achievements'
-import { BRACKETS, BRACKET_OPTIONS } from '../lib/brackets'
-import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
-import { fetchCommanderColors, getCardPrintings } from '../lib/scryfall'
+import { getCardPrintings } from '../lib/scryfall'
 import { seasonOf, computeStandings } from '../lib/seasons'
 import { useDefaultAvatar } from '../lib/defaultAvatars'
 import { useCardArt } from '../lib/cardCache'
 import { fireConfetti } from '../lib/confetti'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
-const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
 
 const artUrl = (name) =>
   `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
@@ -34,22 +29,12 @@ const artFor = (name, art) => !name ? null
   : art.status === 'missing' ? artUrl(name)
   : null
 
-function CachedArt({ name, style }) {
-  const src = artFor(name, useCardArt(name))
-  if (!src) return null
-  return <img src={src} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} style={style} />
-}
-
 function WinBar({ pct, t }) {
   return (
     <div style={{ height: 6, borderRadius: 3, background: t.bgMuted, overflow: 'hidden', marginTop: 6 }}>
       <div className="ct-bar-fill" style={{ height: '100%', width: `${pct}%`, background: t.primary, borderRadius: 3 }} />
     </div>
   )
-}
-
-function ColorPip({ c }) {
-  return <span title={COLOR_LABEL[c]} style={{ display: 'inline-flex' }}><ManaPips colors={c} size={18} /></span>
 }
 
 export default function PlayerProfilePage() {
@@ -59,7 +44,7 @@ export default function PlayerProfilePage() {
   const { t } = useTheme()
   const { user, updateUser, logout } = useAuth()
   const isMobile = useIsMobile()
-  const { toast, confirm } = useFeedback()
+  const { toast } = useFeedback()
   const isOwnProfile = user?.id === pid
 
   // ── Dati principali ──
@@ -83,15 +68,6 @@ export default function PlayerProfilePage() {
   const [loadingPrintings, setLoadingPrintings] = useState(false)
   const [selectedPrintingId, setSelectedPrintingId] = useState(null)
   const [savingAvatar, setSavingAvatar]       = useState(false)
-
-  // ── Gestione mazzi (solo profilo proprio) ──
-  const [myFullDecks, setMyFullDecks]         = useState([])
-  const [loadingDecks, setLoadingDecks]       = useState(false)
-  const [showAddForm, setShowAddForm]         = useState(false)
-  const [deckForm, setDeckForm]               = useState({ name: '', commander: '', colors: [], bracket: '', archetype: '' })
-  const [addingDeck, setAddingDeck]           = useState(false)
-  const [deckFormError, setDeckFormError]     = useState('')
-  const [detectingDeckColors, setDetectingDeckColors] = useState(false)
 
   // ── Deep-link achievement (?ach=1) ──
   const [searchParams] = useSearchParams()
@@ -139,15 +115,6 @@ export default function PlayerProfilePage() {
   // Avatar di default (commander più giocato / creato per ultimo) se non ne è stato scelto uno
   const profileUsername = isOwnProfile ? user?.username : players.find(pl => pl.id === pid)?.username
   const defaultCmd = useDefaultAvatar(avatarCard || avatarScryfallId ? null : profileUsername)
-
-  // ── Carica mazzi completi (solo profilo proprio) ──
-  const loadMyDecks = async () => {
-    setLoadingDecks(true)
-    try { setMyFullDecks(await api.getMyDecks()) }
-    catch { toast('Errore nel caricamento mazzi', 'error') }
-    finally { setLoadingDecks(false) }
-  }
-  useEffect(() => { if (isOwnProfile) loadMyDecks() }, [isOwnProfile])
 
   // ── Profilo calcolato ──
   const profile = useMemo(() => {
@@ -269,55 +236,6 @@ export default function PlayerProfilePage() {
     }
     return { shared, meBetter, oppBetter, undecided, myWins, oppWins, myKills, oppKills, rival: opponents.find(o => o.id === rivalId) }
   }, [rivalId, profile.myGames, pid, opponents])
-
-  // ── Deck management ──
-  const handleDeckCommanderBlur = async () => {
-    const name = deckForm.commander.trim()
-    if (!name) return
-    setDetectingDeckColors(true)
-    try {
-      const colors = await fetchCommanderColors(name)
-      if (colors !== null) setDeckForm(f => ({ ...f, colors }))
-    } finally { setDetectingDeckColors(false) }
-  }
-  const toggleDeckColor = (c) =>
-    setDeckForm(f => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter(x => x !== c) : [...f.colors, c] }))
-
-  const submitAddDeck = async (e) => {
-    e.preventDefault()
-    if (!deckForm.name.trim()) { setDeckFormError('Il nome è obbligatorio'); return }
-    setAddingDeck(true); setDeckFormError('')
-    try {
-      await api.createDeck({
-        name:      deckForm.name.trim(),
-        commander: deckForm.commander.trim() || null,
-        colors:    deckForm.colors.join('') || null,
-        bracket:   deckForm.bracket || null,
-        archetype: deckForm.archetype || null,
-      })
-      setDeckForm({ name: '', commander: '', colors: [], bracket: '', archetype: '' })
-      setShowAddForm(false)
-      await loadMyDecks()
-      toast('Mazzo aggiunto', 'success')
-    } catch (err) {
-      setDeckFormError(err.error || 'Errore nel salvataggio')
-    } finally { setAddingDeck(false) }
-  }
-
-  const updateDeckBracket = async (id, bracket) => {
-    try { await api.updateDeck(id, { bracket: bracket || null }); await loadMyDecks(); toast('Livello aggiornato', 'success') }
-    catch (err) { toast(err.error || 'Errore aggiornamento', 'error') }
-  }
-  const updateDeckArchetype = async (id, archetype) => {
-    try { await api.updateDeck(id, { archetype: archetype || null }); await loadMyDecks(); toast('Archetipo aggiornato', 'success') }
-    catch (err) { toast(err.error || 'Errore aggiornamento', 'error') }
-  }
-  const deleteDeck = async (id, name) => {
-    const ok = await confirm({ title: 'Eliminare il mazzo?', message: `"${name}" verrà eliminato definitivamente.`, confirmLabel: 'Elimina', danger: true })
-    if (!ok) return
-    try { await api.deleteDeck(id); await loadMyDecks(); toast('Mazzo eliminato', 'success') }
-    catch (err) { toast(err.error || 'Errore nella cancellazione', 'error') }
-  }
 
   // ── Avatar ──
   const fetchPrintings = async (name) => {
@@ -451,7 +369,6 @@ export default function PlayerProfilePage() {
     )
   }
 
-  const getDeckStat = (deckId) => deckStats.find(d => d.id === deckId) || { games: 0, wins: 0, winRate: 0 }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -586,149 +503,9 @@ export default function PlayerProfilePage() {
 
       {/* ── MAZZI ── */}
       {isOwnProfile ? (
-        /* Profilo proprio: gestione completa */
+        /* Profilo proprio: anteprima a griglia, gestione nel pannello del mazzo (components/MyDecks) */
         <div style={{ ...card }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: (showAddForm || myFullDecks.length > 0) ? 14 : 0 }}>
-            <span style={{ fontSize: 17, fontWeight: 800, color: t.text }}>I miei mazzi</span>
-            {myFullDecks.length > 0 && (
-              <span style={{ fontSize: 12, color: t.textMuted, fontWeight: 500 }}>{myFullDecks.length}</span>
-            )}
-            <button
-              onClick={() => setShowAddForm(v => !v)}
-              style={{
-                marginLeft: 'auto', padding: '0 14px', minHeight: 40, borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                border: `1px solid ${showAddForm ? t.dangerBorder : t.primary}`,
-                background: showAddForm ? t.dangerBg : t.primaryBg,
-                color: showAddForm ? t.danger : t.primary,
-              }}
-            >{showAddForm ? '✕ Annulla' : '+ Aggiungi'}</button>
-          </div>
-
-          {/* Form aggiungi mazzo */}
-          {showAddForm && (
-            <form onSubmit={submitAddDeck} style={{ background: t.bgMuted, borderRadius: 12, padding: '14px 16px', marginBottom: 14, border: `1px solid ${t.border}` }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: 10 }}>Nuovo mazzo</div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                <input style={inputSt} placeholder="Nome mazzo *" value={deckForm.name} onChange={e => setDeckForm(f => ({ ...f, name: e.target.value }))} />
-                <CommanderInput
-                  style={inputSt}
-                  placeholder="Commander (opzionale)"
-                  value={deckForm.commander}
-                  onChange={(name) => setDeckForm(f => ({ ...f, commander: name }))}
-                  onBlur={handleDeckCommanderBlur}
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: t.textSub }}>
-                  Colori:{detectingDeckColors && <span style={{ marginLeft: 5, fontSize: 12, color: t.primary }}>rilevamento...</span>}
-                </span>
-                {['W', 'U', 'B', 'R', 'G'].map(c => (
-                  <button key={c} type="button" onClick={() => toggleDeckColor(c)} style={{
-                    width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
-                    fontSize: 14, fontWeight: 800, color: '#444', background: COLOR_MAP[c],
-                    border: deckForm.colors.includes(c) ? `2px solid ${t.primary}` : '1px solid #ccc',
-                    outline: deckForm.colors.includes(c) ? `2px solid ${t.primaryBorder}` : 'none',
-                  }}>{c}</button>
-                ))}
-                <select style={{ ...inputSt, width: 'auto', padding: '5px 8px', fontSize: 12 }} value={deckForm.bracket} onChange={e => setDeckForm(f => ({ ...f, bracket: e.target.value }))}>
-                  <option value="">— livello</option>
-                  {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
-                </select>
-                <select style={{ ...inputSt, width: 'auto', padding: '5px 8px', fontSize: 12 }} value={deckForm.archetype} onChange={e => setDeckForm(f => ({ ...f, archetype: e.target.value }))}>
-                  <option value="">— archetipo</option>
-                  {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-              {deckFormError && <div style={{ color: t.danger, fontSize: 12, marginBottom: 8 }}>{deckFormError}</div>}
-              <button type="submit" style={{ ...btnPrimary, fontSize: 13, padding: '8px 18px' }} disabled={addingDeck}>
-                {addingDeck ? 'Salvataggio...' : '+ Crea mazzo'}
-              </button>
-            </form>
-          )}
-
-          {loadingDecks && <SkeletonList rows={2} />}
-          {!loadingDecks && myFullDecks.length === 0 && (
-            <EmptyState icon="🎴" title="Nessun mazzo" message="Aggiungi il tuo primo mazzo con il pulsante +." />
-          )}
-          {!loadingDecks && myFullDecks.map(deck => {
-            const ds = getDeckStat(deck.id)
-            const deckSelectSt = { padding: '0 8px', minHeight: 36, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, cursor: 'pointer', outline: 'none', textOverflow: 'ellipsis' }
-            return (
-              <div key={deck.id} className="ct-lift ct-fade-up" style={{ borderRadius: 14, marginBottom: 10, overflow: 'hidden', border: `1px solid ${t.border}`, boxShadow: t.shadow }}>
-                {deck.commander ? (
-                  <div
-                    onClick={() => navigate(`/mazzo/${deck.id}`)}
-                    title="Apri profilo mazzo"
-                    style={{ position: 'relative', height: 80, background: '#1a1640', overflow: 'hidden', cursor: 'pointer' }}
-                  >
-                    <CachedArt name={deck.commander} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.08) 55%, transparent 100%)' }} />
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 12px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>{deck.name}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>{deck.commander}</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {deck.archetype && <ArchetypeBadge archetype={deck.archetype} />}
-                          {deck.bracket && <BracketBadge bracket={deck.bracket} />}
-                        </div>
-                        {deck.colors && <div style={{ display: 'flex', gap: 2 }}>{deck.colors.split('').map(c => <ColorPip key={c} c={c} />)}</div>}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ padding: '10px 12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgSurface }}>
-                    <div onClick={() => navigate(`/mazzo/${deck.id}`)} style={{ fontWeight: 600, fontSize: 14, color: t.text, cursor: 'pointer' }}>{deck.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {deck.archetype && <ArchetypeBadge archetype={deck.archetype} />}
-                      {deck.bracket && <BracketBadge bracket={deck.bracket} />}
-                    </div>
-                  </div>
-                )}
-                {/* Toolbar */}
-                <div style={{ padding: '8px 10px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', background: t.bgSurface, borderTop: deck.commander ? 'none' : `1px solid ${t.border}` }}>
-                  {ds.games > 0 && (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: ds.winRate >= 50 ? t.win : t.textSub, marginRight: 2, flexShrink: 0 }}>
-                      {ds.winRate}% WR
-                    </span>
-                  )}
-                  {/* Archetipo + livello: su mobile riga intera, così non vengono schiacciati dai pulsanti */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, flex: isMobile ? '1 1 100%' : '1 1 260px', order: isMobile ? -1 : 0, minWidth: 0 }}>
-                    <select
-                      aria-label={`Archetipo di ${deck.name}`}
-                      value={deck.archetype || ''}
-                      onChange={e => updateDeckArchetype(deck.id, e.target.value)}
-                      style={{ ...deckSelectSt, width: '100%', minWidth: 0 }}
-                    >
-                      <option value="">— archetipo</option>
-                      {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                    <select
-                      aria-label={`Livello di ${deck.name}`}
-                      value={deck.bracket || ''}
-                      onChange={e => updateDeckBracket(deck.id, e.target.value)}
-                      style={{ ...deckSelectSt, width: '100%', minWidth: 0 }}
-                    >
-                      <option value="">— livello</option>
-                      {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
-                    </select>
-                  </div>
-                  <DeckListPanel
-                    decklist={deck.decklist}
-                    commander={deck.commander}
-                    name={deck.name}
-                    onSave={async (newList, newCommander, newColors, newName) => {
-                      await api.updateDeck(deck.id, { name: newName, decklist: newList, commander: newCommander, colors: newColors || undefined })
-                      await loadMyDecks()
-                      toast('Mazzo aggiornato', 'success')
-                    }}
-                  />
-                  <button style={btnDanger} onClick={() => deleteDeck(deck.id, deck.name)}>Elimina</button>
-                </div>
-              </div>
-            )
-          })}
+          <MyDecks limit={4} />
         </div>
       ) : (
         /* Profilo altrui: read-only */
