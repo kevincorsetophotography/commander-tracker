@@ -18,7 +18,8 @@ const hhmm = (d) => { const x = new Date(d); return `${pad(x.getHours())}:${pad(
 function TableCard({ table, me, t, onChange, showEvent }) {
   const navigate = useNavigate()
   const { confirm } = useFeedback()
-  const [busy, setBusy] = useState(false)
+  const [busyState, setBusy] = useState(false)
+  const busy = busyState || !!table.pending // tavolo appena creato: azioni attive alla risposta del server
   const seated = table.seats.some(s => s.userId === me.id)
   const isCreator = table.createdById === me.id
   const canEdit = isCreator || me.role === 'ADMIN'
@@ -195,16 +196,30 @@ export default function OpenTables({ eventId = null, title = 'Tavoli aperti', sh
 
   const onChange = (id, res) => {
     if (res?.deleted) setTables(prev => prev.filter(tb => tb.id !== id))
-    else if (res?.id) setTables(prev => prev.map(tb => tb.id === id ? res : tb))
+    else if (res?.id) setTables(prev => prev.map(tb => tb.id === id ? { ...res, clientKey: tb.clientKey } : tb))
   }
 
+  // Ottimistico: il tavolo compare subito (seduto, aperto) e viene sostituito dalla
+  // risposta del server; se la chiamata fallisce sparisce. Il tocco non aspetta la rete.
   const create = async () => {
+    if (creating) return
     setCreating(true)
+    const tempId = `pending-${Date.now()}`
+    const me = { id: user.id, username: user.username, avatarCardName: user.avatarCardName, avatarScryfallId: user.avatarScryfallId }
+    const pending = {
+      id: tempId, pending: true, startsAt: new Date().toISOString(), isOpen: true, maxSeats: 5,
+      createdById: user.id, createdBy: me, eventId, event: null, gameId: null, game: null,
+      seats: [{ id: `${tempId}-seat`, userId: user.id, user: me, deckId: null }],
+    }
+    setTables(prev => [...(prev || []), pending])
     try {
       const tb = await api.createTable(eventId ? { eventId } : {})
-      setTables(prev => [...(prev || []), tb])
+      setTables(prev => (prev || []).map(x => x.id === tempId ? { ...tb, clientKey: tempId } : x))
       sonner.success('Tavolo aperto!', { description: 'Gli altri possono sedersi. Puoi chiuderlo quando siete al completo.' })
-    } catch (e) { sonner.error(e.error || 'Impossibile aprire il tavolo') }
+    } catch (e) {
+      setTables(prev => (prev || []).filter(x => x.id !== tempId))
+      sonner.error(e.error || 'Impossibile aprire il tavolo')
+    }
     finally { setCreating(false) }
   }
 
@@ -222,7 +237,7 @@ export default function OpenTables({ eventId = null, title = 'Tavoli aperti', sh
         <div style={{ fontSize: 14, color: t.textSub, marginBottom: 12, lineHeight: 1.5 }}>{emptyHint || 'Nessun tavolo aperto. Aprine uno: gli altri potranno sedersi.'}</div>
       )}
       {[...active, ...list.filter(tb => tb.gameId)].map(tb => (
-        <TableCard key={tb.id} table={tb} me={user} t={t} onChange={onChange} showEvent={showEvent} />
+        <TableCard key={tb.clientKey || tb.id} table={tb} me={user} t={t} onChange={onChange} showEvent={showEvent} />
       ))}
 
       {!mineActive ? (
