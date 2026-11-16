@@ -652,6 +652,7 @@ export default function PlayerProfilePage() {
           )}
           {!loadingDecks && myFullDecks.map(deck => {
             const ds = getDeckStat(deck.id)
+            const deckSelectSt = { padding: '0 8px', minHeight: 36, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 13, cursor: 'pointer', outline: 'none', textOverflow: 'ellipsis' }
             return (
               <div key={deck.id} className="ct-lift ct-fade-up" style={{ borderRadius: 14, marginBottom: 10, overflow: 'hidden', border: `1px solid ${t.border}`, boxShadow: t.shadow }}>
                 {deck.commander ? (
@@ -692,22 +693,27 @@ export default function PlayerProfilePage() {
                       {ds.winRate}% WR
                     </span>
                   )}
-                  <select
-                    value={deck.archetype || ''}
-                    onChange={e => updateDeckArchetype(deck.id, e.target.value)}
-                    style={{ padding: '4px 6px', borderRadius: 6, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none', flex: 1, minWidth: 0 }}
-                  >
-                    <option value="">— archetipo</option>
-                    {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                  <select
-                    value={deck.bracket || ''}
-                    onChange={e => updateDeckBracket(deck.id, e.target.value)}
-                    style={{ padding: '4px 6px', borderRadius: 6, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: 12, cursor: 'pointer', outline: 'none' }}
-                  >
-                    <option value="">— livello</option>
-                    {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
-                  </select>
+                  {/* Archetipo + livello: su mobile riga intera, così non vengono schiacciati dai pulsanti */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, flex: isMobile ? '1 1 100%' : '1 1 260px', order: isMobile ? -1 : 0, minWidth: 0 }}>
+                    <select
+                      aria-label={`Archetipo di ${deck.name}`}
+                      value={deck.archetype || ''}
+                      onChange={e => updateDeckArchetype(deck.id, e.target.value)}
+                      style={{ ...deckSelectSt, width: '100%', minWidth: 0 }}
+                    >
+                      <option value="">— archetipo</option>
+                      {ARCHETYPE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                    <select
+                      aria-label={`Livello di ${deck.name}`}
+                      value={deck.bracket || ''}
+                      onChange={e => updateDeckBracket(deck.id, e.target.value)}
+                      style={{ ...deckSelectSt, width: '100%', minWidth: 0 }}
+                    >
+                      <option value="">— livello</option>
+                      {BRACKET_OPTIONS.map(b => <option key={b} value={b}>B{b} · {BRACKETS[b].label}</option>)}
+                    </select>
+                  </div>
                   <DeckListPanel
                     decklist={deck.decklist}
                     commander={deck.commander}
