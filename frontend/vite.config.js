@@ -15,6 +15,7 @@ function serveDocsPlugin() {
         try {
           if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
             if (filePath.endsWith('.png'))  res.setHeader('Content-Type', 'image/png')
+            else if (filePath.endsWith('.webp')) res.setHeader('Content-Type', 'image/webp')
             else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) res.setHeader('Content-Type', 'image/jpeg')
             res.end(fs.readFileSync(filePath))
           } else { next() }
@@ -25,10 +26,8 @@ function serveDocsPlugin() {
       const src = resolve(__dirname, '..', 'docs', 'img')
       const dest = join(options.dir, 'docs', 'img')
       try {
-        fs.mkdirSync(dest, { recursive: true })
-        for (const file of fs.readdirSync(src)) {
-          fs.copyFileSync(join(src, file), join(dest, file))
-        }
+        // ricorsivo: gli screenshot della guida stanno in docs/img/guida/
+        fs.cpSync(src, dest, { recursive: true })
       } catch (e) {
         console.warn('[serve-docs] Could not copy docs/img:', e.message)
       }

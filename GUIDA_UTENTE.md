@@ -1,435 +1,593 @@
-# 🐸 Commanderone · Guida Utente
+# 🐸 Commanderone · Guida all’app
 
-Benvenuto su **Commanderone**, il portale del gruppo **Villastellone** per tracciare le partite di Magic: The Gathering in formato **Commander (EDH)**.
+Tutto quello che puoi fare nel portale del gruppo **Commanderone Villastellone**, dal primo accesso al segnapunti in mezzo al tavolo.
 
-Questa guida mostra tutto quello che puoi fare, con screenshot presi direttamente dall'app su telefono.
-
----
+> Questa guida è anche dentro l’app: tocca il tuo avatar → **Guida utente** (pagina `/guida`).
 
 ## Indice
 
-1. [Accesso e registrazione](#1-accesso-e-registrazione)
-2. [Navigazione — il dock e l'header](#2-navigazione--il-dock-e-lheader)
-3. [Feed — la home](#3-feed--la-home)
-4. [Gioca](#4-gioca)
-5. [Registrare una partita](#5-registrare-una-partita)
-6. [I miei mazzi](#6-i-miei-mazzi)
-7. [La lista del mazzo](#7-la-lista-del-mazzo)
-8. [Gruppo — statistiche del gruppo](#8-gruppo--statistiche-del-gruppo)
-9. [Profilo giocatore](#9-profilo-giocatore)
-10. [Profilo mazzo](#10-profilo-mazzo)
-11. [Eventi — il calendario](#11-eventi--il-calendario)
-12. [Judge Bot](#12-judge-bot)
-13. [Notifiche](#13-notifiche)
-14. [Installare l'app sul telefono](#14-installare-lapp-sul-telefono)
-15. [Per gli amministratori](#15-per-gli-amministratori)
-16. [Domande frequenti](#16-domande-frequenti)
+1. [Primi passi](#primi-passi)
+2. [Muoversi nell’app](#navigazione)
+3. [Feed, la home](#feed)
+4. [Gioca](#gioca)
+5. [Tavoli aperti](#tavoli)
+6. [Il segnapunti](#segnapunti)
+7. [Segnapunti libero](#segnapunti-libero)
+8. [Registrare una partita](#registra)
+9. [Partite, commenti e reazioni](#partita)
+10. [I tuoi mazzi](#mazzi)
+11. [Gruppo e stagioni](#gruppo)
+12. [Il tuo profilo](#profilo)
+13. [Eventi e tornei](#eventi)
+14. [Il Giudice](#giudice)
+15. [Notifiche](#notifiche)
+16. [Organizzatori e amministratori](#ruoli)
+17. [Domande frequenti](#domande-frequenti)
 
 ---
 
-## 1. Accesso e registrazione
+<a id="primi-passi"></a>
 
-![Schermata di login](docs/img/mobile-login.png)
+## 1. Primi passi
 
-- Se hai già un account inserisci **username** e **password** e premi **Accedi**.
-- Prima volta? Premi **Registrati**: ti verrà chiesto anche un **codice d'invito**.
+**Crea l’account, entra e metti l’app sulla schermata Home del telefono.**
 
-> 🔑 **Il codice d'invito** lo chiedi a un membro del gruppo o all'amministratore. Senza di esso non è possibile creare un account.
+<img src="docs/img/guida/login.webp" alt="Schermata di accesso" width="300">
 
----
+*La pagina di accesso. Da qui c’è anche il link alla presentazione del gruppo.*
 
-## 2. Navigazione — il dock e l'header
+### Accedere
 
-![Home con dock visibile](docs/img/mobile-dock-home.png)
+1. Apri il sito e inserisci **nome utente** e **password**.
+2. Premi **Accedi**: entri nel Feed, la home del portale.
+3. L’accesso resta attivo sul dispositivo. Quando la sessione scade l’app te lo dice e ti riporta qui.
 
-Su telefono la navigazione è tutta raggiungibile con il pollice:
+### Registrarsi la prima volta
 
-**Header in alto:**
-- Logo e nome del portale
-- 👤 **Il tuo nome/avatar** — toccalo per aprire direttamente il tuo profilo
-- 🔔 **Campanella** — notifiche (pallino rosso se ci sono novità)
-- 🌙/☀ **Tema** — passa da dark a light (si ricorda sul dispositivo)
-- **Esci** — disconnessione
+Premi **Registrati**, scegli nome utente e password e inserisci il **codice d’invito**. Il codice lo dà un membro del gruppo o un amministratore: senza non si crea l’account.
 
-**Dock in basso — 5 tasti:**
+> 💡 Hai dimenticato la password? Chiedi a un amministratore di reimpostarla dal pannello Admin.
 
-| Tasto | Dove va |
-|-------|---------|
-| 🏠 **Feed** | La home: riassunto stagione + ultime partite |
-| 🎮 **Gioca** | Registra una partita o consulta il Judge Bot |
-| 📅 **Eventi** | Il calendario del gruppo |
-| 📊 **Gruppo** | Statistiche complete del gruppo |
-| 👤 **Io** | Il tuo profilo personale |
+### Installare l’app sul telefono
 
-Su **desktop** c'è la barra in alto con le voci: Feed · Gioca · Eventi · Gruppo · Mazzi · (Admin).
+Commanderone è una web app installabile: si apre a schermo intero come un’app vera, senza passare dallo store.
+
+| Telefono | Come fare |
+|---|---|
+| iPhone (Safari) | Tasto **Condividi** → **Aggiungi alla schermata Home** |
+| Android (Chrome) | Menu **⋮** → **Installa app** (o **Aggiungi a schermata Home**) |
+
+> 💡 Chi non è ancora del gruppo può conoscerci dalla pagina pubblica **/info**: chi siamo, come giochiamo, quando e dove. Da lì il pulsante **Entra nel pod** porta al login.
 
 ---
 
-## 3. Feed — la home
+<a id="navigazione"></a>
 
-![Feed — benvenuto e classifica](docs/img/mobile-feed.png)
+## 2. Muoversi nell’app
 
-Il Feed è la prima schermata dopo il login. Mostra tutto quello che conta in un colpo d'occhio:
+**In alto il logo, la campanella e il tuo avatar. In basso la barra con le cinque sezioni.**
 
-- **Card di benvenuto** — "Ciao, [nome]" con la stagione in corso, il tuo rank e win rate attuali. Se sei in streak compare anche quella.
-- **Prossimo evento** — banner verde con nome, data e numero di iscritti. Toccalo per aprire il dettaglio dell'evento.
-- **Stagione corrente** — mini-classifica con i top 3 qualificati e i rispettivi punti. Tocca **Vedi classifica** per aprire la tab Stagione in Gruppo.
-- **Deck Spotlight** — il mazzo più in forma degli ultimi 10 giorni (almeno 3 partite), con win rate e nome del proprietario. Toccalo per aprire il profilo del mazzo.
-- **Settimana** — partite giocate questa settimana con il confronto rispetto alla scorsa e un grafico a barre giorno per giorno.
+<img src="docs/img/guida/header.webp" alt="Barra in alto" width="390">
 
-![Feed — Deck Spotlight e attività](docs/img/mobile-feed-cards.png)
+*Barra in alto: logo, notifiche e avatar.*
 
-- **Attività recente** — le ultime partite del gruppo in ordine cronologico, con vincitore e partecipanti. Le notifiche non lette compaiono qui con un bordo colorato.
+<img src="docs/img/guida/dock.webp" alt="Barra di navigazione in basso" width="390">
+
+*La barra in basso. Il pulsante tondo al centro è Gioca.*
+
+| Pulsante | Cosa trovi |
+|---|---|
+| **Feed** | La home: la tua stagione, la prossima serata e le ultime partite |
+| **Eventi** | Il calendario. Il pallino verde segnala un evento in arrivo |
+| **Gioca** (centro) | Registra partita, tavoli aperti, Giudice |
+| **Gruppo** | Classifica, giocatori, mazzi e storico di tutti |
+| **Io** | Il tuo profilo |
+
+### Il menu dell’avatar
+
+<img src="docs/img/guida/menu-account.webp" alt="Menu che si apre toccando l’avatar" width="300">
+
+*Tocca il tuo avatar in alto a destra.*
+
+- **Il mio profilo** e **I miei mazzi**.
+- **Segnapunti**: punti vita per una partita qualsiasi, anche fuori dai tavoli (vedi il capitolo dedicato).
+- **Tema chiaro / scuro**: lo scuro è pensato per la serata al tavolo. La scelta resta sul dispositivo.
+- **Guida utente**: questa pagina.
+- **Pannello Admin** (solo amministratori) ed **Esci**.
+
+> 💡 Da computer le stesse sezioni sono nella barra in alto: Feed, Gioca, Eventi, Gruppo, Mazzi.
 
 ---
+
+<a id="feed"></a>
+
+## 3. Feed, la home
+
+**Tutto quello che ti serve sapere appena apri l’app, in una colonna.**
+
+<img src="docs/img/guida/feed-serata.webp" alt="Card della prossima serata" width="360">
+
+*La prossima serata, con il pulsante per iscriverti.*
+
+**Prossima serata**: titolo, giorno, ora, luogo e chi è già iscritto. Tocca **Ci sei?** per segnarti: diventa **Iscritto!**. Ritoccalo per toglierti.
+
+<img src="docs/img/guida/feed-classifica.webp" alt="Classifica, win rate e podio" width="360">
+
+*La tua posizione nella stagione e il podio.*
+
+- **Classifica**: la tua posizione nella stagione in corso e i punti.
+- **Win rate**: percentuale di vittorie, con vinte e perse.
+- **Podio stagione**: i primi tre. **Classifica** apre quella completa.
+
+<img src="docs/img/guida/feed-spotlight.webp" alt="Mazzo del momento e attività della settimana" width="360">
+
+*Il mazzo più in forma e l’andamento della settimana.*
+
+- **Mazzo del momento**: il mazzo con la miglior percentuale negli ultimi 10 giorni (almeno 3 partite).
+- **Questa settimana**: partite giocate da lunedì, giorno per giorno, confrontate con la settimana scorsa.
+- **Attività recente**: le ultime partite del gruppo e le tue notifiche. Tocca una partita per aprirla.
+
+---
+
+<a id="gioca"></a>
 
 ## 4. Gioca
 
-![Pagina Gioca](docs/img/mobile-gioca.png)
+**Il pulsante centrale della barra. È il punto di partenza della serata.**
 
-La sezione **Gioca** è il punto di partenza per la serata:
+<img src="docs/img/guida/gioca-hero.webp" alt="Pulsante Registra partita" width="390">
 
-- **Registra Partita** — porta direttamente al form per segnare il risultato di una partita appena conclusa.
-- **Judge Bot** — hai un dubbio su una regola? Chiedilo qui (vedi sezione [12](#12-judge-bot)).
+*Il pulsante grande porta dritto a Registra partita.*
 
-Se hai già giocato di recente, sotto alle CTA trovi anche i **tuoi mazzi usati di recente** con un link rapido al profilo di ciascuno.
+- **Registra partita**: il risultato di una partita appena finita.
+- **Tavoli aperti adesso**: siediti a un tavolo o aprine uno tu (capitolo successivo).
+- **Stasera**: se sei in un tavolo di torneo compare qui, con il pulsante per registrarne il risultato.
+- **Chiedi al Giudice**: dubbi sulle regole.
+- **Ultimi mazzi usati**, **Prossimo evento** e **La tua ultima partita**, a un tocco.
 
----
+<img src="docs/img/guida/gioca-altro.webp" alt="Giudice, ultimi mazzi, prossimo evento, ultima partita" width="360">
 
-## 5. Registrare una partita
-
-![Form nuova partita](docs/img/mobile-nuova-partita.png)
-
-Premi **Registra Partita** da Gioca (o accedi direttamente da Gioca → Registra Partita).
-
-1. **Data partita** — di default è oggi; puoi cambiare per segnare partite passate.
-2. **Giocatori al tavolo** — per ogni posto scegli **giocatore** e **mazzo**. Servono almeno 3; con **+ Aggiungi giocatore** arrivi a 5.
-3. **Chi ha vinto?** — seleziona il vincitore dalla lista.
-4. **Ordine di uscita** *(facoltativo)* — tocca i giocatori eliminati nell'ordine in cui sono usciti, dal primo all'ultimo. Il vincitore è automaticamente 1°. Serve per i piazzamenti e le statistiche di sopravvivenza.
-5. **Eliminazioni** *(facoltativo)* — per ogni eliminato indica chi l'ha buttato fuori. Sblocca le statistiche di kill, arcinemico e preda preferita.
-6. **Note** *(facoltativo)* — un appunto sulla partita ("combo al turno 7", ecc.).
-7. Premi **Salva partita** 🎉
-
-> I passi 4 e 5 sono opzionali: la partita viene registrata correttamente anche senza. Ma se li compili ottieni statistiche molto più ricche.
+*Più in basso: Giudice, mazzi recenti, prossimo evento e ultima partita.*
 
 ---
 
-## 6. I miei mazzi
+<a id="tavoli"></a>
 
-Apri il tuo profilo toccando **Io** nel dock (o il tuo nome nell'header): trovi la sezione **I miei mazzi** con tutte le operazioni di creazione, modifica ed eliminazione. Su desktop è disponibile anche la voce **Mazzi** nella barra in alto. La tab **Mazzi** in **Gruppo** mostra i mazzi di tutti i giocatori ma non ha form di modifica.
+## 5. Tavoli aperti
 
-### Aggiungere un mazzo
-Premi **+ Aggiungi** nella sezione *I miei mazzi*:
-1. Scrivi il **nome** del mazzo.
-2. Scrivi il **Commander** — man mano che digiti compaiono i suggerimenti ufficiali: scegli dall'elenco.
-3. I **colori** si rilevano in automatico dal commander (puoi aggiustarli a mano con i pallini W/U/B/R/G).
-4. Scegli il **Livello** e l'**Archetipo** (entrambi facoltativi, vedi sotto).
-5. Premi **+ Crea mazzo**.
+**Formare un tavolo con un tocco: tu lo apri, gli altri vedono i posti liberi e si siedono.**
 
-### Modificare un mazzo
+<img src="docs/img/guida/tavoli-aperti.webp" alt="Card di un tavolo aperto" width="360">
 
-![Toolbar modifica mazzo](docs/img/mobile-mazzi.png)
+*Un tavolo aperto da Ramuh con quattro giocatori e un posto libero.*
 
-Ogni card nella sezione *I miei mazzi* ha una toolbar in basso con cui puoi modificare il mazzo senza aprire nessuna pagina separata:
+### Aprire un tavolo
 
-| Controllo | Cosa fa |
-|-----------|---------|
-| **Menù Archetipo** | Cambia l'archetipo del mazzo — si salva immediatamente |
-| **Menù Livello** | Cambia il bracket (B1–B4) — si salva immediatamente |
-| **Lista** / **Lista ✓** | Apre il pannello decklist (vedi [sezione 7](#7-la-lista-del-mazzo)) |
+1. In **Gioca** (o nella pagina della serata) premi **Apri un tavolo**. Sei già seduto, l’orario è adesso.
+2. Gli altri vedono il tavolo e premono **Siediti**. Ti arriva una notifica per ognuno.
+3. Quando siete al completo usa l’interruttore **Aperto** per chiuderlo: nessun altro potrà entrare.
+4. Premi **Apri il tavolo** per la pagina del tavolo: mazzi e segnapunti.
 
-All'interno del pannello **Lista**, premi **Modifica mazzo** per entrare in modalità di modifica completa: puoi cambiare il **nome del mazzo**, il **commander** e le **carte** della lista. Premi **Salva** per confermare tutto insieme.
+- Al massimo **5 posti**, chi apre compreso.
+- Puoi cambiare l’**orario**, togliere qualcuno con la **×** o **cancellare** il tavolo (cestino).
+- **Alzati** ti toglie dal tavolo. Se si alza chi l’ha aperto, il tavolo passa al primo seduto.
+- Se c’è una serata in calendario il tavolo si aggancia da solo a quella serata. Nei tornei 1v1 non si aprono tavoli.
 
-### Eliminare un mazzo
-Nella toolbar della card, premi **Elimina**. Ti viene chiesta conferma prima di procedere.
+### La pagina del tavolo
 
-> Non è possibile eliminare un mazzo che ha già partite registrate. In quel caso contatta un amministratore.
+<img src="docs/img/guida/tavolo-mazzi.webp" alt="Giocatori e mazzi del tavolo" width="360">
 
-### Il livello (bracket)
-Indica la potenza del mazzo — utile per comporre tavoli equilibrati:
+*Ognuno sceglie il mazzo che sta giocando.*
 
-| Livello | Significato |
-|---------|-------------|
+La vedono solo i giocatori seduti. Tocca la tua riga per scegliere il mazzo. Chi ha aperto il tavolo può sceglierlo per tutti.
+
+<img src="docs/img/guida/tavolo-segnapunti.webp" alt="Riquadro del segnapunti" width="360">
+
+*Il riassunto dei punti, aggiornato per tutto il tavolo.*
+
+A fine partita premi **Registra risultati** (servono almeno 3 giocatori): si apre Registra partita con giocatori e mazzi già inseriti. Salvata la partita, il tavolo risulta **Concluso** e il segnapunti si azzera.
+
+---
+
+<a id="segnapunti"></a>
+
+## 6. Il segnapunti
+
+**Il telefono al centro del tavolo, un riquadro per giocatore girato verso di lui. Condiviso con tutto il tavolo.**
+
+<img src="docs/img/guida/segnapunti.webp" alt="Segnapunti a schermo intero con quattro giocatori" width="300">
+
+1. Tocca la **metà “meno”** del riquadro: −1. Tieni premuto: −10, ripetuto.
+2. Tocca la **metà “più”**: +1. Tieni premuto: +10, ripetuto.
+3. **Scorri** lungo il riquadro per cambiare contatore: vita → veleno → danni da commander di ciascun avversario. I puntini dicono dove sei. Dopo 5 secondi torna alla vita.
+4. **Tieni premuto il nome** e trascinalo su un altro posto: i due giocatori si scambiano di posto.
+5. Tocca lo **stemma** al centro per il menu.
+6. Veleno e danni da commander restano visibili in piccolo sotto la vita.
+
+Si apre dalla pagina del tavolo con **Apri segnapunti**. Ogni modifica arriva sui telefoni di tutti i seduti in pochi secondi. Chiuderlo non azzera niente.
+
+| Contatore | Parte da | Fuori quando |
+|---|---|---|
+| Vita | 40 | arriva a 0 |
+| Veleno | 0 | arriva a 10 |
+| Danni da commander | 0 per avversario | 21 dallo stesso commander (tolgono anche vita) |
+
+### Il menu dello stemma
+
+<img src="docs/img/guida/segnapunti-menu.webp" alt="Menu del segnapunti" width="300">
+
+*Il menu che si apre toccando lo stemma.*
+
+- **Annulla ultima azione**: mostra cosa annulla prima di farlo.
+- **Ripristina punti vita**: tutti a 40, veleno e danni a 0. Solo chi ha aperto il tavolo.
+- **Ruota i posti**: tutti scalano di un posto, per tutto il tavolo.
+- **Chi inizia?** e **Tira d20**: valgono solo sul tuo telefono.
+- **Chiudi segnapunti**: torni alla pagina del tavolo, i punti restano.
+
+---
+
+<a id="segnapunti-libero"></a>
+
+## 7. Segnapunti libero
+
+**Per una partita qualsiasi, anche senza tavolo e con amici che non hanno l’account.**
+
+<img src="docs/img/guida/segnapunti-libero.webp" alt="Preparazione del segnapunti libero" width="300">
+
+*Un giocatore registrato e un ospite.*
+
+1. Tocca il tuo avatar → **Segnapunti**. Ci sei già tu.
+2. Aggiungi giocatori del gruppo con **Giocatori** (col loro mazzo) o amici con **Ospite** (nome e, se vuoi, commander).
+3. Da 2 a 6 giocatori, poi **Inizia**. I gesti sono gli stessi del segnapunti del tavolo.
+
+- Resta **solo su questo telefono**. Se ricarichi la pagina i punti ci sono ancora.
+- **Chiudi segnapunti** chiede conferma e cancella i punti.
+- Se siete almeno 3 e tutti registrati, nel menu c’è **Registra risultati**: apre Registra partita già compilata.
+
+---
+
+<a id="registra"></a>
+
+## 8. Registrare una partita
+
+**Quattro passi, due obbligatori. Più dettagli inserisci, più ricche sono le statistiche.**
+
+### 1. Chi ha giocato
+
+<img src="docs/img/guida/nuova-picker.webp" alt="Scelta dei giocatori" width="300">
+
+*Cerca per nome o tocca chi ha giocato di recente.*
+
+Premi **Scegli i giocatori** e tocca da 3 a 5 persone. In alto trovi chi ha giocato di recente. Poi scegli il **mazzo** di ognuno: chi ne ha uno solo lo trova già inserito.
+
+<img src="docs/img/guida/nuova-giocatori.webp" alt="Giocatori con il mazzo scelto" width="360">
+
+*Ogni giocatore con il suo mazzo.*
+
+### 2. Chi ha vinto
+
+<img src="docs/img/guida/nuova-vincitore.webp" alt="Scelta del vincitore" width="360">
+
+*Tocca il vincitore.*
+
+### 3. Ordine di eliminazione (facoltativo)
+
+<img src="docs/img/guida/nuova-eliminazioni.webp" alt="Ordine di eliminazione e punti stagione" width="360">
+
+*Chi è uscito per primo, chi l’ha eliminato e i punti che ne derivano.*
+
+Tocca i giocatori **dal primo eliminato all’ultimo**: i piazzamenti si calcolano da soli. Sotto ognuno indica **chi l’ha eliminato**: serve per arcinemico, kill e primati.
+
+> 💡 Senza ordine di eliminazione contano solo vittoria (+3) e presenza (+1). Con l’ordine completo prendono punti anche 2° e 3°.
+
+### 4. Data e note
+
+La data è oggi: toccala in alto per una partita passata. Nelle **Note** un ricordo della partita. Poi **Salva**, e partono i coriandoli.
+
+> 💡 Se arrivi da un tavolo aperto, da un tavolo di torneo o dal segnapunti libero, giocatori e mazzi sono già inseriti.
+
+---
+
+<a id="partita"></a>
+
+## 9. Partite, commenti e reazioni
+
+**Ogni partita ha la sua pagina, con piazzamenti, eliminazioni e la parte social.**
+
+<img src="docs/img/guida/partita.webp" alt="Pagina di una partita" width="300">
+
+*Vincitore, piazzamenti, reazioni e commenti.*
+
+- La apri toccando una partita nel Feed, nello Storico o in un profilo.
+- **Reazioni**: 👍 🔥 😂 😮 💀 🎉 🐸. Tocca per reagire, ritocca per togliere.
+- **Commenti**: scrivi e premi **Invia**. I tuoi li elimini con la ×.
+- Gli altri giocatori della partita ricevono una notifica.
+
+> 💡 Hai sbagliato a registrare? Un amministratore può correggere o eliminare la partita dal pannello Admin.
+
+---
+
+<a id="mazzi"></a>
+
+## 10. I tuoi mazzi
+
+**Crea i mazzi una volta, poi li scegli in un tocco a ogni partita.**
+
+<img src="docs/img/guida/mazzi.webp" alt="Pagina I miei mazzi" width="300">
+
+*Ogni mazzo con l’illustrazione del commander, livello e archetipo.*
+
+### Creare un mazzo
+
+1. Avatar → **I miei mazzi** → **Nuovo mazzo** (o **+ Aggiungi** dal tuo profilo).
+2. Dai un **nome** e scrivi il **commander**: scegli dai suggerimenti, così l’illustrazione è giusta.
+3. I **colori** si riconoscono dal commander.
+4. Scegli **livello** e **archetipo**, se vuoi, e salva.
+
+### Livello e archetipo
+
+Si cambiano dai due menu sulla card e si salvano subito.
+
+| Livello | In breve |
+|---|---|
 | **B1 · Casual** | Divertimento, niente combo veloci |
 | **B2 · Bilanciato** | Mazzo onesto, sinergie ma non spietato |
-| **B3 · Potente** | Ottimizzato, combo e tutori |
+| **B3 · Potente** | Ottimizzato, combo e tutor |
 | **B4 · cEDH** | Massima potenza competitiva |
 
-### L'archetipo
-Dice *come* gioca il mazzo al di là dei colori:
+Archetipi: **Aggro, Midrange, Control, Combo, Stax, Aristocrats, Tokens, Voltron, Ramp**.
 
-| Archetipo | In breve |
-|-----------|----------|
-| **Aggro** | Pressione veloce |
-| **Midrange** | Carte efficienti, gioco di valore |
-| **Control** | Rimozioni e contromagie |
-| **Combo** | Chiude con una combinazione |
-| **Stax** | Blocca le risorse altrui |
-| **Aristocrats** | Sacrifici e drenaggi |
-| **Tokens** | Sciami di pedine |
-| **Voltron** | Una sola minaccia super-potenziata |
-| **Ramp** | Accelera il mana per minacce enormi |
+### La lista delle carte
 
-Puoi cambiare livello e archetipo in qualsiasi momento dalla card del mazzo — il badge si aggiorna subito ovunque.
+Premi **Lista** sulla card. Puoi **importarla da un link** (Archidekt funziona sempre; Moxfield spesso blocca: lì usa Export → Text e incolla) oppure scriverla a mano, una carta per riga: `1 Sol Ring`. Con **Modifica mazzo** cambi anche nome e commander.
 
-### La miniatura
-Ogni mazzo mostra l'illustrazione del commander come copertina. Su desktop passa il mouse per vederla in grande; su telefono tocca la carta nel profilo mazzo.
+> 💡 Al salvataggio l’app controlla che le carte siano **100** (commander compreso) e che ogni nome esista. Se qualcosa non torna ti dice quale carta correggere.
 
----
+### Il profilo del mazzo
 
-## 7. La lista del mazzo
+<img src="docs/img/guida/mazzo-profilo.webp" alt="Profilo mazzo, scheda Performance" width="360">
 
-Sulla card di ogni tuo mazzo c'è il pulsante **Lista** (diventa **Lista ✓** quando la lista è già caricata). Aprilo per vedere o modificare le 100 carte.
+*Performance: partite, win rate, matchup, prezzo stimato.*
 
-Il pannello si apre in **modalità visualizzazione**: vedi le carte divise per tipo. Per modificare premi **Modifica mazzo**: si aprono i campi di editing completo.
+<img src="docs/img/guida/mazzo-lista.webp" alt="Profilo mazzo, scheda Lista carte" width="360">
 
-![Modifica lista mazzo](docs/img/mobile-mazzo-modifica.png)
+*Lista carte divisa per tipo. Tocca una carta per vederla.*
 
-In modalità modifica puoi cambiare:
-- **Nome mazzo** — il campo è precompilato con il nome attuale.
-- **Commander** — autocomplete Scryfall; i colori si aggiornano in automatico al salvataggio.
-- **Lista carte** — 99 carte (commander escluso), una per riga nel formato `1 Sol Ring`.
-
-### Importare da URL
-Premi **Importa da URL**, incolla il link del mazzo da **Archidekt** (funziona sempre) e premi **Importa**: commander e carte si compilano da soli.
-
-> Se usi **Moxfield**: apri il mazzo lì → More → Export → Text, copia tutto e incollalo nel riquadro a mano.
-
-### Inserimento manuale
-Scrivi il commander nel campo apposito e le 99 carte nel riquadro, una per riga nel formato `1 Sol Ring`.
-
-Quando premi **Salva** il sistema verifica che ci siano **esattamente 100 carte** (commander + 99) e che ogni nome esista su Scryfall. Se qualcosa non torna, ti dice esattamente cosa correggere. Al salvataggio, colori e immagine del mazzo si aggiornano automaticamente.
+Nella scheda **Performance** trovi anche la stima del prezzo in euro (prezzi Scryfall) e l’andamento del win rate. Un mazzo si elimina solo se non ha partite registrate.
 
 ---
 
-## 8. Gruppo — statistiche del gruppo
+<a id="gruppo"></a>
 
-La sezione **Gruppo** raccoglie tutte le statistiche collettive. In cima trovi 4 metriche globali (partite totali, giocatori, mazzi, top player), poi 4 tab.
+## 11. Gruppo e stagioni
 
-### Tab Stagione
+**Le statistiche di tutti: classifica della stagione, giocatori, mazzi e storico delle partite.**
 
-![Classifica stagionale](docs/img/mobile-gruppo-stagione.png)
+<img src="docs/img/guida/gruppo.webp" alt="Pagina Gruppo, scheda Stagione" width="300">
 
-La classifica del campionato in corso. Le stagioni durano **4 mesi** (Gen–Apr · Mag–Ago · Set–Dic) e si rinnovano da sole.
+*In alto i numeri del gruppo, sotto le quattro schede.*
 
-Il punteggio si assegna per piazzamento:
+### Come funziona la stagione
 
-| Posizione | Punti |
-|-----------|-------|
+Ci sono tre stagioni l’anno: **gennaio–aprile**, **maggio–agosto**, **settembre–dicembre**. Ripartono da sole.
+
+| Piazzamento | Punti |
+|---|---|
 | 1° (vittoria) | 3 |
 | 2° | 2 |
 | 3° | 1 |
-| 4°/5° | 0 |
 | Ogni partita giocata | +1 |
 
-Così anche chi arriva ultimo porta a casa 1 punto — l'importante è **esserci**. Per essere dichiarato campione bisogna aver giocato almeno il **30%** delle partite della stagione (chi è sotto soglia compare con l'etichetta *"non qualif."*).
+Per vincere la stagione bisogna essere **qualificati**: aver giocato almeno il **30%** delle partite della stagione. Col menu della stagione sfogli quelle passate.
 
-Usa il **menu a tendina** per sfogliare le stagioni passate.
+> 💡 Per le stagioni concluse c’è il pulsante **Infografica**: un riepilogo in tre slide da scaricare e pubblicare su Instagram.
 
-> I punti di 2° e 3° posto si calcolano solo se hai registrato l'**ordine di uscita** della partita.
+### Primati e meta
 
-**Primati** (sezione collassabile nella tab Stagione):
+<img src="docs/img/guida/gruppo-primati.webp" alt="I primati del gruppo" width="360">
 
-![Primati del gruppo](docs/img/mobile-gruppo-primati.png)
+*I record del gruppo.*
 
-L'albo d'oro: Re del mese, Streak record, Più vittorie, Miglior win rate, Mazzo più forte, Più presenze, Tavolo record, Re della sopravvivenza, Sfortunato, Più spietato, Bersaglio.
+**Primati**: re del mese, serie record, più vittorie, miglior win rate, mazzo più forte, più presenze, tavolo record, re della sopravvivenza, sfortunato, più spietato, bersaglio. **Meta colori**: win rate per colore e partite mese per mese.
 
-Tocca **Meta colori** per aprire il pannello con il win rate per colore e il grafico delle partite mensili.
+### Le altre schede
 
-### Tab Giocatori
-
-![Classifica giocatori](docs/img/mobile-gruppo-giocatori.png)
-
-Tutti i giocatori ordinati per win rate, con la barra di avanzamento. **Tocca un giocatore** per aprire il suo profilo completo.
-
-### Tab Mazzi
-
-![Classifica mazzi](docs/img/mobile-gruppo-mazzi.png)
-
-Tutti i mazzi del gruppo ordinati per win rate, con l'immagine del commander, il badge di livello e il badge archetipo. **Tocca un mazzo** per aprirne il profilo.
-
-### Tab Storico
-
-![Storico partite](docs/img/mobile-gruppo-storico.png)
-
-L'elenco completo di tutte le partite con vincitore, partecipanti e kill (`⚔️ chi → chi`). Filtra per **periodo** (7 giorni, mese, 3 o 6 mesi) o per **intervallo di date** personalizzato.
-
-Ogni partita ha la sua sezione **social**: **reazioni** emoji (👍 🔥 😂 😮 💀 🎉 🐸) e **commenti**. Tocca un'emoji per reagire — ritoccala per rimuoverla. Premi **💬 Commenta** per lasciare un messaggio; puoi eliminare i tuoi con la ✕.
+- **Giocatori**: tutti, in ordine di win rate. Tocca per aprire il profilo.
+- **Mazzi**: tutti i mazzi del gruppo, con livello e archetipo.
+- **Storico**: tutte le partite, filtrabili per periodo o per date, con reazioni e commenti.
 
 ---
 
-## 9. Profilo giocatore
+<a id="profilo"></a>
 
-![Profilo giocatore](docs/img/mobile-profilo-giocatore.png)
+## 12. Il tuo profilo
 
-Si apre toccando un giocatore nella tab Giocatori, nel Feed o nel dock **Io** per il tuo profilo. Puoi aprire il tuo profilo anche toccando **il tuo nome/avatar** nell'header in qualsiasi momento.
+**Avatar, stagione, achievement, mazzi e tutte le tue statistiche. Lo apri con Io nella barra.**
 
-Sul **tuo** profilo, in alto a destra compare il pulsante **? Guida** che apre questa guida.
+<img src="docs/img/guida/profilo.webp" alt="Profilo giocatore" width="300">
 
-### Immagine profilo
+*Il tuo profilo: avatar, win rate, stagione e achievement.*
 
-![Selezione avatar](docs/img/mobile-avatar-picker.png)
+### L’avatar
 
-Tocca l'icona **✏️** sull'avatar (solo nel tuo profilo) per scegliere un'illustrazione Magic come foto:
-1. Cerca qualsiasi carta Magic — l'autocomplete completa mentre digiti.
-2. Vedi l'anteprima dell'illustrazione prima di confermare.
-3. Premi **Usa come avatar** per salvarla.
+Finché non ne scegli uno, l’avatar è l’illustrazione del **commander che giochi di più**. Per sceglierlo tocca la **matita** sull’avatar, cerca una carta e scegli la stampa che preferisci.
 
-Puoi cambiarla o rimuoverla in qualsiasi momento. L'immagine compare **ovunque nel portale**: nell'header, nelle classifiche, nelle liste iscritti degli eventi e accanto ai commenti.
+<img src="docs/img/guida/profilo-avatar.webp" alt="Scelta dell’avatar" width="300">
 
-### Le sezioni del profilo
+*Ogni stampa ha la sua illustrazione.*
 
-- **Header** — avatar (illustrazione Magic o iniziali), win rate globale, partite totali, eventuale streak attiva.
-- **Achievement** — quanti ne hai sbloccati (es. *15/20, 3/6 segreti*) con l'anteprima del prossimo obiettivo. Tocca per espandere tutti i badge.
+Premi **Usa come avatar**. **Rimuovi** torna all’avatar automatico. L’avatar compare ovunque: classifiche, tavoli, commenti, iscritti agli eventi.
 
-![Achievement del giocatore](docs/img/mobile-giocatore-achievement.png)
+### Achievement
 
-- **Miglior Mazzo** — il mazzo con il win rate più alto tra quelli che hanno disputato almeno una partita. Toccalo per aprirne il profilo completo.
-- **I miei mazzi** *(solo sul tuo profilo)* — lista di tutti i tuoi mazzi con win rate e toolbar di modifica rapida (archetipo, livello, lista, elimina). Premi **+ Aggiungi** per creare un nuovo mazzo. Vedi [sezione 6](#6-i-miei-mazzi) per tutti i dettagli.
-- **Scontri diretti ⚔️** *(collassabile)* — scegli un avversario e vedi il vostro testa a testa: piazzamento medio, vittorie condivise, kill reciproci.
-- **Statistiche dettagliate** *(collassabile)* — kill totali, morti, arcinemico, preda preferita, piazzamento medio, andamento win rate nel tempo.
-- **Storico partite** — tutte le partite di quel giocatore.
+<img src="docs/img/guida/profilo-achievement.webp" alt="Elenco degli achievement" width="300">
 
----
+*Quelli sbloccati sono evidenziati.*
 
-## 10. Profilo mazzo
+- **26 achievement**: 20 visibili da subito, 6 **segreti** che compaiono solo quando li sblocchi.
+- Quando la sezione è chiusa vedi il **prossimo** da sbloccare.
+- Due si assegnano solo a **stagione conclusa**: campione e stagione perfetta.
+- Ogni sblocco ti arriva come notifica.
 
-![Profilo mazzo — Performance](docs/img/mobile-profilo-mazzo.png)
+### Le altre sezioni
 
-Si apre toccando un mazzo ovunque appaia. Mostra il banner con l'illustrazione del commander, poi due tab:
-
-**Tab Performance:**
-- Statistiche: partite, vittorie, win rate, miglior e peggior matchup.
-- Stima del prezzo del mazzo in euro (da Scryfall, se la lista è caricata).
-- Matchup contro tutti gli avversari con win rate.
-- Andamento del win rate nel tempo *(collassabile)*.
-- Storico partite con quel mazzo.
-
-**Tab Lista carte:**
-
-![Profilo mazzo — Lista carte](docs/img/mobile-mazzo-lista.png)
-
-Le 100 carte raggruppate per tipo (Commander, Creature, Istantanei, Stregonerie, Artefatti, Incantesimi, Planeswalker, Terre). **Tocca una carta** per vedere l'immagine in grande.
+- **Stagione corrente**: posizione, punti e se sei qualificato.
+- **I miei mazzi**: con livello, archetipo, lista ed eliminazione.
+- **Scontri diretti**: scegli un avversario e guarda il testa a testa.
+- **Statistiche dettagliate**: eliminazioni fatte e subite, arcinemico, preda preferita, piazzamento medio, andamento.
+- **Storico partite**.
 
 ---
 
-## 11. Eventi — il calendario
+<a id="eventi"></a>
 
-![Pagina eventi](docs/img/mobile-eventi.png)
+## 13. Eventi e tornei
 
-Tocca **📅 Eventi** nel dock per vedere il calendario del gruppo: serate Commander, ritrovi, tornei.
+**Il calendario del gruppo: serate, tornei multiplayer e tornei 1v1.**
 
-- Gli eventi **prossimi** sono in cima con un'etichetta *"tra N giorni"*, **Oggi** o **Domani**.
-- Ogni evento mostra data, orario, 📍 luogo, descrizione e numero di iscritti.
-- Gli eventi **passati** restano visibili in fondo, in grigio. Un evento diventa *passato* alle **05:00 del mattino successivo** (ora italiana): hai tutta la sera — e la notte — per iscriverti e consultarlo senza che scompaia dai prossimi.
+<img src="docs/img/guida/eventi.webp" alt="Card di un evento" width="360">
 
-### Ci sono!
-Tocca **Ci sono** su un evento per segnare la tua partecipazione: il pulsante si evidenzia e il tuo nome entra nella lista. Ripremi per toglierti.
+*Data, formato, luogo, chi organizza e chi viene.*
 
-> ✋ Solo gli **amministratori** possono creare, modificare o eliminare eventi.
+- Due schede: **Prossimi** e **Passati**. Un evento passa tra i passati alle 5 del mattino dopo.
+- **Ci sei?** ti iscrive, **Iscritto!** conferma. Ritoccalo per toglierti.
+- **Apri** porta alla pagina dell’evento.
 
----
+| Formato | Come si gioca |
+|---|---|
+| **Solo evento** | Serata libera: le partite registrate quel giorno compaiono nella pagina dell’evento |
+| **Multiplayer** | Tavoli da 3 a 5 (meglio 4) generati dall’organizzatore. Ogni tavolo è una partita vera: conta per stagione e statistiche |
+| **1v1** | Svizzera al meglio di 1 o di 3, massimo 4 turni, con classifica |
 
-## 12. Judge Bot
+### La pagina dell’evento
 
-![Judge Bot](docs/img/mobile-giudice.png)
+<img src="docs/img/guida/evento-testa.webp" alt="Intestazione dell’evento" width="360">
 
-Hai un dubbio su una regola Commander? Il **Judge Bot** risponde in italiano basandosi sulle **Comprehensive Rules ufficiali** e sull'oracle text di Scryfall.
+*Dettagli, organizzatore e iscritti.*
 
-Puoi raggiungerlo da **Gioca → Judge Bot**.
+<img src="docs/img/guida/evento-tavoli.webp" alt="Tavoli della serata" width="360">
 
-1. Scrivi la tua domanda nella casella di testo (anche in italiano informale — il bot capisce).
-2. Premi **Chiedi al Judge** (oppure **Ctrl+Invio** da tastiera).
-3. Ricevi: **risposta**, badge di confidenza, carte rilevate nella domanda, regole CR citate.
+*Il tuo tavolo è evidenziato. Quando è finito mostra chi ha vinto.*
 
-Sotto al form trovi le **ultime 20 domande del gruppo**: utile per vedere se qualcuno ha già chiesto la stessa cosa.
+- Nei multiplayer, quando tutti sono iscritti, l’organizzatore genera i **tavoli**.
+- Il risultato lo registra un giocatore del tavolo con **Registra partita del tavolo**: giocatori già inseriti.
+- Più in basso: **Tavoli aperti della serata** e **Partite della serata**.
+- Nei 1v1 si registra il punteggio del match (o il pareggio) e la classifica si aggiorna da sola.
 
-> Il Judge Bot usa l'AI (Groq) — le risposte sono indicative. Per partite ufficiali fai riferimento sempre alle regole ufficiali.
-
----
-
-## 13. Notifiche
-
-![Pannello notifiche](docs/img/mobile-notifiche.png)
-
-La **campanella 🔔** in alto mostra un pallino rosso quando hai novità non lette. Toccala per aprire l'elenco: aprendo il pannello tutte le notifiche vengono segnate come lette. **Tocca una notifica** per saltare al contenuto collegato.
-
-Ricevi una notifica quando:
-- 📅 un admin pubblica un **nuovo evento** nel calendario;
-- 🏆 sblocchi un **achievement** (prima vittoria, streak, arcobaleno…);
-- 💬 qualcuno **commenta** una partita a cui hai partecipato;
-- 🔥 qualcuno **reagisce** a una tua partita.
-
-> Le notifiche si aggiornano da sole ogni minuto — non serve ricaricare la pagina.
+> 💡 Servono mazzi per entrare in un tavolo di torneo: crea almeno un mazzo prima della serata.
 
 ---
 
-## 14. Installare l'app sul telefono
+<a id="giudice"></a>
 
-Commanderone è una **PWA**: puoi installarla come un'app vera senza passare dall'app store.
+## 14. Il Giudice
 
-**Android (Chrome):**
-Apri il sito → menu ⋮ → **Installa app** / **Aggiungi a schermata Home**.
+**Dubbi su una regola? Chiedi in italiano, anche informale.**
 
-**iPhone (Safari):**
-Apri il sito → tasto **Condividi** → **Aggiungi a Home**.
+<img src="docs/img/guida/giudice.webp" alt="Pagina del Giudice" width="300">
 
-Comparirà l'icona 🐸 e l'app si aprirà a schermo intero — perfetta per segnare partite al tavolo senza distrazioni.
+*Domanda in alto, sotto lo storico del gruppo.*
 
----
+1. Da **Gioca** → **Chiedi al Giudice**.
+2. Scrivi la domanda, anche con nomi di carte e abbreviazioni.
+3. Premi **Chiedi al Judge** (da tastiera Ctrl+Invio).
 
-## 15. Per gli amministratori
+Ricevi la risposta con un indicatore di **affidabilità**, la spiegazione, le **carte riconosciute** e le **regole ufficiali** citate. Sotto trovi le ultime 20 domande del gruppo: magari qualcuno l’ha già chiesto.
 
-![Pannello admin](docs/img/mobile-admin.png)
-
-Chi ha il ruolo **ADMIN** vede in alto a destra (o nella navbar desktop) la voce **Admin**. Da qui:
-
-- **Utenti** — crea, modifica (anche la password) ed elimina account.
-- **Mazzi** — gestisce i mazzi di **tutti** i giocatori: nome, commander, colori, livello, archetipo, lista.
-- **Partite** — modifica o elimina qualsiasi partita (giocatori, vincitore, ordine, eliminazioni, data, note).
-- **⬇ Esporta backup (JSON)** — scarica un backup completo di utenti, mazzi e partite.
-
-**Gestione eventi:** dalla pagina **Eventi** gli admin vedono i pulsanti **+ Nuovo evento**, **Modifica** ed **Elimina** su ogni evento. Il form si apre in una finestra sovrapposta — compila e conferma.
-
-> L'admin non appare nelle classifiche né nei matchup: non è un giocatore.
+> ⚠️ Il Giudice usa l’intelligenza artificiale e può sbagliare. Per le partite che contano verifica sulle regole ufficiali.
 
 ---
 
-## 16. Domande frequenti
+<a id="notifiche"></a>
 
-**Ho dimenticato la password.**
-Chiedi a un amministratore di reimpostartela dal pannello Utenti.
+## 15. Notifiche
 
-**Perché il mio mazzo non mostra l'immagine del commander?**
-Il nome non combacia esattamente con Scryfall. Modifica il mazzo e riscrivi il commander scegliendo dai suggerimenti automatici.
+**La campanella in alto ti dice cosa è successo mentre non c’eri.**
 
-**Devo compilare ordine di uscita ed eliminazioni?**
-No, sono facoltativi. Ma se li compili ottieni piazzamenti, arcinemico, kill count e statistiche di sopravvivenza.
+<img src="docs/img/guida/notifiche.webp" alt="Elenco delle notifiche" width="300">
 
-**La lista non si salva.**
-Controlla di avere **esattamente 100 carte** (commander incluso) e che i nomi siano corretti — il sistema segnala le carte non trovate.
+*Tocca una notifica per andare al punto giusto.*
 
-**Come si vince la stagione?**
-Si accumulano punti (3/2/1 per piazzamento + 1 presenza a ogni partita). Vince chi ha più punti tra i qualificati (almeno il 30% delle partite della stagione). Per far contare 2° e 3° ricorda di registrare l'**ordine di uscita**.
+- Un nuovo **evento** in calendario.
+- Qualcuno si **siede al tuo tavolo**.
+- Un **achievement** sbloccato.
+- Un **commento** o una **reazione** a una tua partita.
 
-**Dove trovo i miei mazzi dal telefono?**
-Tocca **Io** nel dock per aprire il tuo profilo: lì trovi tutti i tuoi mazzi. In alternativa, dalla sezione **Gruppo → tab Mazzi** vedi tutti i mazzi del gruppo; su desktop la voce **Mazzi** è nella barra in alto.
-
-**Posso commentare o reagire alle partite?**
-Sì: ogni partita nello Storico (Gruppo → Storico) ha reazioni emoji e commenti. Puoi rimuovere una tua reazione ritoccandola ed eliminare i tuoi commenti con la ✕.
-
-**Posso creare un evento nel calendario?**
-Solo gli **amministratori** creano e gestiscono gli eventi. Tutti gli altri li vedono e possono segnare la propria adesione con **Ci sono**.
-
-**Il Judge Bot può sbagliare?**
-Sì. Le risposte si basano sulle Comprehensive Rules e su Scryfall, ma usa l'AI — tratta le risposte come indicazioni da verificare, non verdetti ufficiali.
-
-**Come cambio la mia immagine profilo?**
-Vai nel tuo profilo (dock **Io**) e tocca il **✏️** sull'avatar. Cerca una carta Magic, vedi l'anteprima e conferma. Si aggiorna subito in tutto il portale. Per tornare alle iniziali premi **Rimuovi**.
-
-**Come funzionano gli achievement?**
-Ci sono 26 achievement: alcuni pubblici (visibili fin dall'inizio), altri segreti (appaiono solo dopo lo sblocco). Li trovi nel tuo profilo sotto la sezione **Achievement**. Alcuni si sbloccano solo in stagioni concluse.
+Il numero sulla campanella sono le non lette: aprendo l’elenco diventano lette. Si aggiorna da sola ogni minuto.
 
 ---
 
-*Buone partite, e che vinca il mazzo migliore! 🐸*
+<a id="ruoli"></a>
+
+## 16. Organizzatori e amministratori
+
+**Chi crea gli eventi e chi gestisce il portale.**
+
+### Organizzatore
+
+Un giocatore a cui l’amministratore dà il permesso di **creare eventi**. Gioca e compare in classifica come tutti. Degli eventi che crea può fare tutto: modificarli, eliminarli, generare turni e tavoli, registrare i risultati. Gli altri lo vedono come “Organizzato da”.
+
+1. In **Eventi** premi **Nuovo evento**.
+2. Titolo, data, ora (facoltativa), luogo, descrizione.
+3. Formato: **Solo evento**, **Multiplayer** o **1v1** (al meglio di 1 o di 3).
+4. Premi **Crea evento**: tutti gli altri ricevono una notifica.
+
+<img src="docs/img/guida/evento-nuovo.webp" alt="Modulo Nuovo evento" width="300">
+
+*Il modulo per creare un evento.*
+
+### Amministratore
+
+<img src="docs/img/guida/admin.webp" alt="Pannello Admin" width="300">
+
+*Il pannello Admin, scheda Utenti, con l’interruttore Organizzatore.*
+
+- **Utenti**: crea account, cambia nome e password, rende un giocatore **Organizzatore** con l’interruttore.
+- **Mazzi**: gestisce i mazzi di tutti.
+- **Partite**: corregge o elimina qualsiasi partita.
+- **Esporta backup**: scarica tutti i dati in un file.
+- Gestisce tutti gli eventi, anche quelli creati da altri.
+
+> 💡 L’account admin non gioca: non compare in classifiche e statistiche.
+
+---
+
+<a id="domande-frequenti"></a>
+
+## Domande frequenti
+
+**Ho dimenticato la password.**  
+Chiedi a un amministratore: la reimposta dal pannello Admin.
+
+**Il mio mazzo non mostra l’illustrazione del commander.**  
+Il nome non combacia con quello ufficiale. Apri la lista del mazzo, premi Modifica mazzo e riscrivi il commander scegliendolo dai suggerimenti.
+
+**Devo per forza inserire l’ordine di eliminazione?**  
+No. Ma senza contano solo vittoria e presenza, e mancano kill, arcinemico e piazzamenti.
+
+**Come si vince la stagione?**  
+Con più punti tra i qualificati: 3 al primo, 2 al secondo, 1 al terzo, più 1 a ogni partita giocata. Qualificato è chi gioca almeno il 30% delle partite della stagione.
+
+**Il segnapunti del tavolo lo vedono tutti?**  
+Sì, tutti i giocatori seduti, anche su telefoni diversi. Il segnapunti libero dal menu dell’avatar invece resta solo sul tuo telefono.
+
+**Ho chiuso per sbaglio il segnapunti del tavolo.**  
+Nessun problema: i punti restano. Riaprilo dalla pagina del tavolo con Apri segnapunti.
+
+**Perché non riesco a entrare in un tavolo?**  
+Il tavolo è chiuso o al completo (5 posti), oppure sei già seduto a un altro tavolo attivo.
+
+**Posso creare un evento?**  
+Solo se sei organizzatore o amministratore. Gli altri si iscrivono con Ci sei?.
+
+**Non trovo un achievement che avevo.**  
+Gli achievement sbloccati restano tuoi anche se poi le statistiche cambiano. Quelli segreti compaiono solo dopo lo sblocco.
+
+**Si può usare da computer?**  
+Sì: stesse funzioni, con la barra di navigazione in alto.
+
+---
+
+*Buone partite, e che vinca il mazzo migliore. 🐸*
+
+<!-- File generato da frontend/scripts/build-guide-md.mjs: modifica frontend/src/pages/guida/guideContent.js e rilancia `npm run guide:md`. -->

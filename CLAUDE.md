@@ -138,6 +138,13 @@ frontend/src/
                           salvataggio la partita cancella lo stato del segnapunti.
     AdminPage.jsx         /admin — gestione utenti/mazzi/partite (solo ADMIN)
     JudgePage.jsx         /giudice — Q&A ruling Commander + storico domande del gruppo (ultimi 20)
+    GuidaPage.jsx         /guida (menu avatar → Guida utente, pulsante Guida sul proprio profilo) — guida in-app.
+                          Contenuti SOLO in pages/guida/guideContent.js (capitoli con colore di mana, blocchi p/steps/list/
+                          tip/warn/table/shot/shots/gestures + FAQ; test in guideContent.test.js). Indice a carte 63:88,
+                          ricerca, zoom immagini, deep-link /guida#<id capitolo>. GUIDA_UTENTE.md è GENERATO da quel file:
+                          `cd frontend && npm run guide:md` (non modificarlo a mano). Screenshot: docs/img/guida/*.webp
+                          (telefono 390px @2x, ritagliati sugli elementi; script in ~/ct-shots/guida/shots.js, dati demo con
+                          setup3.js/decklist.js); vite.config copia docs/img ricorsivamente nel build.
     Dashboard.jsx         LEGACY — non usata
   components/
     DeckThumb.jsx         thumbnail commander (art piccola o avatar con iniziali)
