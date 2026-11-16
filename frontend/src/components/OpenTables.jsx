@@ -24,6 +24,9 @@ function TableCard({ table, me, t, onChange, showEvent }) {
   const done = !!table.gameId
   const free = table.maxSeats - table.seats.length
   const winner = table.game?.players?.[0]
+  // Tavolo chiuso (dal creatore o pieno): chi è seduto apre la pagina del tavolo (mazzi, segnapunti)
+  const closed = !done && (!table.isOpen || free <= 0)
+  const openPage = seated && closed ? () => navigate(`/tavoli/${table.id}`) : null
 
   const run = async (fn, okMsg) => {
     setBusy(true)
@@ -41,7 +44,7 @@ function TableCard({ table, me, t, onChange, showEvent }) {
   const registerResult = () => navigate('/nuova-partita', {
     state: { tableContext: {
       tableId: table.id, eventId: table.eventId, date: table.startsAt,
-      players: table.seats.map(s => ({ userId: s.userId, username: s.user.username })),
+      players: table.seats.map(s => ({ userId: s.userId, username: s.user.username, deckId: s.deckId || null })),
     } },
   })
 
@@ -61,7 +64,13 @@ function TableCard({ table, me, t, onChange, showEvent }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0, flex: '1 1 150px' }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>Tavolo di {table.createdBy.username}</div>
+          {openPage ? (
+            <button onClick={openPage} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', font: 'inherit', fontSize: 17, fontWeight: 800, color: t.text, wordBreak: 'break-word', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              Tavolo di {table.createdBy.username} <Icon name="chevron" size={17} style={{ color: t.primary }} />
+            </button>
+          ) : (
+            <div style={{ fontSize: 17, fontWeight: 800, color: t.text, wordBreak: 'break-word' }}>Tavolo di {table.createdBy.username}</div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4, fontSize: 13, color: t.textSub }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}><Icon name="clock" size={14} /> dalle {hhmm(table.startsAt)}</span>
             {showEvent && table.event && (
@@ -115,10 +124,15 @@ function TableCard({ table, me, t, onChange, showEvent }) {
               <Icon name="plus" size={17} stroke={2.6} /> Siediti
             </button>
           )}
+          {openPage && (
+            <button onClick={openPage} className="ct-press" style={btn(true, { flex: '1 1 100%' })}>
+              <Icon name="cards" size={17} stroke={2.2} /> Apri il tavolo · mazzi e segnapunti
+            </button>
+          )}
           {seated && (
             <button disabled={busy || table.seats.length < 3} onClick={registerResult} className="ct-press"
               title={table.seats.length < 3 ? 'Servono almeno 3 giocatori' : undefined}
-              style={btn(table.seats.length >= 3, { flex: 1, opacity: table.seats.length < 3 ? 0.6 : 1 })}>
+              style={btn(table.seats.length >= 3 && !openPage, { flex: 1, opacity: table.seats.length < 3 ? 0.6 : 1 })}>
               <Icon name="swords" size={17} stroke={2.2} /> {table.seats.length < 3 ? `Servono almeno 3 giocatori (${table.seats.length}/3)` : 'Registra risultato'}
             </button>
           )}

@@ -27,6 +27,7 @@ const JudgePage = lazy(() => import('./pages/JudgePage'))
 const GiocaPage = lazy(() => import('./pages/GiocaPage'))
 const GuidaPage = lazy(() => import('./pages/GuidaPage'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
+const TablePage = lazy(() => import('./pages/TablePage'))
 import NotificationBell from './components/NotificationBell'
 import PlayerAvatar from './components/PlayerAvatar'
 import { Icon } from './components/ui'
@@ -293,6 +294,7 @@ function Layout() {
       <Route path="/mazzi"         element={<DecksPage />} />
       <Route path="/partita/:id"   element={<GamePage />} />
       <Route path="/evento/:id"    element={<EventDetailPage />} />
+      <Route path="/tavoli/:id"    element={<TablePage />} />
       <Route path="/nuova-partita" element={<NewGamePage />} />
       <Route path="/giudice"       element={<JudgePage />} />
       <Route path="/guida"         element={<GuidaPage />} />

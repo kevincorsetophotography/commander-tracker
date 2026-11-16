@@ -1,15 +1,18 @@
 const router = require('express').Router();
+const { Prisma } = require('@prisma/client');
 const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
-const { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, MAX_SEATS } = require('../lib/openTables');
+const { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, isTableClosed, canPickDeck, MAX_SEATS } = require('../lib/openTables');
+const { viewFor, applyAction } = require('../lib/scoreboard');
 
 // Tavoli aperti creati dai giocatori (separati dai pod di torneo generati dall'admin).
 
 const userSel = { select: { id: true, username: true, avatarCardName: true, avatarScryfallId: true } };
+const deckSel = { select: { id: true, name: true, commander: true, colors: true, bracket: true } };
 const tableInclude = {
   createdBy: userSel,
-  seats: { orderBy: { createdAt: 'asc' }, include: { user: userSel } },
+  seats: { orderBy: { createdAt: 'asc' }, include: { user: userSel, deck: deckSel } },
   event: { select: { id: true, title: true, startsAt: true, allDay: true } },
   game: {
     select: {
@@ -21,7 +24,22 @@ const tableInclude = {
 
 const parseId = (v) => { const n = Number.parseInt(v, 10); return Number.isInteger(n) ? n : null; };
 
-const loadTable = (id) => prisma.openTable.findUnique({ where: { id }, include: tableInclude });
+// Il segnapunti (JSON grezzo) non va nelle liste: lo espone solo la pagina del tavolo, ai membri.
+const publicTable = (table) => {
+  if (!table) return table;
+  const { scoreboard, scoreVersion, ...rest } = table;
+  return { ...rest, closed: isTableClosed(table) };
+};
+const loadRaw = (id) => prisma.openTable.findUnique({ where: { id }, include: tableInclude });
+const loadTable = async (id) => publicTable(await loadRaw(id));
+
+const isMember = (table, user) => !!table && table.seats.some(s => s.userId === user.id);
+const scoreboardOf = (table) => ({
+  ...viewFor(table.scoreboard, table.seats.map(s => s.userId)),
+  version: table.scoreVersion,
+});
+// Campi minimi per il segnapunti (polling leggero)
+const scoreSel = { gameId: true, scoreboard: true, scoreVersion: true, createdById: true, seats: { orderBy: { createdAt: 'asc' }, select: { userId: true } } };
 
 // Eventi "vicini" a un orario (per agganciare il tavolo alla serata giusta).
 // I tornei 1v1 (svizzera) non prevedono tavoli aperti: esclusi dall'aggancio.
@@ -43,7 +61,7 @@ router.get('/', auth, async (req, res) => {
       ? { eventId }
       : { gameId: null, startsAt: { gte: new Date(Date.now() - 12 * 3600000) } };
     const tables = await prisma.openTable.findMany({ where, include: tableInclude, orderBy: { startsAt: 'asc' } });
-    res.json(tables);
+    res.json(tables.map(publicTable));
   } catch (error) {
     console.error('list tables error', error);
     res.status(500).json({ error: 'Errore durante il caricamento dei tavoli' });
@@ -72,7 +90,7 @@ router.post('/', auth, async (req, res) => {
       },
       include: tableInclude,
     });
-    res.json(table);
+    res.json(publicTable(table));
   } catch (error) {
     console.error('create table error', error);
     res.status(500).json({ error: 'Errore durante la creazione del tavolo' });
@@ -218,12 +236,137 @@ router.post('/:id/result', auth, async (req, res) => {
     if (!resultMatchesSeats(game.players.map(p => p.userId), table.seats.map(s => s.userId))) {
       return res.status(400).json({ error: 'I giocatori della partita non corrispondono a quelli del tavolo' });
     }
-    await prisma.openTable.update({ where: { id }, data: { gameId, isOpen: false } });
+    // Tavolo concluso: la partita e il legame tavolo→evento→partita restano (storico),
+    // lo stato "di gioco" sparisce: segnapunti e mazzi scelti vengono cancellati.
+    await prisma.$transaction([
+      prisma.openTable.update({ where: { id }, data: { gameId, isOpen: false, scoreboard: Prisma.DbNull, scoreVersion: { increment: 1 } } }),
+      prisma.openTableSeat.updateMany({ where: { tableId: id }, data: { deckId: null } }),
+    ]);
     res.json(await loadTable(id));
   } catch (error) {
     if (error.code === 'P2002') return res.status(400).json({ error: 'Questa partita è già collegata a un altro tavolo' });
     console.error('table result error', error);
     res.status(500).json({ error: 'Errore durante il salvataggio del risultato' });
+  }
+});
+
+// ── Pagina del tavolo (solo membri seduti) ────────────────────────────────────
+
+// GET /api/tables/:id — dettaglio per la pagina del tavolo: posti, mazzi scelti,
+// mazzi disponibili dei seduti, segnapunti. 403 per chi non è seduto.
+router.get('/:id', auth, async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'ID tavolo non valido' });
+  try {
+    const table = await loadRaw(id);
+    if (!table) return res.status(404).json({ error: 'Tavolo non trovato' });
+    if (!isMember(table, req.user)) return res.status(403).json({ error: 'Solo chi è seduto al tavolo può aprirlo' });
+    const decks = await prisma.deck.findMany({
+      where: { userId: { in: table.seats.map(s => s.userId) } },
+      select: { ...deckSel.select, userId: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ ...publicTable(table), decks, scoreboard: scoreboardOf(table) });
+  } catch (error) {
+    console.error('get table error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento del tavolo' });
+  }
+});
+
+// PUT /api/tables/:id/seats/:userId/deck { deckId|null } — il giocatore per sé, chi ha aperto per tutti
+router.put('/:id/seats/:userId/deck', auth, async (req, res) => {
+  const id = parseId(req.params.id);
+  const userId = parseId(req.params.userId);
+  if (!id || !userId) return res.status(400).json({ error: 'Parametri non validi' });
+  const raw = req.body.deckId;
+  const deckId = raw == null || raw === '' ? null : parseId(raw);
+  if (raw != null && raw !== '' && !deckId) return res.status(400).json({ error: 'Mazzo non valido' });
+  try {
+    const table = await loadRaw(id);
+    if (!table) return res.status(404).json({ error: 'Tavolo non trovato' });
+    if (!isMember(table, req.user)) return res.status(403).json({ error: 'Solo chi è seduto al tavolo può aprirlo' });
+    if (table.gameId) return res.status(400).json({ error: 'Il tavolo ha già un risultato' });
+    if (!canPickDeck(req.user, table, userId)) return res.status(403).json({ error: 'Puoi scegliere solo il tuo mazzo (chi ha aperto il tavolo li sceglie per tutti)' });
+    if (deckId) {
+      const deck = await prisma.deck.findUnique({ where: { id: deckId }, select: { userId: true } });
+      if (!deck || deck.userId !== userId) return res.status(400).json({ error: 'Il mazzo non appartiene a questo giocatore' });
+    }
+    await prisma.openTableSeat.update({ where: { tableId_userId: { tableId: id, userId } }, data: { deckId } });
+    res.json(await loadTable(id));
+  } catch (error) {
+    console.error('pick deck error', error);
+    res.status(500).json({ error: 'Errore durante la scelta del mazzo' });
+  }
+});
+
+// GET /api/tables/:id/scoreboard — leggero, per il polling (~3s) mentre il segnapunti è aperto
+router.get('/:id/scoreboard', auth, async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'ID tavolo non valido' });
+  try {
+    const table = await prisma.openTable.findUnique({ where: { id }, select: scoreSel });
+    if (!table) return res.status(404).json({ error: 'Tavolo non trovato' });
+    if (!isMember(table, req.user)) return res.status(403).json({ error: 'Solo chi è seduto al tavolo può aprirlo' });
+    res.json({ ...scoreboardOf(table), concluded: !!table.gameId });
+  } catch (error) {
+    console.error('get scoreboard error', error);
+    res.status(500).json({ error: 'Errore durante il caricamento del segnapunti' });
+  }
+});
+
+// POST /api/tables/:id/scoreboard { type, userId, fromUserId?, delta } — qualsiasi membro.
+// Lock di riga (SELECT … FOR UPDATE): tocchi simultanei di più giocatori vengono applicati
+// uno dopo l'altro, nessuno si perde. scoreVersion cresce a ogni modifica (il client scarta
+// le letture più vecchie di quello che ha già).
+class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+router.post('/:id/scoreboard', auth, async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'ID tavolo non valido' });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw`SELECT "gameId", "scoreboard", "scoreVersion" FROM "OpenTable" WHERE "id" = ${id} FOR UPDATE`;
+      const row = rows[0];
+      if (!row) throw new HttpError(404, 'Tavolo non trovato');
+      const seats = await tx.openTableSeat.findMany({ where: { tableId: id }, orderBy: { createdAt: 'asc' }, select: { userId: true } });
+      if (!seats.some(s => s.userId === req.user.id)) throw new HttpError(403, 'Solo chi è seduto al tavolo può aprirlo');
+      if (row.gameId) throw new HttpError(400, 'Il tavolo ha già un risultato');
+      const seatIds = seats.map(s => s.userId);
+      const out = applyAction(row.scoreboard, seatIds, req.body);
+      if (out.error) throw new HttpError(400, out.error);
+      const updated = await tx.openTable.update({
+        where: { id },
+        data: { scoreboard: out.state, scoreVersion: { increment: 1 } },
+        select: { scoreVersion: true },
+      });
+      return { ...viewFor(out.state, seatIds), version: updated.scoreVersion };
+    }, { maxWait: 10000, timeout: 10000 });
+    res.json(result);
+  } catch (error) {
+    if (error instanceof HttpError) return res.status(error.status).json({ error: error.message });
+    console.error('update scoreboard error', error);
+    res.status(500).json({ error: 'Errore durante l\'aggiornamento del segnapunti' });
+  }
+});
+
+// DELETE /api/tables/:id/scoreboard — reset a 40 (solo chi ha aperto il tavolo)
+router.delete('/:id/scoreboard', auth, async (req, res) => {
+  const id = parseId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'ID tavolo non valido' });
+  try {
+    const table = await prisma.openTable.findUnique({ where: { id }, select: scoreSel });
+    if (!table) return res.status(404).json({ error: 'Tavolo non trovato' });
+    if (!isMember(table, req.user)) return res.status(403).json({ error: 'Solo chi è seduto al tavolo può aprirlo' });
+    if (table.createdById !== req.user.id) return res.status(403).json({ error: 'Solo chi ha aperto il tavolo può azzerare il segnapunti' });
+    if (table.gameId) return res.status(400).json({ error: 'Il tavolo ha già un risultato' });
+    const updated = await prisma.openTable.update({
+      where: { id },
+      data: { scoreboard: Prisma.DbNull, scoreVersion: { increment: 1 } },
+      select: { scoreVersion: true },
+    });
+    res.json({ ...viewFor(null, table.seats.map(s => s.userId)), version: updated.scoreVersion });
+  } catch (error) {
+    console.error('reset scoreboard error', error);
+    res.status(500).json({ error: 'Errore durante l\'azzeramento del segnapunti' });
   }
 });
 

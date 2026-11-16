@@ -57,6 +57,20 @@ const apiLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Troppo traffico, rallenta un po\'.' },
+  // il polling del segnapunti ha un limite suo (più largo): più tavoli dietro lo stesso wifi del locale
+  skip: (req) => isScoreboardPoll(req),
+});
+
+// Polling del segnapunti (GET ogni ~3s per giocatore, solo col segnapunti aperto).
+// Per IP: 20/min a testa → ~45 giocatori sulla stessa rete prima del limite.
+const isScoreboardPoll = (req) => req.method === 'GET' && /^\/api\/tables\/\d+\/scoreboard\/?$/.test(req.originalUrl.split('?')[0]);
+const scoreboardPollLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 900,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: (req) => !isScoreboardPoll(req),
+  message: { error: 'Troppo traffico, rallenta un po\'.' },
 });
 
 // Endpoint pubblici (landing /info): pochi accessi, limite più stretto
@@ -92,7 +106,7 @@ app.use('/api/games',         apiLimiter, wrapRouter(gameRoutes));
 app.use('/api/stats',         apiLimiter, wrapRouter(statsRoutes));
 app.use('/api/events',        apiLimiter, wrapRouter(eventRoutes));
 app.use('/api/me',            apiLimiter, wrapRouter(require('./routes/me')));
-app.use('/api/tables',        apiLimiter, wrapRouter(require('./routes/tables')));
+app.use('/api/tables',        apiLimiter, scoreboardPollLimiter, wrapRouter(require('./routes/tables')));
 app.use('/api/notifications', apiLimiter, wrapRouter(notificationRoutes));
 app.use('/api/judge',         wrapRouter(judgeRoutes));
 app.use('/api/public',        publicLimiter, wrapRouter(require('./routes/public')));

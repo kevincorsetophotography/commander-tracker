@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, eventWindow } from './openTables'
+import { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, eventWindow, isTableClosed, canPickDeck } from './openTables'
 import { canCreateEvent, canManageEvent } from './permissions'
 
 const at = (s) => new Date(s)
@@ -84,3 +84,24 @@ describe('permessi eventi (organizzatore)', () => {
     expect(canManageEvent(player, { createdByUserId: 3 })).toBe(false)
   })
 })
+
+describe('isTableClosed', () => {
+  const seats = (n) => Array.from({ length: n }, (_, i) => ({ userId: i + 1 }));
+  it('chiuso dal creatore o pieno; mai se ha già un risultato', () => {
+    expect(isTableClosed({ isOpen: true, maxSeats: 5, seats: seats(3) })).toBe(false);
+    expect(isTableClosed({ isOpen: false, maxSeats: 5, seats: seats(3) })).toBe(true);
+    expect(isTableClosed({ isOpen: true, maxSeats: 5, seats: seats(5) })).toBe(true);
+    expect(isTableClosed({ isOpen: false, maxSeats: 5, seats: seats(3), gameId: 7 })).toBe(false);
+  });
+});
+
+describe('canPickDeck', () => {
+  const table = { createdById: 1, seats: [{ userId: 1 }, { userId: 2 }, { userId: 3 }] };
+  it('ognuno per sé, il creatore per tutti, i non seduti mai', () => {
+    expect(canPickDeck({ id: 2 }, table, 2)).toBe(true);
+    expect(canPickDeck({ id: 2 }, table, 3)).toBe(false);
+    expect(canPickDeck({ id: 1 }, table, 3)).toBe(true);
+    expect(canPickDeck({ id: 9, role: 'ADMIN' }, table, 2)).toBe(false);
+    expect(canPickDeck({ id: 1 }, table, 9)).toBe(false);
+  });
+});

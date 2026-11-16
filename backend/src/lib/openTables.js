@@ -51,4 +51,19 @@ function resultMatchesSeats(gamePlayerIds, seatUserIds) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
-module.exports = { MAX_SEATS, allowsOpenTables, eventWindow, findEventForTime, joinError, canEditTable, resultMatchesSeats };
+// Tavolo "chiuso": non accetta più giocatori (chiuso dal creatore o pieno). Senza risultato.
+function isTableClosed(table) {
+  if (!table || table.gameId) return false;
+  return !table.isOpen || table.seats.length >= (table.maxSeats || MAX_SEATS);
+}
+
+// Il mazzo di un posto lo sceglie il giocatore stesso oppure chi ha aperto il tavolo.
+// Chi lo chiede deve essere seduto (la pagina del tavolo è solo per i membri).
+function canPickDeck(user, table, targetUserId) {
+  if (!user || !table) return false;
+  if (!table.seats.some(s => s.userId === user.id)) return false;
+  if (!table.seats.some(s => s.userId === targetUserId)) return false;
+  return user.id === targetUserId || table.createdById === user.id;
+}
+
+module.exports = { MAX_SEATS, isTableClosed, canPickDeck, allowsOpenTables, eventWindow, findEventForTime, joinError, canEditTable, resultMatchesSeats };

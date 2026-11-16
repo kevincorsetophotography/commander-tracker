@@ -74,7 +74,7 @@ export default function NewGamePage() {
   const podCtx = navState.podContext || tableCtx || null
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
   const [slots, setSlots] = useState(() => podCtx
-    ? podCtx.players.map(p => ({ userId: String(p.userId), deckId: '' }))
+    ? podCtx.players.map(p => ({ userId: String(p.userId), deckId: p.deckId ? String(p.deckId) : '' }))
     : [{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
   const [notes, setNotes] = useState('')

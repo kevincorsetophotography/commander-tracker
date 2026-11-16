@@ -127,6 +127,7 @@ frontend/src/
     NewGamePage.jsx       /nuova-partita — form registrazione partita
     EventsPage.jsx        /eventi — eventi + RSVP (form crea/modifica in modal overlay); /tornei redirige qui
     EventDetailPage.jsx   /evento/:id — dettaglio torneo (turni, tavoli, standings)
+    TablePage.jsx         /tavoli/:id — pagina del tavolo aperto (solo seduti): mazzi + segnapunti condiviso + Registra risultati
     AdminPage.jsx         /admin — gestione utenti/mazzi/partite (solo ADMIN)
     JudgePage.jsx         /giudice — Q&A ruling Commander + storico domande del gruppo (ultimi 20)
     Dashboard.jsx         LEGACY — non usata
@@ -180,7 +181,9 @@ frontend/src/
 
 **OpenTable** (tavolo aperto dai giocatori, separato dai pod di torneo): id, title?, startsAt, isOpen, maxSeats (5, creatore incluso), createdById, eventId? (SetNull), gameId? @unique (SetNull)
 
-**OpenTableSeat**: id, tableId (Cascade), userId (Cascade), createdAt — Unique: (tableId, userId)
+**OpenTableSeat**: id, tableId (Cascade), userId (Cascade), createdAt, deckId? (mazzo scelto al tavolo, SetNull) — Unique: (tableId, userId)
+
+OpenTable ha anche `scoreboard Json?` (segnapunti condiviso) e `scoreVersion Int` (cresce a ogni modifica).
 
 ---
 
@@ -240,7 +243,12 @@ PATCH /api/tables/:id         {isOpen?, startsAt?} creatore o admin (startsAt ri
 DELETE /api/tables/:id        creatore o admin, solo senza risultato
 POST /api/tables/:id/join | /leave   (leave del creatore: passa al primo seduto; tavolo vuoto = cancellato)
 DELETE /api/tables/:id/seats/:userId creatore o admin
-POST /api/tables/:id/result   {gameId} giocatore seduto o admin; giocatori partita == seduti
+POST /api/tables/:id/result   {gameId} giocatore seduto o admin; giocatori partita == seduti; azzera segnapunti e mazzi del tavolo
+GET  /api/tables/:id          SOLO seduti (403 altrimenti): posti+mazzi scelti, mazzi dei seduti, segnapunti
+PUT  /api/tables/:id/seats/:userId/deck  {deckId|null} il giocatore per sé, il creatore per tutti; mazzo del giocatore
+GET  /api/tables/:id/scoreboard  SOLO seduti, polling ~3s (limiter dedicato 900/min/IP, escluso da apiLimiter)
+POST /api/tables/:id/scoreboard  {type:'life'|'poison'|'cmd', userId, fromUserId?, delta} SOLO seduti; lock di riga FOR UPDATE
+DELETE /api/tables/:id/scoreboard  reset a 40 (solo creatore)
 
 // PUBBLICO (nessun login, publicLimiter 60/min, cache 5 min)
 GET  /api/public/stats        {games, players, decks, nights} — SOLO totali aggregati per la landing /info
@@ -368,7 +376,9 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - **DB veloce, Scryfall lento**: cache aggressiva sulle carte (immutabili), **niente** cache lato client sulle query DB (rischio dati stantii).
 - **Migrazioni dati una tantum**: scriverle **idempotenti** e agganciarle a `start:prod`.
 - **Permessi eventi**: `backend/src/lib/permissions.js` (`canCreateEvent`, `canManageEvent`): admin tutto; organizzatore crea eventi e gestisce SOLO i propri (modifica, elimina, turni, risultati); gli eventi espongono `canManage` per chi guarda e `createdBy` ("Organizzato da"). Il middleware auth rilegge `role` e `isOrganizer` dal DB a ogni richiesta (revoca immediata).
-- **Tavoli aperti**: regole pure in `backend/src/lib/openTables.js` (finestra evento: da 1h prima dell'inizio alle 4:00; eventi tutto il giorno = intera giornata; max 5; chiuso = nessuno entra; mai sui tornei 1v1: niente pulsante, l'API rifiuta e l'aggancio automatico li esclude). Notifica `type: 'table'` al creatore quando qualcuno si siede. Il risultato passa da Registra partita con `location.state.tableContext` (giocatori bloccati, come i pod).
+- **Tavoli aperti**: regole pure in `backend/src/lib/openTables.js` (finestra evento: da 1h prima dell'inizio alle 4:00; eventi tutto il giorno = intera giornata; max 5; chiuso = nessuno entra; mai sui tornei 1v1: niente pulsante, l'API rifiuta e l'aggancio automatico li esclude). Notifica `type: 'table'` al creatore quando qualcuno si siede. Il risultato passa da Registra partita con `location.state.tableContext` (giocatori bloccati, come i pod; `players[].deckId` precompila i mazzi).
+  - **Pagina del tavolo** `/tavoli/:id` (`TablePage.jsx`): un tavolo CHIUSO (dal creatore o pieno) è cliccabile solo per chi è seduto; il server risponde 403 ai non seduti. Mazzo per posto, segnapunti condiviso (vita 40, ±1/±5, veleno 10, danni commander 21 per avversario che tolgono anche vita; regole pure in `backend/src/lib/scoreboard.js`, specchio ottimistico in `frontend/src/lib/scoreboard.js`). Aperto/chiuso del segnapunti è solo vista per-utente (localStorage), lo stato resta sul server.
+  - **Fine del tavolo**: risultato registrato → la riga OpenTable RESTA (legame evento→partita per lo storico, "Concluso" nella serata) ma segnapunti e mazzi scelti vengono cancellati e il tavolo esce dagli attivi; cancellazione del creatore → riga, posti e segnapunti eliminati.
 - **Tornei — classifica 1v1 calcolata SOLO lato server** (`tournament.js` + `withStandings` in `routes/events.js`): fonte di verità unica. Svizzera evita re-match, bye al più basso senza bye, **max 4 turni**.
 - **Tornei — pod multiplayer = Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext`. Gli iscritti SENZA mazzi non possono entrare in un pod.
 - **Date locali, non UTC**: usare `getFullYear/Month/Date`, MAI `toISOString().slice(0,10)` (shifta col fuso → stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.

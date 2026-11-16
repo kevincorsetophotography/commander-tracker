@@ -45,6 +45,7 @@ model Deck {
   user        User         @relation(fields: [userId], references: [id])
   userId      Int
   gamePlayers GamePlayer[]
+  openTableSeats OpenTableSeat[]
 
   @@unique([userId, name])
 }
@@ -234,6 +235,10 @@ model OpenTable {
   game        Game?           @relation(fields: [gameId], references: [id], onDelete: SetNull)
   gameId      Int?            @unique
   seats       OpenTableSeat[]
+  // Segnapunti condiviso della partita in corso (vita, veleno, danni da commander).
+  // null = non ancora usato. scoreVersion: lock ottimistico contro aggiornamenti simultanei.
+  scoreboard   Json?
+  scoreVersion Int            @default(0)
 
   @@index([eventId])
   @@index([startsAt])
@@ -246,6 +251,9 @@ model OpenTableSeat {
   tableId   Int
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
+  // Mazzo scelto per la partita al tavolo (null = non ancora scelto)
+  deck      Deck?     @relation(fields: [deckId], references: [id], onDelete: SetNull)
+  deckId    Int?
 
   @@unique([tableId, userId])
   @@index([tableId])

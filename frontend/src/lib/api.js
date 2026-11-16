@@ -98,6 +98,12 @@ export const api = {
   leaveTable:       (id)             => req('POST',   `/tables/${id}/leave`),
   removeTableSeat:  (id, userId)     => req('DELETE', `/tables/${id}/seats/${userId}`),
   submitOpenTableResult: (id, data)  => req('POST',   `/tables/${id}/result`, data),
+  // pagina del tavolo (solo membri seduti)
+  getTable:         (id)             => req('GET',    `/tables/${id}`),
+  pickTableDeck:    (id, userId, deckId) => req('PUT', `/tables/${id}/seats/${userId}/deck`, { deckId }),
+  getScoreboard:    (id)             => req('GET',    `/tables/${id}/scoreboard`),
+  scoreAction:      (id, action)     => req('POST',   `/tables/${id}/scoreboard`, action),
+  resetScoreboard:  (id)             => req('DELETE', `/tables/${id}/scoreboard`),
 
   // utente corrente aggiornato (ruolo, organizzatore)
   getMe: () => req('GET', '/me'),
