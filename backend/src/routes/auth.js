@@ -4,6 +4,11 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
 
+const USERNAME_MAX = 32;
+const PASSWORD_MAX = 128;
+const INVITE_MAX = 200;
+const AVATAR_NAME_MAX = 200;
+
 const signToken = (user) =>
   jwt.sign(
     { id: user.id, username: user.username, role: user.role },
@@ -20,26 +25,35 @@ const publicUser = (user) => ({
   avatarScryfallId: user.avatarScryfallId ?? null,
 });
 
+// Valida username/password del body: stringhe non vuote e di lunghezza ragionevole.
+// Ritorna il messaggio d'errore (→ 400) oppure null se va tutto bene.
+function credentialsError(body) {
+  const { username, password } = body || {};
+  if (typeof username !== 'string' || typeof password !== 'string' || !username || !password)
+    return 'username e password richiesti';
+  if (username.length > USERNAME_MAX)
+    return `Username troppo lungo (max ${USERNAME_MAX} caratteri)`;
+  if (password.length > PASSWORD_MAX)
+    return `Password troppo lunga (max ${PASSWORD_MAX} caratteri)`;
+  return null;
+}
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
+  const invalid = credentialsError(req.body);
+  if (invalid) return res.status(400).json({ error: invalid });
   const { username, password, inviteCode } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ error: 'username e password richiesti' });
-  if (typeof username !== 'string' || username.length > 32)
-    return res.status(400).json({ error: 'Username troppo lungo (max 32 caratteri)' });
-  if (typeof password !== 'string' || password.length > 128)
-    return res.status(400).json({ error: 'Password troppo lunga (max 128 caratteri)' });
 
   const expected = process.env.INVITE_CODE;
   if (!expected) {
     return res.status(403).json({ error: 'Registrazione disabilitata. Contatta un amministratore.' });
   }
-  if (!inviteCode || inviteCode.trim() !== expected) {
+  if (typeof inviteCode !== 'string' || inviteCode.length > INVITE_MAX || inviteCode.trim() !== expected) {
     return res.status(403).json({ error: 'Codice d\'invito non valido' });
   }
 
-  const hash = await bcrypt.hash(password, 10);
   try {
+    const hash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: { username, password: hash, role: 'PLAYER' }
     });
@@ -56,18 +70,31 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
+  const invalid = credentialsError(req.body);
+  if (invalid) return res.status(400).json({ error: invalid });
   const { username, password } = req.body;
-  const user = await prisma.user.findUnique({ where: { username } });
-  if (!user || !(await bcrypt.compare(password, user.password)))
-    return res.status(401).json({ error: 'Credenziali non valide' });
 
-  const token = signToken(user);
-  res.json({ token, user: publicUser(user) });
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user || !(await bcrypt.compare(password, user.password)))
+      return res.status(401).json({ error: 'Credenziali non valide' });
+
+    const token = signToken(user);
+    res.json({ token, user: publicUser(user) });
+  } catch (error) {
+    console.error('login error', error);
+    res.status(500).json({ error: 'Errore durante il login' });
+  }
 });
 
 // PATCH /api/auth/profile — aggiorna avatar (autenticato)
 router.patch('/profile', auth, async (req, res) => {
-  const { avatarCardName, avatarScryfallId } = req.body;
+  const { avatarCardName, avatarScryfallId } = req.body || {};
+  if (avatarCardName !== undefined && avatarCardName !== null) {
+    if (typeof avatarCardName !== 'string' || avatarCardName.length > AVATAR_NAME_MAX) {
+      return res.status(400).json({ error: 'avatarCardName non valido' });
+    }
+  }
   if (avatarScryfallId !== undefined && avatarScryfallId !== null) {
     if (typeof avatarScryfallId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(avatarScryfallId)) {
       return res.status(400).json({ error: 'avatarScryfallId non valido' });

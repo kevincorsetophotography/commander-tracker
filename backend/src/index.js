@@ -24,6 +24,13 @@ const judgeRoutes        = require('./routes/judge');
 const scryfallRoutes     = require('./routes/scryfall');
 const { rateLimit } = require('express-rate-limit');
 const { loadComprehensiveRules } = require('./lib/judge');
+const { wrapRouter, errorHandler } = require('./lib/asyncRoutes');
+
+// Ultima rete di sicurezza: una Promise rifiutata e non gestita viene loggata
+// invece di abbattere il processo (default di Node >= 15).
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', (reason && reason.stack) || reason);
+});
 
 const app = express();
 
@@ -78,24 +85,21 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.use('/api/auth',          authLimiter, authRoutes);
-app.use('/api/admin',         apiLimiter, adminRoutes);
-app.use('/api/decks',         apiLimiter, deckRoutes);
-app.use('/api/games',         apiLimiter, gameRoutes);
-app.use('/api/stats',         apiLimiter, statsRoutes);
-app.use('/api/events',        apiLimiter, eventRoutes);
-app.use('/api/me',            apiLimiter, require('./routes/me'));
-app.use('/api/tables',        apiLimiter, require('./routes/tables'));
-app.use('/api/notifications', apiLimiter, notificationRoutes);
-app.use('/api/judge',         judgeRoutes);
-app.use('/api/public',        publicLimiter, require('./routes/public'));
-app.use('/api/scryfall',      apiLimiter, scryfallRoutes);
+app.use('/api/auth',          authLimiter, wrapRouter(authRoutes));
+app.use('/api/admin',         apiLimiter, wrapRouter(adminRoutes));
+app.use('/api/decks',         apiLimiter, wrapRouter(deckRoutes));
+app.use('/api/games',         apiLimiter, wrapRouter(gameRoutes));
+app.use('/api/stats',         apiLimiter, wrapRouter(statsRoutes));
+app.use('/api/events',        apiLimiter, wrapRouter(eventRoutes));
+app.use('/api/me',            apiLimiter, wrapRouter(require('./routes/me')));
+app.use('/api/tables',        apiLimiter, wrapRouter(require('./routes/tables')));
+app.use('/api/notifications', apiLimiter, wrapRouter(notificationRoutes));
+app.use('/api/judge',         wrapRouter(judgeRoutes));
+app.use('/api/public',        publicLimiter, wrapRouter(require('./routes/public')));
+app.use('/api/scryfall',      apiLimiter, wrapRouter(scryfallRoutes));
 
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Global error handler: logga e risponde 500 JSON senza stack
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Commander Tracker API on :${PORT}`));
