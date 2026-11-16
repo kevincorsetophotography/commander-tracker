@@ -12,6 +12,11 @@ App full-stack deployata: i membri registrano partite, mazzi, statistiche, event
 
 - **Frontend**: React 18 + Vite 5, `react-router-dom` 6, **stili inline** (niente CSS framework), tema dark/light (`hooks/useTheme`), PWA. Test: **Vitest 2** (`frontend/ npm test`).
 - **Backend**: Node + Express + **Prisma 5** + **PostgreSQL**. Auth JWT + bcrypt, registrazione protetta da **INVITE_CODE**. Test: Vitest 2 (`backend/ npm test`).
+- **Produzione**: frontend https://commanderone-villastellone.vercel.app · API https://commanderone-villastellone.up.railway.app/api
+  (commanderone.vercel.app e commander-tracker-production sono morti). Backend e Postgres su Railway **EU West (Amsterdam)**,
+  stessa regione, DB sulla rete privata: ~90 ms per chiamata dall'Italia (un 404 senza DB ~85-105 ms). Se torna lento,
+  primo controllo: le due regioni coincidono? (Prima del 2026-11-16 era US → ~220 ms.)
+- **Stato al 2026-11-17**: `main` = `5c0a142`, tutto pushato e in produzione.
 - **Deploy**: push su `main` →
   - **Railway** (backend + Postgres): esegue `start:prod` = `prisma db push --accept-data-loss && ensureAdmin && migrateNotificationLinks && migrateSeasonAchievements && index.js`.
   - **Vercel** (frontend): build statico, SPA rewrites (`vercel.json`).
@@ -33,8 +38,10 @@ Rigenerare il client mentre il backend gira **blocca la query-engine DLL** (EPER
 
 - Uso **Playwright** in `~/ct-shots` (FUORI dal repo) per pilotare l'app reale: chromium via `channel:'msedge'` (no download), **webkit** per simulare iOS Safari. Screenshot di debug in `docs/img/_*.png` → **cancellati dopo**.
 - Login programmatico via API, token iniettato in `localStorage` (`ct_token`, `ct_user`, `ct_theme`).
-- Pattern: implemento → verifico in locale (desktop + mobile, spesso anche webkit) → `npm test` + `vite build` → commit. **Push solo quando l'utente lo chiede** (il push fa partire il deploy in produzione).
-- Commit: messaggio in inglese, termina con `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`. Lavoro su `main`.
+- Pattern: implemento → verifico in locale (desktop + mobile, spesso anche webkit) → `npm test` + `vite build` → commit. **Push su `main` SOLO con un ok scritto di Kevin che nomina azione e commit** ("push del commit abc123 su main"): il push fa partire il deploy in produzione. I push di branch possono essere bloccati dal classificatore: si lavora su `main` in locale o si fa merge fast-forward del branch prima del push.
+- Commit: messaggio in inglese, termina con la riga `Co-Authored-By:` del modello in uso.
+- **Lentezze in prod**: ogni risposta API ha l'header `Server-Timing` (`app;dur=…, db;dur=…;desc="N query"`, DevTools → Network → Timing) e le richieste oltre 300 ms (`SLOW_REQUEST_MS`) finiscono nei log Railway come `[slow] METODO /path status total=… db=… queries=…` (`lib/serverTiming.js`). Se il server risponde in pochi ms ma la UI sembra lenta, il problema è nel frontend (es. attese di animazioni: vedi apertura tavolo ottimistica). Script Playwright di timing: `~/ct-shots/table_open_timing.js` (`DELAY` simula la rete).
+- **nodemon su Windows a volte NON riavvia** il backend dopo una modifica: se una modifica backend "non funziona" in locale, controlla che il processo `src/index.js` sia recente e in caso riavvialo.
 
 ---
 
@@ -50,6 +57,13 @@ backend/src/
     decklist.js       parseDecklist, findMissingCards, validateDecklist (100 carte, esistenza su Scryfall)
     tournament.js     algoritmi torneo PURI: podSizes, makePods, makePairings, standings1v1, swissPairings (con test)
     judge.js          Judge Bot: parseComprehensiveRules, searchInSections, detectCardNames, fetchCardContext, normalizeQuestion, askJudge
+    openTables.js     regole pure dei tavoli aperti (finestra evento, max posti) — con test
+    scoreboard.js     regole pure del segnapunti condiviso (vita, veleno, danni commander, undo, seatOrder) — con test
+    defaultAvatar.js  avatar di default = commander più giocato (poi creato per ultimo) — con test
+    permissions.js    canCreateEvent / canManageEvent (admin, organizzatore)
+    publicStats.js    totali aggregati per la landing — con test
+    serverTiming.js   header Server-Timing + log [slow]
+    asyncRoutes.js    wrapRouter: errori async → 500 invece di crash — con test
   routes/
     auth.js           POST /register, POST /login
     admin.js          CRUD users + export JSON (richiede ADMIN)
@@ -58,7 +72,11 @@ backend/src/
     stats.js          GET players, decks, matchups, achievements/:userId
     events.js         CRUD eventi + RSVP + turni + risultati tavoli
     notifications.js  GET lista, GET unread-count, POST read
-    judge.js          POST / (domanda → askJudge + salva JudgeQuestion)
+    judge.js          POST / (domanda → askJudge + salva JudgeQuestion), GET storico
+    tables.js         tavoli aperti + posti + mazzi + segnapunti condiviso
+    me.js             GET /api/me
+    public.js         GET /api/public/stats (landing, senza login)
+    scryfall.js       proxy immagini Scryfall (CORS)
   ensureAdmin.js                 upsert admin (one-shot, suo PrismaClient)
   migrateNotificationLinks.js    migrazione idempotente: link notifiche vecchie → deep-link
   migrateSeasonAchievements.js   migrazione idempotente: rimuove achievement stagionali assegnati per errore
@@ -79,6 +97,11 @@ frontend/src/
     scryfall.js       chiamate Scryfall (autocomplete, colori, validazione, categorizeCard)
     brackets.js       BRACKETS {1:Casual, 2:Bilanciato, 3:Potente, 4:cEDH}, BRACKET_OPTIONS
     archetypes.js     ARCHETYPE_OPTIONS [Aggro, Midrange, Control, Combo, Stax, Aristocrats, Tokens, Voltron, Ramp]
+    defaultAvatars.js useDefaultAvatar(username): mappa condivisa da /api/stats/default-avatars (TTL 5 min,
+                      invalidata dall'evento `ct:avatars-stale` che api.js emette dopo scritture su mazzi/partite/profilo)
+    deckList.js       filterSortDecks + DECK_SORTS (ricerca/ordinamento di "I miei mazzi") — con test
+    decklistEdit.js   regola commander + 99: stripCommander, countCards, buildDecklist — con test
+    freeScore.js · scoreboard.js · lifeCounter.js   segnapunti libero / specchio ottimistico / layout 2-6 — con test
     confetti.js       fireConfetti() — celebrazione visiva a schermo
     theme.js          token colore dark/light (bgSurface, border, primary, text, textSub, danger, win, winBg, gradient, glow, shadow…)
   hooks/
@@ -166,7 +189,7 @@ frontend/src/
 
 ## Modello dati (Prisma — tutti i campi)
 
-**User**: id, username (unique), password (bcrypt), role (PLAYER|ADMIN), isOrganizer (Boolean, default false — ruolo invisibile: resta PLAYER ma crea/gestisce i PROPRI eventi)
+**User**: id, username (unique), password (bcrypt), role (PLAYER|ADMIN), isOrganizer (Boolean, default false — ruolo invisibile: resta PLAYER ma crea/gestisce i PROPRI eventi), avatarCardName?, avatarScryfallId? (stampa scelta). Senza avatar scelto si mostra l'**avatar di default** = art del commander più giocato (calcolato al volo, mai salvato)
 
 **Deck**: id, name, commander, colors (es. "WUBRG"), decklist (testo libero), bracket (1-4), archetype, userId
 - Unique: (userId, name)
@@ -212,13 +235,16 @@ OpenTable ha anche `scoreboard Json?` (segnapunti condiviso) e `scoreVersion Int
 // AUTH
 POST /api/auth/register       {username, password, inviteCode}
 POST /api/auth/login          {username, password} → {token, user}
+PATCH /api/auth/profile       {avatarCardName, avatarScryfallId} → avatar scelto (null = torna al default)
 
 // DECKS
 GET  /api/decks               lista tutti i mazzi PLAYER (per comporre tavolo)
 GET  /api/decks/mine          mazzi dell'utente corrente
 GET  /api/decks/:id           singolo mazzo con decklist
 POST /api/decks               crea mazzo {name, commander, colors, bracket, archetype, decklist}
-PATCH /api/decks/:id          modifica mazzo
+PATCH /api/decks/:id          modifica mazzo. decklist non vuota = commander + 99 (100 righe-carta, validata su Scryfall);
+                              decklist '' = solo commander. Se cambia `commander` senza `decklist`, la riga del vecchio
+                              commander nella lista salvata diventa quella nuova (replaceCommanderLine)
 DELETE /api/decks/:id         elimina mazzo (solo se non usato in partite)
 POST /api/decks/import        {url} → {decklist} — Archidekt (API) o Moxfield (spesso bloccato → guida export)
 
@@ -238,6 +264,7 @@ GET  /api/stats/players       [{id, username, games, wins, winRate}] ordinato pe
 GET  /api/stats/decks         [{id, name, commander, colors, bracket, archetype, owner, ownerId, games, wins, winRate}]
 GET  /api/stats/matchups      [{deckA:{id,name,owner}, deckB:{...}, games, wins, winRate}]
 GET  /api/stats/achievements/:userId  {unlocked: [achievementId, ...]}
+GET  /api/stats/default-avatars   {[username]: commander} per chi non ha scelto un avatar
 
 // NOTIFICATIONS
 GET  /api/notifications       ultime 40 notifiche dell'utente
@@ -341,7 +368,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 ### PlayerProfilePage (`/giocatore/:id`) — progressive disclosure (6 sezioni)
 1. **Header**: avatar, username, win rate globale, partite, streak inline se ≥2
 2. **Achievement** (posizione 2, collassabile): mostra hint "Prossimo: [titolo] — [desc]" quando chiuso; `?ach=1` lo apre e scrolla
-3. **Mazzi del giocatore**: lista con win rate, link a DeckProfilePage
+3. **Mazzi**: profilo proprio = `MyDecks limit={4}` (4 più giocati, gestione nel pannello, "Vedi tutti" → /mazzi); profilo altrui = Miglior mazzo + lista read-only con win rate
 4. **Scontri diretti ⚔️** (collapsible, default chiuso): rivalità h2h — select avversario, partite condivise, meBetter/oppBetter, myKills/oppKills
 5. **Statistiche dettagliate** (collapsible, default chiuso): stats chiave + kill tracking + trend win rate SVG
 6. **Storico partite**: ultime partite con `GameSocial`
@@ -364,7 +391,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 3 tab: **Users** (CRUD utenti, cambio ruolo), **Decks** (CRUD mazzi per conto di qualsiasi utente), **Games** (CRUD partite con form completo)
 
 ### DeckListPanel (componente)
-- Textarea decklist libera
+- Campo Commander separato + sezione mazzo (textarea) con contatore live N/99. **Sezione vuota = si salva solo il commander**; con carte servono **esattamente 99** (il commander sta nel suo campo; se lo incolli nella lista viene tolto da solo). Regole in `lib/decklistEdit.js`.
 - **Import da URL**: `POST /api/decks/import` → Archidekt (funziona), Moxfield (spesso blocca → messaggio guida export manuale)
 
 ### EventsPage (`/eventi`) — /tornei redirige qui (retrocompatibilità)
@@ -403,7 +430,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - **Tornei — pod multiplayer = Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext`. Gli iscritti SENZA mazzi non possono entrare in un pod.
 - **Date locali, non UTC**: usare `getFullYear/Month/Date`, MAI `toISOString().slice(0,10)` (shifta col fuso → stagione sbagliata). Vedi `toLocalDate` in `NewGamePage`.
 - **Commit da PowerShell**: gli here-string `@'...'@` si rompono con **virgolette doppie** → niente `"` nei messaggi di commit.
-- **Prestazioni (2026-11)**: il frontend (Vercel) e l'API (Railway) sono su domini diversi + header Authorization → ogni chiamata ha un preflight CORS: `cors({ maxAge: 7200 })` lo fa ricordare al browser (senza, ~2 viaggi per chiamata). Risposte compresse (`compression`). Cache 30s del ruolo nel middleware auth (`forgetUser(id)` nelle modifiche admin: revoca immediata). `vercel.json`: `/assets/*` immutable 1 anno. Logo in app = `logo-192.webp`/`logo-384.webp` (`logo.png` è 1,3 MB: solo OG). Miniature carte SEMPRE da `cardCache` (`useCardArt`): i nomi che il batch non trova passano da una ricerca fuzzy JSON e finiscono in cache; `format=image` solo come ultimo ripiego. Pagina tavolo: chunk precaricato da `OpenTables` e dettaglio richiesto al tocco (`lib/tablePrefetch.js`). La latenza base verso Railway è ~230 ms per viaggio: la regione del servizio conta.
+- **Prestazioni (2026-11)**: il frontend (Vercel) e l'API (Railway) sono su domini diversi + header Authorization → ogni chiamata ha un preflight CORS: `cors({ maxAge: 7200 })` lo fa ricordare al browser (senza, ~2 viaggi per chiamata). Risposte compresse (`compression`). Cache 30s del ruolo nel middleware auth (`forgetUser(id)` nelle modifiche admin: revoca immediata). `vercel.json`: `/assets/*` immutable 1 anno. Logo in app = `logo-192.webp`/`logo-384.webp` (`logo.png` è 1,3 MB: solo OG). Miniature carte SEMPRE da `cardCache` (`useCardArt`): i nomi che il batch non trova passano da una ricerca fuzzy JSON e finiscono in cache; `format=image` solo come ultimo ripiego. Pagina tavolo: chunk precaricato da `OpenTables` e dettaglio richiesto al tocco (`lib/tablePrefetch.js`). Con backend+DB in EU West la latenza base è ~90 ms per viaggio (era ~230 ms dagli USA): la regione conta.
 - **iPhone da Home (standalone)**: margine alto = `var(--sat)` (definita in `index.css`) = `max(env(safe-area-inset-top), --sat-min)`; `--sat-min` lo calcola `lib/safeArea.js` (con test) solo su iOS standalone verticale a schermo pieno, come riserva quando iOS riporta env()=0. Usarla per ogni elemento fisso/sticky in alto (header, toast, overlay, segnapunti, Login).
 - **Classi animazione globali** (`frontend/src/index.css`): `ct-fade-up` (stagger con `animationDelay`), `ct-bar-fill` (scaleX 0→1 su mount, rimpiazza `transition:width` che non si anima al primo render), `ct-section-open` (collapsible open, opacity+translateY), `ct-modal-in` (spring cubic-bezier per overlay), `ct-lift:active` + `ct-press` (tap feedback mobile), `ct-life-bump`/`ct-delta-in` (segnapunti), `ct-badge-pop`/`ct-bell-ring` (notifiche nuove), `ct-flame` (serie di vittorie); coriandoli (`fireConfetti`) al salvataggio partita e all'apertura degli achievement da notifica (`?ach=1`, solo proprio profilo). Tutte disabilitate con `@media (prefers-reduced-motion: reduce)`. Tab transition trick: `<div key={tab} className="ct-fade-up">` — cambiare key smonta/rimonta il nodo riattivando l'animazione.
 
@@ -423,6 +450,8 @@ Archetipi mazzi · Commenti & reazioni · Calendario eventi (admin) + RSVP · No
 
 **Landing page pubblica (2026-08)**: `LandingPage.jsx` + `LandingPage.css` — presentazione ufficiale della community su `/info` (chi siamo, cosa facciamo, modo di giocare, proxy friendly 100%, Rule 0, mood, quando e dove con link Google Maps, gallery foto reali con lightbox, footer). Rotta pubblica indipendente, scollegata dal portale: `/` resta sempre e solo il portale (Feed se loggato, redirect a `/login` altrimenti), nessuna funzionalità esistente toccata. Link incrociati "Accedi" (landing → `/login`) e "Chi siamo" (Login → `/info`). Reveal-on-scroll via `IntersectionObserver` con timeout di sicurezza (2.5s), scroll interno animato con offset nav sticky. SEO/OG in `index.html` + override runtime in `LandingPage.jsx`.
 
+**Novembre 2026**: **avatar di default** dal commander più giocato · **tavoli aperti** con pagina del tavolo, mazzi per posto e **segnapunti condiviso** (vita/veleno/danni commander, ordine posti trascinabile) · **segnapunti libero** `/segnapunti` (2-6 giocatori, anche ospiti, "Registra risultati" precompila la partita) · **guida in-app** `/guida` rifatta · perf (CORS maxAge, compression, cache ruolo, Railway EU West, Server-Timing) + safe-area iPhone standalone · **I miei mazzi** a griglia di carte + pannello (`MyDecks`, ricerca/ordinamento) · regola **commander + 99** nella modifica lista · **sync del commander** nella lista salvata quando lo si cambia.
+
 Robustezza: PrismaClient singleton, rate-limit login + judge + API, test Vitest su achievement/stagioni/decklist/torneo/judge, cache immagini/liste, deep-link notifiche.
 
 ---
@@ -439,7 +468,6 @@ Robustezza: PrismaClient singleton, rate-limit login + judge + API, test Vitest 
 
 ### Media priorità
 
-- **Cache in auth middleware**: `Map` in memoria con TTL 60s per il `findUnique` del ruolo — riduce il carico da 300 query/min a ~1/utente/min mantenendo la garanzia di revoca entro 60s.
 - **`role` enum in schema Prisma**: sostituire `String` con `enum Role { PLAYER ADMIN }` — aggiunge validazione a livello DB e type safety nel client Prisma.
 - **useRequireAdmin middleware negli eventi**: le 4 route admin in `events.js` usano `if (req.user.role !== 'ADMIN')` inline invece del middleware `requireAdmin` — inconsistente con il pattern usato altrove.
 - **Commander partner** (`commanderB String?`): alcuni mazzi EDH hanno due commander (Partner). Aggiungere campo opzionale nello schema, nel form di creazione mazzo e in DeckThumb.
