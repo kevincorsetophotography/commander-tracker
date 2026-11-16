@@ -362,17 +362,6 @@ export default function MyDecks({ limit, onChanged }) {
         </form>
       </Sheet>
 
-      {/* FAB su mobile (solo pagina completa) */}
-      {isMobile && !preview && decks.length > 4 && (
-        <button onClick={openForm} aria-label="Nuovo mazzo" className="ct-press" style={{
-          position: 'fixed', right: 18, bottom: 'calc(92px + env(safe-area-inset-bottom))', zIndex: 25,
-          height: 52, padding: '0 18px', borderRadius: 999, border: 'none', background: t.accent, color: '#fff',
-          fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-          boxShadow: '0 10px 30px rgba(139,92,246,0.45)', fontFamily: 'inherit',
-        }}>
-          <Icon name="plus" size={19} stroke={2.6} /> Mazzo
-        </button>
-      )}
     </div>
   )
 }
