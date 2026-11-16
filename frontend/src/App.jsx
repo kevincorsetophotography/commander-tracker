@@ -28,6 +28,7 @@ const GiocaPage = lazy(() => import('./pages/GiocaPage'))
 const GuidaPage = lazy(() => import('./pages/GuidaPage'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const TablePage = lazy(() => import('./pages/TablePage'))
+const FreeScorePage = lazy(() => import('./pages/FreeScorePage'))
 import NotificationBell from './components/NotificationBell'
 import PlayerAvatar from './components/PlayerAvatar'
 import { Icon } from './components/ui'
@@ -204,7 +205,7 @@ function PillNav({ user, hasUpcomingEvent }) {
   )
 }
 
-// ── Menu account (tap sull'avatar): profilo, mazzi, tema, guida, admin, esci ──
+// ── Menu account (tap sull'avatar): profilo, mazzi, segnapunti, tema, guida, admin, esci ──
 function AccountMenu() {
   const { user, logout } = useAuth()
   const { t, dark, toggleDark } = useTheme()
@@ -252,6 +253,7 @@ function AccountMenu() {
             </div>
             <Row icon="person" label="Il mio profilo" onClick={() => go(`/giocatore/${user?.id}`)} />
             <Row icon="cards" label="I miei mazzi" onClick={() => go('/mazzi')} />
+            <Row icon="flame" label="Segnapunti" sub="Punti vita per una partita qualsiasi" onClick={() => go('/segnapunti')} />
             <Row icon={dark ? 'sun' : 'moon'} label={dark ? 'Tema chiaro' : 'Tema scuro'}
               sub={dark ? 'Ora: scuro (consigliato per la serata)' : 'Ora: chiaro'} onClick={toggleDark}
               right={<span style={{ fontSize: 13, fontWeight: 700, color: t.primary }}>Cambia</span>} />
@@ -270,7 +272,7 @@ function Layout() {
   const { t, dark, toggleDark } = useTheme()
   const isMobile = useIsMobile()
   const { pathname } = useLocation()
-  const hideNav = pathname.startsWith('/nuova-partita')
+  const hideNav = pathname.startsWith('/nuova-partita') || pathname.startsWith('/segnapunti')
 
   // Pallino su "Eventi" se c'è un evento futuro (una sola chiamata all'avvio).
   const [hasUpcomingEvent, setHasUpcomingEvent] = useState(false)
@@ -295,6 +297,7 @@ function Layout() {
       <Route path="/partita/:id"   element={<GamePage />} />
       <Route path="/evento/:id"    element={<EventDetailPage />} />
       <Route path="/tavoli/:id"    element={<TablePage />} />
+      <Route path="/segnapunti"    element={<FreeScorePage />} />
       <Route path="/nuova-partita" element={<NewGamePage />} />
       <Route path="/giudice"       element={<JudgePage />} />
       <Route path="/guida"         element={<GuidaPage />} />

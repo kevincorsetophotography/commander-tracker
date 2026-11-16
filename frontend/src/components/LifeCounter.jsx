@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Undo2, RotateCcw, X, Dices, Crown, Droplet, Swords, Skull, Repeat, GripHorizontal, ArrowLeftRight } from 'lucide-react'
+import { Undo2, RotateCcw, X, Dices, Crown, Droplet, Swords, Skull, Repeat, GripHorizontal, ArrowLeftRight, Trophy } from 'lucide-react'
 import { useCardArt } from '../lib/cardCache'
 import { REASON_LABEL } from '../lib/scoreboard'
 import { layoutFor, localSize, swipeStep, targetsFor, stepIndex, valueOf, actionFor, describeEntry, SWIPE_MIN, DRAG_HOLD_MS, DRAG_SLOP, normalizeOrder, swapSeats, rotateOrder, panelAt } from '../lib/lifeCounter'
@@ -10,14 +10,16 @@ import { layoutFor, localSize, swipeStep, targetsFor, stepIndex, valueOf, action
 // swipe nel verso del pannello = cambia contatore (vita → veleno → danni da ciascun avversario).
 // Tenere premuto il NOME (la striscia con la maniglia) = afferra il pannello: trascinandolo su un altro
 // posto i due si scambiano. L'ordine dei posti è condiviso (scoreboard.seatOrder sul server).
-// Stato condiviso lato server (vedi TablePage): qui solo UI e gesti.
+// Qui solo UI e gesti: lo stato arriva da fuori. Tavolo = condiviso lato server (TablePage);
+// local = segnapunti libero, tutto sul telefono (FreeScorePage): testi del menu adattati,
+// chiusura con conferma (i punti si cancellano), "Registra risultati" facoltativo.
 
 const HOLD_MS = 450
 const REPEAT_MS = 550
 const BACK_TO_LIFE_MS = 5000
 const FLASH_MS = 1400
 // colori pieni per chi non ha scelto il mazzo (uno per posto)
-const SOLID = ['#7c3aed', '#0e7490', '#b45309', '#be123c', '#15803d']
+const SOLID = ['#7c3aed', '#0e7490', '#b45309', '#be123c', '#15803d', '#4338ca']
 const GOLD = '#f5c451'
 
 const vibrate = (ms) => { try { navigator.vibrate?.(ms) } catch { /* non supportato */ } }
@@ -214,8 +216,9 @@ function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInse
 }
 
 // ── menu centrale ────────────────────────────────────────────────────────────────
-function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, onStarter, onRotate, canRotate }) {
+function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, onStarter, onRotate, canRotate, local, onRegister }) {
   const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmExit, setConfirmExit] = useState(false)
   const [d20, setD20] = useState(null)
   const row = (extra = {}) => ({
     width: '100%', boxSizing: 'border-box', minHeight: 54, display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', borderRadius: 14, cursor: 'pointer', textAlign: 'left',
@@ -243,7 +246,7 @@ function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, on
           </button>
         ) : (
           <div style={{ ...row({ cursor: 'default', flexDirection: 'column', alignItems: 'stretch', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.45)' }) }}>
-            <span style={{ fontSize: 14 }}>Ripristinare per tutto il tavolo?<span style={sub}>Vita a 40, veleno e danni da commander a 0. Lo storico per annullare si azzera.</span></span>
+            <span style={{ fontSize: 14 }}>{local ? 'Ripristinare i punti di tutti?' : 'Ripristinare per tutto il tavolo?'}<span style={sub}>Vita a 40, veleno e danni da commander a 0. Lo storico per annullare si azzera.</span></span>
             <span style={{ display: 'flex', gap: 8, marginTop: 6 }}>
               <button onClick={() => setConfirmReset(false)} style={row({ minHeight: 44, justifyContent: 'center' })}>No</button>
               <button onClick={onReset} style={row({ minHeight: 44, justifyContent: 'center', background: '#dc2626', border: 'none' })}>Ripristina</button>
@@ -252,27 +255,46 @@ function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, on
         )}
 
         {canRotate && (
-          <button onClick={onRotate} style={row({ fontSize: 14 })}><Repeat size={20} style={{ flexShrink: 0 }} /><span>Ruota i posti<span style={sub}>Tutti scalano di un posto, per tutto il tavolo. Per scambiarne due: tieni premuto un nome e trascinalo.</span></span></button>
+          <button onClick={onRotate} style={row({ fontSize: 14 })}><Repeat size={20} style={{ flexShrink: 0 }} /><span>Ruota i posti<span style={sub}>Tutti scalano di un posto{local ? '' : ', per tutto il tavolo'}. Per scambiarne due: tieni premuto un nome e trascinalo.</span></span></button>
         )}
 
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(255,255,255,.5)', margin: '6px 4px 0' }}>STRUMENTI · SOLO SU QUESTO TELEFONO</div>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(255,255,255,.5)', margin: '6px 4px 0' }}>{local ? 'STRUMENTI' : 'STRUMENTI · SOLO SU QUESTO TELEFONO'}</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onStarter} style={row({ flex: 1, minWidth: 0, justifyContent: 'center', fontSize: 14 })}><Crown size={18} color={GOLD} /> Chi inizia?</button>
           <button onClick={() => setD20(1 + Math.floor(Math.random() * 20))} style={row({ flex: 1, minWidth: 0, justifyContent: 'center', fontSize: 14 })}>
             <Dices size={18} /> {d20 ? <span style={{ fontSize: 18, fontWeight: 900 }}>{d20}</span> : 'Tira d20'}
           </button>
         </div>
-        <button onClick={onExit} style={row({ marginTop: 4, justifyContent: 'center', background: '#fff', color: '#0e122b', border: 'none' })}>
-          Chiudi segnapunti
-        </button>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.55)', textAlign: 'center' }}>Chiuderlo non azzera nulla: i punteggi restano per tutto il tavolo.</div>
+        {onRegister && (
+          <button onClick={onRegister} style={row({ fontSize: 14 })}><Trophy size={20} style={{ flexShrink: 0 }} /><span>Registra risultati<span style={sub}>Apre Registra partita con giocatori e mazzi già inseriti</span></span></button>
+        )}
+        {!local ? (
+          <>
+            <button onClick={onExit} style={row({ marginTop: 4, justifyContent: 'center', background: '#fff', color: '#0e122b', border: 'none' })}>
+              Chiudi segnapunti
+            </button>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.55)', textAlign: 'center' }}>Chiuderlo non azzera nulla: i punteggi restano per tutto il tavolo.</div>
+          </>
+        ) : !confirmExit ? (
+          <button onClick={() => setConfirmExit(true)} style={row({ marginTop: 4, justifyContent: 'center', background: '#fff', color: '#0e122b', border: 'none' })}>
+            Chiudi segnapunti
+          </button>
+        ) : (
+          <div style={{ ...row({ cursor: 'default', flexDirection: 'column', alignItems: 'stretch', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.45)' }) }}>
+            <span style={{ fontSize: 14 }}>Chiudere il segnapunti?<span style={sub}>I punti verranno cancellati.</span></span>
+            <span style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button onClick={() => setConfirmExit(false)} style={row({ minHeight: 44, justifyContent: 'center' })}>Annulla</button>
+              <button onClick={onExit} style={row({ minHeight: 44, justifyContent: 'center', background: '#dc2626', border: 'none' })}>Chiudi</button>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 // ── schermo intero ───────────────────────────────────────────────────────────────
-export default function LifeCounter({ seats, score, isOwner, onAct, onUndo, onReset, onReorder, onClose }) {
+export default function LifeCounter({ seats, score, isOwner, onAct, onUndo, onReset, onReorder, onClose, local = false, onRegister = null }) {
   const area = useRef(null)
   const [size, setSize] = useState(null)
   const [menu, setMenu] = useState(false)
@@ -425,6 +447,8 @@ export default function LifeCounter({ seats, score, isOwner, onAct, onUndo, onRe
             onStarter={() => { setStarter(seatIds[Math.floor(Math.random() * n)]); setMenu(false) }}
             onRotate={() => onReorder(rotateOrder(order))}
             onExit={onClose}
+            local={local}
+            onRegister={onRegister && (() => { setMenu(false); onRegister() })}
           />
         )}
       </div>

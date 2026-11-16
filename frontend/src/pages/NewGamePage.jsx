@@ -11,6 +11,7 @@ import DeckThumb from '../components/DeckThumb'
 import BracketBadge from '../components/BracketBadge'
 import { Icon, ManaPips, bento } from '../components/ui'
 import PlayerPicker from '../components/PlayerPicker'
+import { clearFree } from '../lib/freeScore'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 
@@ -72,9 +73,11 @@ export default function NewGamePage() {
   // Tavolo aperto (creato dai giocatori): stesso flusso dei pod, poi si collega al tavolo
   const tableCtx = navState.tableContext || null
   const podCtx = navState.podContext || tableCtx || null
+  // Dal segnapunti libero: giocatori e mazzi precompilati ma modificabili (nessun tavolo/pod da collegare)
+  const prefill = !podCtx && Array.isArray(navState.prefill?.players) ? navState.prefill : null
   const [allDecks, setAllDecks] = useState([])   // tutti i mazzi di tutti i giocatori
-  const [slots, setSlots] = useState(() => podCtx
-    ? podCtx.players.map(p => ({ userId: String(p.userId), deckId: p.deckId ? String(p.deckId) : '' }))
+  const [slots, setSlots] = useState(() => (podCtx || prefill)
+    ? (podCtx || prefill).players.map(p => ({ userId: String(p.userId), deckId: p.deckId ? String(p.deckId) : '' }))
     : [{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }, { ...EMPTY_SLOT }])
   const [winnerId, setWinnerId] = useState(null)   // { userId, deckId }
   const [notes, setNotes] = useState('')
@@ -279,6 +282,7 @@ export default function NewGamePage() {
         setTimeout(() => navigate(`/evento/${podCtx.eventId}`), 700)
         return
       }
+      if (prefill?.fromFreeScore) clearFree() // partita salvata: il segnapunti libero ha finito il suo lavoro
       fireConfetti()
       const winnerName = userOf(winnerId.userId)?.username
       sonner.success('Partita registrata', {

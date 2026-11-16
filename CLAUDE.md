@@ -128,6 +128,14 @@ frontend/src/
     EventsPage.jsx        /eventi — eventi + RSVP (form crea/modifica in modal overlay); /tornei redirige qui
     EventDetailPage.jsx   /evento/:id — dettaglio torneo (turni, tavoli, standings)
     TablePage.jsx         /tavoli/:id — pagina del tavolo aperto (solo seduti): mazzi + segnapunti condiviso + Registra risultati
+    FreeScorePage.jsx     /segnapunti (menu avatar mobile) — segnapunti LIBERO, non legato a un tavolo: setup 2-6 giocatori
+                          (utenti registrati col loro mazzo via PlayerPicker, oppure ospiti con nome + commander facoltativo
+                          via CommanderInput; ospiti = userId negativi) → stesso LifeCounter in modalità `local`.
+                          Tutto sul telefono: regole pure in lib/freeScore.js (specchio di backend scoreboard.js, con test),
+                          stato in sessionStorage (`ct_free_score`) solo contro il ricaricamento; "Chiudi segnapunti" chiede
+                          conferma e lo distrugge. "Registra risultati" nel menu solo se tutti registrati e ≥3: apre
+                          /nuova-partita con `location.state.prefill` (giocatori/mazzi precompilati ma modificabili); al
+                          salvataggio la partita cancella lo stato del segnapunti.
     AdminPage.jsx         /admin — gestione utenti/mazzi/partite (solo ADMIN)
     JudgePage.jsx         /giudice — Q&A ruling Commander + storico domande del gruppo (ultimi 20)
     Dashboard.jsx         LEGACY — non usata
@@ -378,6 +386,7 @@ Non è nel dock né nel desktop navbar principale, ma raggiungibile via URL dire
 - **Permessi eventi**: `backend/src/lib/permissions.js` (`canCreateEvent`, `canManageEvent`): admin tutto; organizzatore crea eventi e gestisce SOLO i propri (modifica, elimina, turni, risultati); gli eventi espongono `canManage` per chi guarda e `createdBy` ("Organizzato da"). Il middleware auth rilegge `role` e `isOrganizer` dal DB a ogni richiesta (revoca immediata).
 - **Tavoli aperti**: regole pure in `backend/src/lib/openTables.js` (finestra evento: da 1h prima dell'inizio alle 4:00; eventi tutto il giorno = intera giornata; max 5; chiuso = nessuno entra; mai sui tornei 1v1: niente pulsante, l'API rifiuta e l'aggancio automatico li esclude). Notifica `type: 'table'` al creatore quando qualcuno si siede. Il risultato passa da Registra partita con `location.state.tableContext` (giocatori bloccati, come i pod; `players[].deckId` precompila i mazzi).
   - **Pagina del tavolo** `/tavoli/:id` (`TablePage.jsx`): un tavolo CHIUSO (dal creatore o pieno) è cliccabile solo per chi è seduto; il server risponde 403 ai non seduti. Mazzo per posto, segnapunti condiviso (vita 40, ±1/±5, veleno 10, danni commander 21 per avversario che tolgono anche vita; regole pure in `backend/src/lib/scoreboard.js`, specchio ottimistico in `frontend/src/lib/scoreboard.js`). Aperto/chiuso del segnapunti è solo vista per-utente (localStorage), lo stato resta sul server. **Ordine dei posti** condiviso in `scoreboard.seatOrder` (permutazione esatta dei seduti, validata dal server; `seatOrderOf` la ricalcola se i seduti cambiano: chi si alza sparisce, chi arriva va in fondo). Si cambia tenendo premuto il nome nel pannello (~400ms) e trascinandolo su un altro posto (scambio) o con "Ruota i posti" nel menu; NON entra nello storico di Annulla e sopravvive al Ripristina.
+  - **LifeCounter condiviso** (`components/LifeCounter.jsx`): solo UI e gesti, lo stato arriva da fuori. Tavolo = trasporto server (TablePage); `local` = segnapunti libero (FreeScorePage, testi del menu adattati, chiusura con conferma, `onRegister` facoltativo). Layout 2-6 giocatori in `lib/lifeCounter.js` (6 = due colonne da tre, solo nel libero: i tavoli hanno max 5 posti).
   - **Fine del tavolo**: risultato registrato → la riga OpenTable RESTA (legame evento→partita per lo storico, "Concluso" nella serata) ma segnapunti e mazzi scelti vengono cancellati e il tavolo esce dagli attivi; cancellazione del creatore → riga, posti e segnapunti eliminati.
 - **Tornei — classifica 1v1 calcolata SOLO lato server** (`tournament.js` + `withStandings` in `routes/events.js`): fonte di verità unica. Svizzera evita re-match, bye al più basso senza bye, **max 4 turni**.
 - **Tornei — pod multiplayer = Game VERA** (conta in stats/stagioni/achievement): `EventDetailPage` → "Registra partita" naviga a `/nuova-partita` con `location.state.podContext`. Gli iscritti SENZA mazzi non possono entrare in un pod.

@@ -14,7 +14,7 @@ import { searchPlayers, splitHighlight } from '../lib/playerSearch'
 // selected: [userId] nell'ordine dei posti
 export default function PlayerPicker({
   open, onOpenChange, t, dark, isMobile,
-  players, selected, onToggle, max = 5,
+  players, selected, onToggle, max = 5, min = 3,
   tonightIds = [], recentIds = [], gamesById = {},
 }) {
   const [query, setQuery] = useState('')
@@ -119,7 +119,7 @@ export default function PlayerPicker({
 
             {/* Selezionati */}
             <div className="ct-scroll-x" style={{ display: 'flex', gap: 8, overflowX: 'auto', minHeight: 44, alignItems: 'center', paddingBottom: 2 }}>
-              {selected.length === 0 && <span style={{ fontSize: 13, color: t.textSub }}>Tocca i giocatori del tavolo (da 3 a {max}).</span>}
+              {selected.length === 0 && <span style={{ fontSize: 13, color: t.textSub }}>Tocca i giocatori del tavolo (da {min} a {max}).</span>}
               <AnimatePresence initial={false}>
                 {selected.map((id, i) => {
                   const p = byId[id]
@@ -231,7 +231,7 @@ export default function PlayerPicker({
               background: selected.length >= 3 ? t.primary : t.bgMuted, color: selected.length >= 3 ? t.primaryFg : t.textSub,
               boxShadow: selected.length >= 3 ? t.glow : 'none',
             }}>
-              {selected.length >= 3 ? `Fatto · ${selected.length} giocatori` : `Scegline almeno 3 (${selected.length}/3)`}
+              {selected.length >= min ? `Fatto · ${selected.length} giocatori` : `Scegline almeno ${min} (${selected.length}/${min})`}
             </Dialog.Close>
           </div>
         </Dialog.Content>

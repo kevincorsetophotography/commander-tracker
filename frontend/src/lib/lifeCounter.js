@@ -8,7 +8,7 @@
 
 export const GAP = 4
 
-// Pannelli in pixel per n giocatori (3-5; 1-2 ripiegano su colonne semplici) in un'area W×H.
+// Pannelli in pixel per n giocatori (2-6; 1 = tutto lo schermo) in un'area W×H.
 // Restituisce { panels: [{ x, y, w, h, rot }], center: { x, y } } — panels[i] è il posto i.
 export function layoutFor(n, W, H, g = GAP) {
   const half = (W - g) / 2
@@ -32,6 +32,15 @@ export function layoutFor(n, W, H, g = GAP) {
     return {
       panels: [colL(0, rh), colR(0, rh), colR(rh + g, rh), { x: 0, y: gridH + g, w: W, h: botH, rot: 0 }, colL(rh + g, rh)],
       center: { x: W / 2, y: rh + g / 2 },
+    }
+  }
+  if (n === 6) {
+    // due colonne da tre (segnapunti libero)
+    const rh = (H - 2 * g) / 3
+    const y = (i) => i * (rh + g)
+    return {
+      panels: [colL(y(0), rh), colR(y(0), rh), colR(y(1), rh), colR(y(2), rh), colL(y(2), rh), colL(y(1), rh)],
+      center: { x: W / 2, y: H / 2 },
     }
   }
   if (n === 4) {

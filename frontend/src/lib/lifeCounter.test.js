@@ -6,7 +6,7 @@ const W = 390, H = 844
 const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
 describe('layoutFor', () => {
-  for (const n of [3, 4, 5]) {
+  for (const n of [2, 3, 4, 5, 6]) {
     it(`${n} giocatori: ${n} pannelli dentro lo schermo, senza sovrapposizioni`, () => {
       const { panels, center } = layoutFor(n, W, H)
       expect(panels).toHaveLength(n)
@@ -40,6 +40,13 @@ describe('layoutFor', () => {
     expect(bottom.y + bottom.h).toBeCloseTo(H)
     expect(panels.filter(p => p.rot === 90)).toHaveLength(2)
     expect(panels.filter(p => p.rot === -90)).toHaveLength(2)
+  })
+
+  it('6 giocatori: due colonne da tre, in senso orario attorno al telefono', () => {
+    const { panels } = layoutFor(6, W, H)
+    expect(panels.map(p => p.rot)).toEqual([90, -90, -90, -90, 90, 90])
+    expect(panels[3].y + panels[3].h).toBeCloseTo(H)
+    expect(panels[5].y).toBeCloseTo(panels[2].y)
   })
 
   it('localSize scambia i lati per i pannelli ruotati di 90', () => {
@@ -130,8 +137,8 @@ describe('ordine dei posti', () => {
     expect(rotateOrder([7])).toEqual([7])
   })
 
-  it('panelAt trova il pannello sotto il dito per 3, 4 e 5 giocatori', () => {
-    for (const n of [3, 4, 5]) {
+  it('panelAt trova il pannello sotto il dito per 2-6 giocatori', () => {
+    for (const n of [2, 3, 4, 5, 6]) {
       const { panels } = layoutFor(n, W, H)
       panels.forEach((p, i) => expect(panelAt(panels, p.x + p.w / 2, p.y + p.h / 2)).toBe(i))
       expect(panelAt(panels, -5, -5)).toBe(-1)
