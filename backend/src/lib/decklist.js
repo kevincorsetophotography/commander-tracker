@@ -65,7 +65,7 @@ async function validateDecklist(text) {
   }
 
   if (total !== EXPECTED_TOTAL) {
-    errors.push(`Il mazzo ha ${total} carte (richieste ${EXPECTED_TOTAL} per Commander)`);
+    errors.push(`Il mazzo ha ${total} carte: servono il commander + ${EXPECTED_TOTAL - 1} carte (${EXPECTED_TOTAL} in totale)`);
     return { valid: false, errors };
   }
 

@@ -4,6 +4,7 @@ import { resolveDecklistCards } from '../lib/cardCache'
 import { api } from '../lib/api'
 import { useTheme } from '../hooks/useTheme'
 import CommanderInput from './CommanderInput'
+import { stripCommander, countCards, buildDecklist, MAIN_TOTAL } from '../lib/decklistEdit'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
@@ -60,25 +61,8 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
     setNameInput(name || '')
     setCommanderInput(commander || '')
     setDetectedColors(null)
-    if (decklist) {
-      // Estrai le 99 carte (tutto tranne la riga del commander)
-      const lines = decklist.split('\n').map(l => l.trim()).filter(Boolean)
-      let removed = false
-      const others = lines.filter(line => {
-        if (removed) return true
-        const m = line.match(/^\d+x?\s+(.+)$/)
-        if (m && commander) {
-          const entered = m[1].toLowerCase()
-          const stored = commander.toLowerCase()
-          const isDfc = entered.startsWith(stored + ' //') || stored.startsWith(entered + ' //')
-          if (entered === stored || isDfc) { removed = true; return false }
-        }
-        return true
-      })
-      setEditText(others.join('\n'))
-    } else {
-      setEditText('')
-    }
+    // Il commander resta nel suo campo: nella sezione mazzo solo le altre 99 carte
+    setEditText(decklist ? stripCommander(decklist, commander) : '')
     setErrors([])
     setSelectedCard(null)
     setMode('edit')
@@ -114,23 +98,32 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
         return
       }
 
-      // 2. Costruisci la lista completa: 1 commander + 99 carte
-      const fullList = `1 ${commanderCard.name}\n${editText.trim()}`
-
-      // 3. Valida le 100 carte (esistenza + conteggio)
-      const result = await validateAndFetchDecklist(fullList)
-      if (!result.valid) {
-        setErrors(result.errors)
+      // 2. Sezione mazzo vuota = solo commander; altrimenti esattamente 99 carte (+ il commander)
+      const built = buildDecklist(commanderCard.name, editText)
+      if (!built.ok) {
+        setErrors([built.error])
         return
+      }
+
+      // 3. Con la lista: verifica che le carte esistano su Scryfall
+      let fetchedCards = []
+      if (built.decklist) {
+        const result = await validateAndFetchDecklist(built.decklist)
+        if (!result.valid) {
+          setErrors(result.errors)
+          return
+        }
+        fetchedCards = result.cards
       }
 
       // 4. Salva — passa nome esatto commander + colori rilevati + nome mazzo
       const colorsToSave = detectedColors ? detectedColors.join('') : null
-      await onSave(fullList, commanderCard.name, colorsToSave, nameInput.trim())
-      setCards(result.cards)
+      await onSave(built.decklist, commanderCard.name, colorsToSave, nameInput.trim())
+      setCards(fetchedCards)
       setSelectedCard(null)
       setDetectedColors(null)
-      setMode('view')
+      if (built.decklist) setMode('view')
+      else setOpen(false) // solo commander: niente lista da mostrare
     } catch (e) {
       setErrors([e?.error || 'Errore nel salvataggio'])
     } finally {
@@ -147,11 +140,7 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
       const res = await api.importDeck(url)
       if (res.commander) setCommanderInput(res.commander)
       // togli la riga del commander dalla lista (resta nel campo dedicato)
-      const lines = (res.decklist || '').split('\n')
-      const rest = res.commander
-        ? lines.filter(l => l.trim().toLowerCase() !== `1 ${res.commander.toLowerCase()}`)
-        : lines
-      setEditText(rest.join('\n').trim())
+      setEditText(stripCommander(res.decklist, res.commander))
       setDetectedColors(null)
       setImportUrl('')
     } catch (e) {
@@ -288,8 +277,13 @@ export default function DeckListPanel({ decklist, commander, name, onSave }) {
 
               {/* 99 carte rimanenti */}
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4 }}>
-                  99 carte rimanenti · formato "1 Nome Carta"
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, color: t.textSub, marginBottom: 4 }}>
+                  <span>Mazzo: {MAIN_TOTAL} carte senza il commander · formato "1 Nome Carta" · vuoto = solo commander</span>
+                  {(() => {
+                    const n = countCards(stripCommander(editText, commanderInput))
+                    if (!editText.trim()) return null
+                    return <span style={{ fontWeight: 800, flexShrink: 0, color: n === MAIN_TOTAL ? t.win : t.danger }}>{n}/{MAIN_TOTAL}</span>
+                  })()}
                 </div>
                 <textarea
                   value={editText}

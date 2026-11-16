@@ -149,7 +149,7 @@ export async function validateAndFetchDecklist(text) {
   const errors = []
 
   if (totalCount !== 100) {
-    errors.push(`Il mazzo ha ${totalCount} carte (richieste 100 per Commander)`)
+    errors.push(`Il mazzo ha ${totalCount} carte: servono il commander + 99 carte (100 in totale)`)
     return { valid: false, errors, cards: [] }
   }
 
