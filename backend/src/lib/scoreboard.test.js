@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { viewFor, applyAction, undoLast, eliminationOf, START_LIFE, HISTORY_MAX, MERGE_MS } from './scoreboard.js';
+import { viewFor, applyAction, undoLast, eliminationOf, seatOrderOf, setSeatOrder, resetState, START_LIFE, HISTORY_MAX, MERGE_MS } from './scoreboard.js';
 
 const seats = [1, 2, 3];
 
@@ -130,5 +130,67 @@ describe('storico e annulla', () => {
 
   it('il reset (stato null) azzera anche lo storico', () => {
     expect(viewFor(null, seats).history).toEqual([]);
+  });
+});
+
+describe('ordine dei posti (seatOrder)', () => {
+  const four = [1, 2, 3, 4];
+
+  it("di default segue l'ordine di seduta", () => {
+    expect(seatOrderOf(null, four)).toEqual([1, 2, 3, 4]);
+    expect(viewFor(null, four).seatOrder).toEqual([1, 2, 3, 4]);
+  });
+
+  it('accetta solo una permutazione esatta dei seduti', () => {
+    expect(setSeatOrder(null, four, [3, 1, 4, 2]).state.seatOrder).toEqual([3, 1, 4, 2]);
+    expect(setSeatOrder(null, four, ['3', '1', '4', '2']).state.seatOrder).toEqual([3, 1, 4, 2]);
+    for (const bad of [[1, 2, 3], [1, 2, 3, 4, 5], [1, 1, 2, 3], [1, 2, 3, 9], [1, 2, 3, 2.5], ['a', 2, 3, 4], [null, 2, 3, 4], ['', 2, 3, 4], 'x', null, undefined]) {
+      expect(setSeatOrder(null, four, bad).error).toBeTruthy();
+    }
+  });
+
+  it('non tocca punteggi né storico (non si annulla con Annulla)', () => {
+    let s = applyAction(null, four, { type: 'life', userId: 2, delta: -7 }, 1, 1000).state;
+    s = setSeatOrder(s, four, [4, 3, 2, 1], 2000).state;
+    const v = viewFor(s, four);
+    expect(v.players[2].life).toBe(33);
+    expect(v.history).toHaveLength(1);
+    const u = undoLast(s, four, 3000);
+    expect(viewFor(u.state, four).players[2].life).toBe(40);
+    expect(viewFor(u.state, four).seatOrder).toEqual([4, 3, 2, 1]);
+  });
+
+  it('sopravvive a tocchi e annulla successivi', () => {
+    let s = setSeatOrder(null, four, [2, 1, 4, 3]).state;
+    s = applyAction(s, four, { type: 'poison', userId: 1, delta: 1 }).state;
+    expect(s.seatOrder).toEqual([2, 1, 4, 3]);
+    s = undoLast(s, four).state;
+    expect(s.seatOrder).toEqual([2, 1, 4, 3]);
+  });
+
+  it('se cambiano i seduti si ricalcola: chi si alza sparisce, chi arriva va in fondo', () => {
+    const s = setSeatOrder(null, four, [4, 3, 2, 1]).state;
+    expect(seatOrderOf(s, [1, 2, 4])).toEqual([4, 2, 1]);
+    expect(seatOrderOf(s, [1, 2, 3, 4, 7])).toEqual([4, 3, 2, 1, 7]);
+    expect(viewFor(s, [2, 5, 3]).seatOrder).toEqual([3, 2, 5]);
+    // id duplicati o spazzatura nel JSON salvato non rompono la permutazione
+    expect(seatOrderOf({ seatOrder: [3, 3, 'x', 1] }, [1, 2, 3])).toEqual([3, 1, 2]);
+  });
+
+  it('dopo un cambio di seduti il vecchio ordine non è più valido: serve una permutazione dei nuovi', () => {
+    expect(setSeatOrder(null, [1, 2, 4], [4, 3, 2, 1]).error).toBeTruthy();
+    expect(setSeatOrder(null, [1, 2, 4], [4, 2, 1]).state.seatOrder).toEqual([4, 2, 1]);
+  });
+
+  it("il ripristino azzera i punteggi ma tiene l'ordine dei posti", () => {
+    expect(resetState(null, four)).toBeNull();
+    expect(resetState(applyAction(null, four, { type: 'life', userId: 1, delta: -1 }).state, four)).toBeNull();
+    const s = applyAction(setSeatOrder(null, four, [4, 3, 2, 1]).state, four, { type: 'life', userId: 1, delta: -9 }).state;
+    const r = resetState(s, four);
+    expect(r).toEqual({ seatOrder: [4, 3, 2, 1] });
+    const v = viewFor(r, four);
+    expect(v.players[1].life).toBe(40);
+    expect(v.history).toEqual([]);
+    expect(v.seatOrder).toEqual([4, 3, 2, 1]);
   });
 });

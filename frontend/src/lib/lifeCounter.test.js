@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { layoutFor, localSize, toLocal, swipeStep, targetsFor, stepIndex, valueOf, actionFor, describeEntry, GAP } from './lifeCounter'
+import { layoutFor, localSize, toLocal, swipeStep, targetsFor, stepIndex, valueOf, actionFor, describeEntry, normalizeOrder, swapSeats, rotateOrder, panelAt, GAP } from './lifeCounter'
 
 const W = 390, H = 844
 
@@ -107,5 +107,35 @@ describe('describeEntry', () => {
     expect(describeEntry({ by: 2, type: 'life', userId: 1, d: { life: -5, poison: 0, cmd: 0 } }, nameOf)).toBe('Shiva: −5 vita a Ramuh')
     expect(describeEntry({ by: 1, type: 'poison', userId: 3, d: { life: 0, poison: 2, cmd: 0 } }, nameOf)).toBe('Ramuh: +2 veleno a Ifrit')
     expect(describeEntry({ by: 3, type: 'cmd', userId: 1, fromUserId: 3, d: { life: -7, poison: 0, cmd: 7 } }, nameOf)).toBe('Ifrit: +7 danni da Ifrit a Ramuh')
+  })
+})
+
+describe('ordine dei posti', () => {
+  it('normalizeOrder: permutazione dei seduti, nuovi in fondo, assenti tolti, doppioni ignorati', () => {
+    expect(normalizeOrder(undefined, [1, 2, 3])).toEqual([1, 2, 3])
+    expect(normalizeOrder([3, 1, 2], [1, 2, 3])).toEqual([3, 1, 2])
+    expect(normalizeOrder([3, 9, 3, 1], [1, 2, 3, 4])).toEqual([3, 1, 2, 4])
+  })
+
+  it('swapSeats scambia solo i due posti', () => {
+    expect(swapSeats([1, 2, 3, 4], 1, 3)).toEqual([3, 2, 1, 4])
+    expect(swapSeats([1, 2, 3, 4, 5], 5, 2)).toEqual([1, 5, 3, 4, 2])
+    const o = [1, 2, 3]
+    expect(swapSeats(o, 2, 2)).toBe(o)
+    expect(swapSeats(o, 2, 9)).toBe(o)
+  })
+
+  it('rotateOrder sposta tutti di un posto', () => {
+    expect(rotateOrder([1, 2, 3, 4])).toEqual([2, 3, 4, 1])
+    expect(rotateOrder([7])).toEqual([7])
+  })
+
+  it('panelAt trova il pannello sotto il dito per 3, 4 e 5 giocatori', () => {
+    for (const n of [3, 4, 5]) {
+      const { panels } = layoutFor(n, W, H)
+      panels.forEach((p, i) => expect(panelAt(panels, p.x + p.w / 2, p.y + p.h / 2)).toBe(i))
+      expect(panelAt(panels, -5, -5)).toBe(-1)
+      expect(panelAt(panels, W + 10, H / 2)).toBe(-1)
+    }
   })
 })

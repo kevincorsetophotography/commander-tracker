@@ -4,7 +4,7 @@ const prisma = require('../lib/prisma');
 const auth = require('../middleware/auth');
 const { createNotifications } = require('../lib/notify');
 const { allowsOpenTables, findEventForTime, joinError, canEditTable, resultMatchesSeats, isTableClosed, canPickDeck, MAX_SEATS } = require('../lib/openTables');
-const { viewFor, applyAction, undoLast } = require('../lib/scoreboard');
+const { viewFor, applyAction, undoLast, setSeatOrder, resetState } = require('../lib/scoreboard');
 
 // Tavoli aperti creati dai giocatori (separati dai pod di torneo generati dall'admin).
 
@@ -316,6 +316,7 @@ router.get('/:id/scoreboard', auth, async (req, res) => {
 
 // POST /api/tables/:id/scoreboard { type, userId, fromUserId?, delta } — qualsiasi membro.
 // { type: 'undo' } annulla l'ultima azione dello storico condiviso (anche questo: qualsiasi membro).
+// { type: 'seatOrder', order: [userId…] } nuovo ordine dei posti (permutazione esatta dei seduti; fuori dallo storico).
 // Lock di riga (SELECT … FOR UPDATE): tocchi simultanei di più giocatori vengono applicati
 // uno dopo l'altro, nessuno si perde. scoreVersion cresce a ogni modifica (il client scarta
 // le letture più vecchie di quello che ha già).
@@ -332,8 +333,9 @@ router.post('/:id/scoreboard', auth, async (req, res) => {
       if (!seats.some(s => s.userId === req.user.id)) throw new HttpError(403, 'Solo chi è seduto al tavolo può aprirlo');
       if (row.gameId) throw new HttpError(400, 'Il tavolo ha già un risultato');
       const seatIds = seats.map(s => s.userId);
-      const out = req.body?.type === 'undo'
-        ? undoLast(row.scoreboard, seatIds)
+      const type = req.body?.type;
+      const out = type === 'undo' ? undoLast(row.scoreboard, seatIds)
+        : type === 'seatOrder' ? setSeatOrder(row.scoreboard, seatIds, req.body.order)
         : applyAction(row.scoreboard, seatIds, req.body, req.user.id);
       if (out.error) throw new HttpError(400, out.error);
       const updated = await tx.openTable.update({
@@ -351,7 +353,7 @@ router.post('/:id/scoreboard', auth, async (req, res) => {
   }
 });
 
-// DELETE /api/tables/:id/scoreboard — reset a 40 (solo chi ha aperto il tavolo)
+// DELETE /api/tables/:id/scoreboard — reset a 40 (solo chi ha aperto il tavolo); l'ordine dei posti resta
 router.delete('/:id/scoreboard', auth, async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) return res.status(400).json({ error: 'ID tavolo non valido' });
@@ -361,12 +363,14 @@ router.delete('/:id/scoreboard', auth, async (req, res) => {
     if (!isMember(table, req.user)) return res.status(403).json({ error: 'Solo chi è seduto al tavolo può aprirlo' });
     if (table.createdById !== req.user.id) return res.status(403).json({ error: 'Solo chi ha aperto il tavolo può azzerare il segnapunti' });
     if (table.gameId) return res.status(400).json({ error: 'Il tavolo ha già un risultato' });
+    const seatIds = table.seats.map(s => s.userId);
+    const next = resetState(table.scoreboard, seatIds);
     const updated = await prisma.openTable.update({
       where: { id },
-      data: { scoreboard: Prisma.DbNull, scoreVersion: { increment: 1 } },
+      data: { scoreboard: next ?? Prisma.DbNull, scoreVersion: { increment: 1 } },
       select: { scoreVersion: true },
     });
-    res.json({ ...viewFor(null, table.seats.map(s => s.userId)), version: updated.scoreVersion });
+    res.json({ ...viewFor(next, seatIds), version: updated.scoreVersion });
   } catch (error) {
     console.error('reset scoreboard error', error);
     res.status(500).json({ error: 'Errore durante l\'azzeramento del segnapunti' });

@@ -25,6 +25,7 @@ const hhmm = (d) => { const x = new Date(d); return `${pad(x.getHours())}:${pad(
 
 const openKey = (id) => `ct_score_open_${id}`
 const readOpen = (id) => { try { return localStorage.getItem(openKey(id)) === '1' } catch { return false } }
+const toScore = (sb) => ({ players: sb.players, seatOrder: sb.seatOrder, history: sb.history || [], version: sb.version })
 const writeOpen = (id, v) => { try { v ? localStorage.setItem(openKey(id), '1') : localStorage.removeItem(openKey(id)) } catch { /* storage non disponibile */ } }
 
 // ── Pagina ────────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ export default function TablePage() {
     if (!sb || pending.current > 0) return
     if (typeof sb.version === 'number' && sb.version < lastVersion.current) return
     lastVersion.current = sb.version ?? lastVersion.current
-    setScore({ players: sb.players, history: sb.history || [], version: sb.version })
+    setScore(toScore(sb))
   }, [])
 
   const loadDetail = useCallback(() => api.getTable(tid)
@@ -86,39 +87,36 @@ export default function TablePage() {
   const openScore = () => { enterFullscreen(); writeOpen(tid, true); setScoreOpen(true) }
   const closeScore = () => { writeOpen(tid, false); setScoreOpen(false) }
 
-  // tocco sul segnapunti: aggiornamento ottimistico, invio in coda, la risposta del server vince
-  const act = (action) => {
-    setScore(s => (s ? applyLocal(s, action) : s))
+  // invio in coda (le azioni partono in ordine), la risposta del server vince; in errore si rilegge lo stato
+  const send = (body, errorMsg) => {
     pending.current += 1
     chain.current = chain.current
-      .then(() => api.scoreAction(tid, action))
+      .then(() => api.scoreAction(tid, body))
       .then(res => {
         pending.current -= 1
         lastVersion.current = Math.max(lastVersion.current, res.version)
-        if (pending.current === 0) setScore({ players: res.players, history: res.history || [], version: res.version })
+        if (pending.current === 0) setScore(toScore(res))
       })
       .catch(e => {
         pending.current -= 1
-        sonner.error(e.error || 'Segnapunti non aggiornato')
+        sonner.error(e.error || errorMsg)
         if (pending.current === 0) api.getScoreboard(tid).then(sb => { lastVersion.current = -1; acceptScore(sb) }).catch(() => {})
       })
   }
 
+  // tocco sul segnapunti: aggiornamento ottimistico
+  const act = (action) => {
+    setScore(s => (s ? applyLocal(s, action) : s))
+    send(action, 'Segnapunti non aggiornato')
+  }
+
   // annulla l'ultima azione dello storico condiviso (qualsiasi membro); in coda dopo i tocchi in volo
-  const undoScore = () => {
-    pending.current += 1
-    chain.current = chain.current
-      .then(() => api.scoreAction(tid, { type: 'undo' }))
-      .then(res => {
-        pending.current -= 1
-        lastVersion.current = Math.max(lastVersion.current, res.version)
-        if (pending.current === 0) setScore({ players: res.players, history: res.history || [], version: res.version })
-      })
-      .catch(e => {
-        pending.current -= 1
-        sonner.error(e.error || 'Niente da annullare')
-        if (pending.current === 0) api.getScoreboard(tid).then(sb => { lastVersion.current = -1; acceptScore(sb) }).catch(() => {})
-      })
+  const undoScore = () => send({ type: 'undo' }, 'Niente da annullare')
+
+  // nuovo ordine dei posti (trascinamento o "Ruota i posti" nel segnapunti): condiviso, qualsiasi membro, fuori dallo storico
+  const reorderSeats = (order) => {
+    setScore(s => (s ? { ...s, seatOrder: order } : s))
+    send({ type: 'seatOrder', order }, 'Posti non aggiornati')
   }
 
   // ripristino (solo chi ha aperto il tavolo; la conferma è nel menu del segnapunti)
@@ -127,7 +125,7 @@ export default function TablePage() {
       await chain.current
       const sb = await api.resetScoreboard(tid)
       lastVersion.current = sb.version
-      setScore({ players: sb.players, history: sb.history || [], version: sb.version })
+      setScore(toScore(sb))
       sonner.success('Punti vita ripristinati')
       return true
     } catch (e) { sonner.error(e.error || 'Impossibile ripristinare'); return false }
@@ -337,7 +335,7 @@ export default function TablePage() {
       </Sheet>
 
       {scoreOpen && score && (
-        <LifeCounter tableId={tid} seats={seats} score={score} isOwner={isOwner} onAct={act} onUndo={undoScore} onReset={resetScore} onClose={closeScore} />
+        <LifeCounter seats={seats} score={score} isOwner={isOwner} onAct={act} onUndo={undoScore} onReset={resetScore} onReorder={reorderSeats} onClose={closeScore} />
       )}
     </div>
   )

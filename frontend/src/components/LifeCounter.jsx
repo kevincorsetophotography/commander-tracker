@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Undo2, RotateCcw, X, Dices, Crown, Droplet, Swords, Skull, Repeat } from 'lucide-react'
+import { Undo2, RotateCcw, X, Dices, Crown, Droplet, Swords, Skull, Repeat, GripHorizontal, ArrowLeftRight } from 'lucide-react'
 import { useCardArt } from '../lib/cardCache'
 import { REASON_LABEL } from '../lib/scoreboard'
-import { layoutFor, localSize, swipeStep, targetsFor, stepIndex, valueOf, actionFor, describeEntry, SWIPE_MIN } from '../lib/lifeCounter'
+import { layoutFor, localSize, swipeStep, targetsFor, stepIndex, valueOf, actionFor, describeEntry, SWIPE_MIN, DRAG_HOLD_MS, DRAG_SLOP, normalizeOrder, swapSeats, rotateOrder, panelAt } from '../lib/lifeCounter'
 
 // Segnapunti a schermo intero: il telefono sta al centro del tavolo, un pannello per giocatore
 // ruotato verso di lui. Tocco sulla metà sinistra/destra = −1/+1, tenere premuto = −10/+10 ripetuto,
 // swipe nel verso del pannello = cambia contatore (vita → veleno → danni da ciascun avversario).
+// Tenere premuto il NOME (la striscia con la maniglia) = afferra il pannello: trascinandolo su un altro
+// posto i due si scambiano. L'ordine dei posti è condiviso (scoreboard.seatOrder sul server).
 // Stato condiviso lato server (vedi TablePage): qui solo UI e gesti.
 
 const HOLD_MS = 450
@@ -18,9 +20,7 @@ const FLASH_MS = 1400
 const SOLID = ['#7c3aed', '#0e7490', '#b45309', '#be123c', '#15803d']
 const GOLD = '#f5c451'
 
-const seatOffsetKey = (id) => `ct_score_seat_${id}`
-const readOffset = (id) => { try { return Number(localStorage.getItem(seatOffsetKey(id))) || 0 } catch { return 0 } }
-const writeOffset = (id, v) => { try { localStorage.setItem(seatOffsetKey(id), String(v)) } catch { /* storage non disponibile */ } }
+const vibrate = (ms) => { try { navigator.vibrate?.(ms) } catch { /* non supportato */ } }
 
 // Schermo intero (va chiamato dentro il gesto dell'utente) — best effort, iOS Safari non lo supporta
 export function enterFullscreen() {
@@ -74,7 +74,7 @@ function useTouchZone({ sign, rot, onDelta, onSwipe, onTouch }) {
 }
 
 // ── pannello di un giocatore ────────────────────────────────────────────────────
-function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInset = 0 }) {
+function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInset = 0, grip, drag }) {
   const { w: lw, h: lh } = localSize(rect)
   const targets = targetsFor(seat.userId, seatIds)
   const [ti, setTi] = useState(0)
@@ -108,17 +108,23 @@ function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInse
   if (!p) return null
   const out = p.eliminated
   const value = valueOf(p, target)
-  const big = Math.round(Math.min(lh * 0.5, lw * 0.3, 150))
   const small = Math.max(12, Math.min(17, Math.round(lh * 0.075)))
+  // il numero sta tra la maniglia col nome (in alto) e i pallini (in basso), senza sovrapporsi
+  const gripTop = Math.max(Math.round(lh * 0.05), nameInset)
+  const padTop = gripTop + 46
+  const padBottom = Math.round(lh * 0.07) + 10
+  const big = Math.round(Math.max(40, Math.min(lh * 0.5, lw * 0.3, 150, lh - padTop - padBottom - (small + 4 + Math.round(lh * 0.03)))))
   const opponents = seatIds.filter(id => id !== seat.userId)
   const maxCmd = Math.max(0, ...opponents.map(o => p.cmd?.[o] || 0))
   const label = target.kind === 'poison' ? 'Veleno' : target.kind === 'cmd' ? `Danni da ${nameOf(target.from)}` : null
   const artUrl = art.status === 'ready' ? art.art : null
   const solid = SOLID[index % SOLID.length]
+  // durante un trascinamento: 'source' = pannello afferrato, 'over' = destinazione sotto il dito, 'zone' = altro posto
+  const dragRole = !drag ? null : drag.from === seat.userId ? 'source' : drag.over === seat.userId ? 'over' : 'zone'
 
   return (
     <div style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, overflow: 'hidden', borderRadius: 14, background: solid,
-      boxShadow: 'none' }}>
+      boxShadow: 'none', opacity: dragRole === 'source' ? 0.38 : 1, transition: 'opacity .15s' }}>
       <div
         aria-label={`${seat.user.username}: ${label || 'vita'} ${value}`}
         style={{ position: 'absolute', left: (rect.w - lw) / 2, top: (rect.h - lh) / 2, width: lw, height: lh, transform: `rotate(${rect.rot}deg)` }}>
@@ -134,13 +140,20 @@ function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInse
         {out && !artUrl && <div style={{ position: 'absolute', inset: 0, background: 'rgba(30,30,36,.82)' }} />}
 
         {/* contenuto (non riceve tocchi: li gestiscono le due metà) */}
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textShadow: '0 2px 10px rgba(0,0,0,.55)' }}>
-          <div style={{ position: 'absolute', top: Math.max(Math.round(lh * 0.07), nameInset), left: 12, right: 12, textAlign: 'center', lineHeight: 1.15 }}>
-            <div style={{ fontSize: small, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              {starter && <Crown size={small} color={GOLD} />}{seat.user.username}
+        {/* sopra le due metà (zIndex) ma trasparente ai tocchi, tranne la maniglia col nome */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textShadow: '0 2px 10px rgba(0,0,0,.55)',
+          boxSizing: 'border-box', paddingTop: padTop, paddingBottom: padBottom }}>
+          <div style={{ position: 'absolute', top: gripTop, left: 8, right: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
+            <div {...grip} role="button" aria-label={`Posto di ${seat.user.username}: tieni premuto e trascina su un altro posto per scambiarli`}
+              style={{ pointerEvents: 'auto', touchAction: 'none', cursor: 'grab', boxSizing: 'border-box', maxWidth: '100%', minWidth: 116, minHeight: 40, padding: '6px 14px 6px 10px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 999, background: 'rgba(0,0,0,.34)', border: '1px solid rgba(255,255,255,.3)',
+                fontSize: small, fontWeight: 800 }}>
+              <GripHorizontal size={small + 2} style={{ flexShrink: 0, opacity: 0.75 }} />
+              {starter && <Crown size={small} color={GOLD} style={{ flexShrink: 0 }} />}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.user.username}</span>
             </div>
-            {seat.deck?.commander && lh > 150 && (
-              <div style={{ fontSize: small - 3, fontWeight: 600, opacity: 0.72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.deck.commander}</div>
+            {seat.deck?.commander && lh > 200 && (
+              <div style={{ maxWidth: '100%', marginTop: 4, fontSize: small - 3, fontWeight: 600, opacity: 0.72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seat.deck.commander}</div>
             )}
           </div>
 
@@ -181,6 +194,18 @@ function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInse
         </div>
 
         {starter && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, borderRadius: 14, boxShadow: `inset 0 0 0 5px ${GOLD}, inset 0 0 40px rgba(245,196,81,.55)`, pointerEvents: 'none' }} />}
+        {(dragRole === 'over' || dragRole === 'zone') && (
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 2, borderRadius: 14, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: dragRole === 'over' ? 'rgba(255,255,255,.22)' : 'rgba(5,6,16,.25)',
+            boxShadow: dragRole === 'over' ? 'inset 0 0 0 5px #fff, inset 0 0 50px rgba(255,255,255,.45)' : 'none',
+            outline: dragRole === 'zone' ? '2px dashed rgba(255,255,255,.7)' : 'none', outlineOffset: -10 }}>
+            {dragRole === 'over' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999, background: '#fff', color: '#0e122b', fontSize: small + 1, fontWeight: 900 }}>
+                <ArrowLeftRight size={small + 2} /> Scambia
+              </span>
+            )}
+          </div>
+        )}
         <div {...minus} role="button" aria-label={`${seat.user.username}: meno 1 ${label || 'vita'}`} style={{ position: 'absolute', left: 0, top: 0, width: '50%', height: '100%', touchAction: 'none', cursor: 'pointer' }} />
         <div {...plus} role="button" aria-label={`${seat.user.username}: più 1 ${label || 'vita'}`} style={{ position: 'absolute', right: 0, top: 0, width: '50%', height: '100%', touchAction: 'none', cursor: 'pointer' }} />
       </div>
@@ -226,6 +251,10 @@ function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, on
           </div>
         )}
 
+        {canRotate && (
+          <button onClick={onRotate} style={row({ fontSize: 14 })}><Repeat size={20} style={{ flexShrink: 0 }} /><span>Ruota i posti<span style={sub}>Tutti scalano di un posto, per tutto il tavolo. Per scambiarne due: tieni premuto un nome e trascinalo.</span></span></button>
+        )}
+
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(255,255,255,.5)', margin: '6px 4px 0' }}>STRUMENTI · SOLO SU QUESTO TELEFONO</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onStarter} style={row({ flex: 1, minWidth: 0, justifyContent: 'center', fontSize: 14 })}><Crown size={18} color={GOLD} /> Chi inizia?</button>
@@ -233,10 +262,6 @@ function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, on
             <Dices size={18} /> {d20 ? <span style={{ fontSize: 18, fontWeight: 900 }}>{d20}</span> : 'Tira d20'}
           </button>
         </div>
-        {canRotate && (
-          <button onClick={onRotate} style={row({ fontSize: 14 })}><Repeat size={18} /><span>Ruota i posti<span style={sub}>Se i nomi non corrispondono a dove siete seduti</span></span></button>
-        )}
-
         <button onClick={onExit} style={row({ marginTop: 4, justifyContent: 'center', background: '#fff', color: '#0e122b', border: 'none' })}>
           Chiudi segnapunti
         </button>
@@ -247,12 +272,14 @@ function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, on
 }
 
 // ── schermo intero ───────────────────────────────────────────────────────────────
-export default function LifeCounter({ tableId, seats, score, isOwner, onAct, onUndo, onReset, onClose }) {
+export default function LifeCounter({ seats, score, isOwner, onAct, onUndo, onReset, onReorder, onClose }) {
   const area = useRef(null)
   const [size, setSize] = useState(null)
   const [menu, setMenu] = useState(false)
   const [starter, setStarter] = useState(null)
-  const [offset, setOffset] = useState(() => readOffset(tableId))
+  const [drag, setDrag] = useState(null) // { from, over, x, y } mentre un pannello è afferrato
+  const dragRef = useRef(null)
+  const press = useRef(null)             // pressione in corso sulla maniglia (prima/durante il drag)
 
   useLayoutEffect(() => {
     const el = area.current
@@ -294,7 +321,9 @@ export default function LifeCounter({ tableId, seats, score, isOwner, onAct, onU
 
   const n = seats.length
   const seatIds = seats.map(s => s.userId)
-  const ordered = seats.map((_, i) => seats[(i + offset) % n])
+  const byId = Object.fromEntries(seats.map(s => [s.userId, s]))
+  const order = normalizeOrder(score?.seatOrder, seatIds)
+  const ordered = order.map(id => byId[id])
   const names = Object.fromEntries(seats.map(s => [s.userId, s.user.username]))
   const nameOf = (id) => names[id] || 'qualcuno'
   const layout = size ? layoutFor(n, size.w, size.h) : null
@@ -309,6 +338,51 @@ export default function LifeCounter({ tableId, seats, score, isOwner, onAct, onU
     return Math.hypot(edge.x - layout.center.x, edge.y - layout.center.y) < BTN ? BTN / 2 + 14 : 0
   }
 
+  // ── trascinamento dei posti: pressione prolungata sulla maniglia, poi il pannello segue il dito ──
+  const setDragBoth = (d) => { dragRef.current = d; setDrag(d) }
+  const toArea = (e) => { const r = area.current.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
+  const endPress = (commit) => {
+    const s = press.current
+    press.current = null
+    if (!s) return
+    clearTimeout(s.timer)
+    const d = dragRef.current
+    if (!s.started || !d) return
+    setDragBoth(null)
+    if (commit && d.over != null && d.over !== d.from) { vibrate(25); onReorder(swapSeats(order, d.from, d.over)) }
+  }
+  useEffect(() => () => clearTimeout(press.current?.timer), [])
+  const gripFor = (userId) => ({
+    onPointerDown: (e) => {
+      e.preventDefault()
+      endPress(false)
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* niente */ }
+      const start = toArea(e)
+      const s = { pointerId: e.pointerId, x0: e.clientX, y0: e.clientY, started: false }
+      s.timer = setTimeout(() => { s.started = true; vibrate(15); setDragBoth({ from: userId, over: null, ...start }) }, DRAG_HOLD_MS)
+      press.current = s
+    },
+    onPointerMove: (e) => {
+      const s = press.current
+      if (!s || s.pointerId !== e.pointerId) return
+      if (!s.started) {
+        // il dito si muove prima della presa: non è un trascinamento
+        if (Math.hypot(e.clientX - s.x0, e.clientY - s.y0) > DRAG_SLOP) { clearTimeout(s.timer); press.current = null }
+        return
+      }
+      const pt = toArea(e)
+      const i = layout ? panelAt(layout.panels, pt.x, pt.y) : -1
+      const over = i >= 0 && order[i] !== userId ? order[i] : null
+      if (over != null && over !== dragRef.current?.over) vibrate(8)
+      setDragBoth({ from: userId, over, ...pt })
+    },
+    onPointerUp: () => endPress(true),        // rilascio fuori da un altro posto = annullato
+    onPointerCancel: () => endPress(false),
+    onContextMenu: (e) => e.preventDefault(),
+  })
+  const dragSeat = drag ? byId[drag.from] : null
+  const dragRect = drag && layout ? layout.panels[order.indexOf(drag.from)] : null
+
   // portale sul body: il contenuto della pagina vive in un contesto di impilamento (z-index 1) sotto la dock
   return createPortal(
     <div role="application" aria-label="Segnapunti" style={{
@@ -318,8 +392,21 @@ export default function LifeCounter({ tableId, seats, score, isOwner, onAct, onU
     }}>
       <div ref={area} style={{ position: 'relative', width: '100%', height: '100%' }}>
         {layout && score && ordered.map((s, i) => (
-          <Panel key={s.userId} rect={layout.panels[i]} seat={s} index={seats.indexOf(s)} p={score.players[s.userId]} seatIds={seatIds} nameOf={nameOf} onAct={onAct} starter={starter === s.userId} nameInset={nameInsetFor(layout.panels[i])} />
+          <Panel key={s.userId} rect={layout.panels[i]} seat={s} index={seats.indexOf(s)} p={score.players[s.userId]} seatIds={seatIds} nameOf={nameOf} onAct={onAct} starter={starter === s.userId} nameInset={nameInsetFor(layout.panels[i])}
+            grip={gripFor(s.userId)} drag={drag} />
         ))}
+        {/* il pannello afferrato segue il dito, girato come il suo posto */}
+        {drag && dragSeat && dragRect && (
+          <div aria-hidden="true" style={{ position: 'absolute', left: drag.x, top: drag.y, zIndex: 4, pointerEvents: 'none', transform: `translate(-50%, -50%) rotate(${dragRect.rot}deg) scale(1.04)` }}>
+            <div style={{ width: 168, minHeight: 84, boxSizing: 'border-box', padding: '10px 14px', borderRadius: 16, color: '#fff', textAlign: 'center',
+              background: SOLID[seats.indexOf(dragSeat) % SOLID.length], border: '2px solid #fff', boxShadow: '0 18px 40px rgba(0,0,0,.6)', textShadow: '0 2px 8px rgba(0,0,0,.45)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 15, fontWeight: 800, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <GripHorizontal size={16} style={{ flexShrink: 0, opacity: 0.8 }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{dragSeat.user.username}</span>
+              </div>
+              <div style={{ fontSize: 38, fontWeight: 900, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums' }}>{score?.players?.[drag.from]?.life ?? ''}</div>
+            </div>
+          </div>
+        )}
         {layout && (
           <button onClick={() => setMenu(true)} aria-label="Menu segnapunti" style={{
             position: 'absolute', left: layout.center.x - BTN / 2, top: layout.center.y - BTN / 2, width: BTN, height: BTN, zIndex: 2, borderRadius: '50%', padding: 0, cursor: 'pointer',
@@ -336,7 +423,7 @@ export default function LifeCounter({ tableId, seats, score, isOwner, onAct, onU
             onUndo={() => onUndo()}
             onReset={async () => { if (await onReset()) setMenu(false) }}
             onStarter={() => { setStarter(seatIds[Math.floor(Math.random() * n)]); setMenu(false) }}
-            onRotate={() => setOffset(o => { const v = (o + 1) % n; writeOffset(tableId, v); return v })}
+            onRotate={() => onReorder(rotateOrder(order))}
             onExit={onClose}
           />
         )}

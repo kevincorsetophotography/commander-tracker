@@ -105,3 +105,32 @@ export function describeEntry(e, nameOf) {
   else what = `${signed(e.d.life)} vita a ${who}`
   return e.by != null ? `${nameOf(e.by)}: ${what}` : what
 }
+
+// ── ordine dei posti (condiviso: scoreboard.seatOrder sul server) ───────────────
+export const DRAG_HOLD_MS = 400 // pressione prolungata sul nome per afferrare il pannello
+export const DRAG_SLOP = 10     // movimento tollerato prima che parta la presa (oltre = niente drag)
+
+// Specchio di seatOrderOf (backend): permutazione dei seduti, chi manca in fondo, chi s'è alzato via.
+export function normalizeOrder(order, seatIds) {
+  const seats = seatIds.map(Number)
+  const kept = []
+  for (const id of Array.isArray(order) ? order.map(Number) : []) if (seats.includes(id) && !kept.includes(id)) kept.push(id)
+  return [...kept, ...seats.filter(id => !kept.includes(id))]
+}
+
+// Scambio di due posti: gli altri restano dove sono (al tavolo vero si alzano solo i due che si scambiano)
+export function swapSeats(order, a, b) {
+  const i = order.indexOf(a), j = order.indexOf(b)
+  if (i < 0 || j < 0 || i === j) return order
+  const out = order.slice()
+  out[i] = b; out[j] = a
+  return out
+}
+
+// Rotazione di un posto (tutti scalano di uno in senso orario): per quando il telefono è girato
+export const rotateOrder = (order) => (order.length > 1 ? [...order.slice(1), order[0]] : order)
+
+// Indice del pannello sotto il punto (x, y) nell'area del segnapunti, -1 se fuori da tutti
+export function panelAt(panels, x, y) {
+  return panels.findIndex(p => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h)
+}

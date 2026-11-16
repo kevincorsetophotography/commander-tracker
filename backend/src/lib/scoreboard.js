@@ -8,6 +8,9 @@
 // (10 tocchi su -1 = un "−10" da annullare in un colpo).
 // I giocatori NON vengono copiati alla creazione: chi non ha ancora una voce parte dai valori iniziali,
 // così il segnapunti segue i posti del tavolo anche se il creatore toglie qualcuno.
+// seatOrder (opzionale): ordine dei posti attorno al telefono, condiviso da tutto il tavolo e cambiato
+// trascinando un pannello. NON entra nello storico di "Annulla" (non è un punteggio: si rimette a posto
+// trascinando di nuovo). Chi si siede dopo finisce in fondo, chi si alza sparisce (vedi seatOrderOf).
 
 const START_LIFE = 40;
 const CMD_LETHAL = 21;
@@ -37,8 +40,38 @@ function viewFor(state, seatUserIds) {
     const poison = Number.isFinite(p.poison) ? p.poison : 0;
     players[uid] = { life, poison, cmd, ...eliminationOf({ life, poison, cmd }) };
   }
-  return { players, history: historyOf(state), updatedAt: state?.updatedAt || null };
+  return { players, seatOrder: seatOrderOf(state, seatUserIds), history: historyOf(state), updatedAt: state?.updatedAt || null };
 }
+
+// Ordine dei posti valido per i seduti attuali: sempre una permutazione esatta dei loro id.
+// Tiene l'ordine salvato per chi è ancora seduto e aggiunge in fondo chi è arrivato dopo (in ordine di seduta).
+function seatOrderOf(state, seatUserIds) {
+  const seats = seatUserIds.map(Number);
+  const saved = Array.isArray(state?.seatOrder) ? state.seatOrder.map(Number) : [];
+  const kept = [];
+  for (const id of saved) if (seats.includes(id) && !kept.includes(id)) kept.push(id);
+  return [...kept, ...seats.filter(id => !kept.includes(id))];
+}
+
+const isPermutation = (order, seats) => Array.isArray(order) && order.length === seats.length
+  && order.every(id => Number.isInteger(id) && seats.includes(id)) && new Set(order).size === order.length;
+
+// Nuovo ordine dei posti (qualsiasi membro). order: id dei seduti, ognuno una volta sola. → { state } | { error }
+function setSeatOrder(state, seatUserIds, order, now = Date.now()) {
+  const seats = seatUserIds.map(Number);
+  const o = Array.isArray(order) ? order.map(v => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN)) : null;
+  if (!isPermutation(o, seats)) return { error: 'Ordine dei posti non valido' };
+  return { state: { ...(state || {}), players: state?.players || {}, history: historyOf(state), seatOrder: o, updatedAt: new Date(now).toISOString() } };
+}
+
+// Le azioni sui punteggi riscrivono lo stato: l'ordine dei posti (se scelto) va conservato.
+const orderPart = (state, seats) => (Array.isArray(state?.seatOrder) ? { seatOrder: seatOrderOf(state, seats) } : {});
+
+// Stato dopo "Ripristina punti vita": punteggi e storico azzerati, l'ordine dei posti resta (nessuno si è spostato).
+const resetState = (state, seatUserIds) => {
+  const keep = orderPart(state, seatUserIds.map(Number));
+  return keep.seatOrder ? keep : null;
+};
 
 const historyOf = (state) => (Array.isArray(state?.history) ? state.history.slice(-HISTORY_MAX) : []);
 const sameTarget = (a, b) => a.by === b.by && a.type === b.type && a.userId === b.userId && (a.fromUserId ?? null) === (b.fromUserId ?? null);
@@ -113,7 +146,7 @@ function applyAction(state, seatUserIds, action, byUserId = null, now = Date.now
     d: { life: p.life - before.life, poison: p.poison - before.poison, cmd: cmdApplied }, at: now,
   };
   const history = pushHistory(historyOf(state), entry);
-  return { state: { players, history, updatedAt: new Date(now).toISOString() } };
+  return { state: { players, history, ...orderPart(state, seats), updatedAt: new Date(now).toISOString() } };
 }
 
 // Annulla l'ultima azione dello storico (di chiunque): restituisce { state, undone } oppure { error }.
@@ -132,7 +165,7 @@ function undoLast(state, seatUserIds, now = Date.now()) {
   if (entry.type === 'cmd' && seats.includes(entry.fromUserId)) {
     p.cmd[entry.fromUserId] = clamp((p.cmd[entry.fromUserId] || 0) - (d.cmd || 0), 0, MAX_ABS);
   }
-  return { state: { players, history, updatedAt: new Date(now).toISOString() }, undone: entry };
+  return { state: { players, history, ...orderPart(state, seats), updatedAt: new Date(now).toISOString() }, undone: entry };
 }
 
-module.exports = { START_LIFE, CMD_LETHAL, POISON_LETHAL, HISTORY_MAX, MERGE_MS, emptyPlayer, viewFor, eliminationOf, applyAction, undoLast };
+module.exports = { START_LIFE, CMD_LETHAL, POISON_LETHAL, HISTORY_MAX, MERGE_MS, emptyPlayer, viewFor, eliminationOf, applyAction, undoLast, seatOrderOf, setSeatOrder, resetState };
