@@ -50,7 +50,7 @@ export default function Login() {
   })
 
   return (
-    <div style={{ minHeight: '100dvh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 'clamp(2rem, 10vh, 5rem)', paddingBottom: '2rem', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100dvh', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 'calc(clamp(2rem, 10vh, 5rem) + var(--sat))', paddingBottom: '2rem', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
       {/* Sfondo aurora */}
       <div className={`ct-aurora ${dark ? 'dark' : 'light'}`} />
 
@@ -59,7 +59,7 @@ export default function Login() {
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 30 }}>
           <img
-            src="/logo.png"
+            src="/logo-384.webp"
             alt=""
             onError={e => { e.currentTarget.style.display = 'none' }}
             style={{ height: 92, width: 92, objectFit: 'contain', filter: dark ? `drop-shadow(0 0 22px ${t.primaryBorder})` : 'drop-shadow(0 6px 18px rgba(108,74,224,0.25))' }}

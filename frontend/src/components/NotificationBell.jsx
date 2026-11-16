@@ -30,8 +30,16 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false)
   const timer = useRef(null)
 
+  // ring: cresce quando le non lette aumentano → campanella che oscilla + badge che fa pop
+  const [ring, setRing] = useState(0)
+  const lastCount = useRef(0)
   const fetchCount = useCallback(async () => {
-    try { const { count } = await api.getUnreadCount(); setCount(count) } catch {}
+    try {
+      const { count } = await api.getUnreadCount()
+      if (count > lastCount.current) setRing(r => r + 1)
+      lastCount.current = count
+      setCount(count)
+    } catch {}
   }, [])
 
   useEffect(() => {
@@ -49,6 +57,7 @@ export default function NotificationBell() {
       if (list.some(n => !n.read)) {
         await api.markNotificationsRead()
         setCount(0)
+        lastCount.current = 0
       }
     } catch {} finally { setLoading(false) }
   }
@@ -73,9 +82,9 @@ export default function NotificationBell() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.18s ease',
         }}
       >
-        <Icon name="bell" size={21} />
+        <span key={ring} className={ring ? 'ct-bell-ring' : undefined} style={{ display: 'flex' }}><Icon name="bell" size={21} /></span>
         {count > 0 && (
-          <span style={{
+          <span key={`b${ring}`} className="ct-badge-pop" style={{
             position: 'absolute', top: -5, right: -5, minWidth: 20, height: 20, padding: '0 5px',
             borderRadius: 10, background: t.primary, color: t.primaryFg, boxShadow: `0 0 8px ${t.primaryBorder}`,
             fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',

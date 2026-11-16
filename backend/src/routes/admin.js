@@ -148,6 +148,7 @@ router.patch('/users/:id', async (req, res) => {
       data,
       select: { id: true, username: true, role: true, isOrganizer: true, createdAt: true }
     });
+    auth.forgetUser(userId); // ruolo/organizzatore/username nuovi valgono subito
 
     res.json(user);
   } catch (error) {
@@ -192,6 +193,7 @@ router.delete('/users/:id', async (req, res) => {
   }
 
   await prisma.user.delete({ where: { id: userId } });
+  auth.forgetUser(userId);
   res.json({ ok: true });
 });
 

@@ -19,12 +19,26 @@ import { ARCHETYPE_OPTIONS } from '../lib/archetypes'
 import { fetchCommanderColors, getCardPrintings } from '../lib/scryfall'
 import { seasonOf, computeStandings } from '../lib/seasons'
 import { useDefaultAvatar } from '../lib/defaultAvatars'
+import { useCardArt } from '../lib/cardCache'
+import { fireConfetti } from '../lib/confetti'
 
 const COLOR_MAP   = { W: '#f5f0e0', U: '#b8d4e8', B: '#c8b8d8', R: '#e8c0b0', G: '#b8d8b8' }
 const COLOR_LABEL = { W: 'Bianco', U: 'Blu', B: 'Nero', R: 'Rosso', G: 'Verde' }
 
 const artUrl = (name) =>
   `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}&format=image&version=art_crop`
+
+// Art del commander dalla cache carte (URL CDN), fallback all'endpoint fuzzy solo se non risolta
+const artFor = (name, art) => !name ? null
+  : art.status === 'ready' ? art.art
+  : art.status === 'missing' ? artUrl(name)
+  : null
+
+function CachedArt({ name, style }) {
+  const src = artFor(name, useCardArt(name))
+  if (!src) return null
+  return <img src={src} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} style={style} />
+}
 
 function WinBar({ pct, t }) {
   return (
@@ -88,8 +102,10 @@ export default function PlayerProfilePage() {
     const tm = setTimeout(() => {
       document.getElementById('achievements')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 100)
-    return () => clearTimeout(tm)
-  }, [wantAch, loading])
+    // arrivo dalla notifica "achievement sbloccato" sul proprio profilo: un po' di festa
+    const party = isOwnProfile ? setTimeout(() => fireConfetti({ duration: 1400 }), 500) : null
+    return () => { clearTimeout(tm); clearTimeout(party) }
+  }, [wantAch, loading, isOwnProfile])
 
   // ── Carica dati principali ──
   useEffect(() => {
@@ -363,6 +379,11 @@ export default function PlayerProfilePage() {
     </div>
   )
 
+  // Art dell'hero (prima dei return anticipati: è un hook): avatar scelto per nome,
+  // altrimenti commander di default, poi il primo mazzo con commander
+  const heroCardName = avatarCard || defaultCmd || profile?.myDecks?.find(d => d.commander)?.commander || null
+  const heroArtSrc = artFor(heroCardName, useCardArt(heroCardName))
+
   if (loading) return (<div>{backBtn}<Skeleton h={140} r={16} style={{ marginBottom: 16 }} /><SkeletonList rows={4} /></div>)
   if (error)   return (<div>{backBtn}<EmptyState icon="⚠️" title="Errore" message={error} /></div>)
   if (!profile.player) return (<div>{backBtn}<EmptyState icon="🔍" title="Giocatore non trovato" message="Questo profilo non esiste o non ha ancora dati." /></div>)
@@ -373,8 +394,8 @@ export default function PlayerProfilePage() {
   const heroCard    = avatarCard || defaultCmd || myDecks.find(d => d.commander)?.commander || null
   const hasArt      = !!heroCard
   const cdnArt      = (id) => `https://cards.scryfall.io/art_crop/front/${id[0]}/${id[1]}/${id}.jpg`
-  const heroImgSrc  = avatarScryfallId ? cdnArt(avatarScryfallId) : (avatarCard ? artUrl(avatarCard) : null)
-  const fallbackSrc = !heroImgSrc && heroCard ? artUrl(heroCard) : null
+  const heroImgSrc  = avatarScryfallId ? cdnArt(avatarScryfallId) : (avatarCard ? heroArtSrc : null)
+  const fallbackSrc = !heroImgSrc && !avatarCard ? heroArtSrc : null
   const bgSrc       = heroImgSrc || fallbackSrc
 
   const stat = (label, value, sub) => (
@@ -639,12 +660,7 @@ export default function PlayerProfilePage() {
                     title="Apri profilo mazzo"
                     style={{ position: 'relative', height: 80, background: '#1a1640', overflow: 'hidden', cursor: 'pointer' }}
                   >
-                    <img
-                      src={artUrl(deck.commander)}
-                      alt=""
-                      onError={e => { e.currentTarget.style.display = 'none' }}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
-                    />
+                    <CachedArt name={deck.commander} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.08) 55%, transparent 100%)' }} />
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 12px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                       <div>

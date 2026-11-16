@@ -36,8 +36,38 @@ const imgUris = (card) => {
   }
 }
 
+// Nomi che il batch non trova (DFC con la sola faccia frontale, nomi "universes beyond",
+// piccoli refusi): una ricerca fuzzy in JSON per ciascuno, una alla volta (Scryfall chiede
+// 50-100 ms fra le richieste), e l'URL CDN finisce in cache come gli altri. Prima si usava
+// l'endpoint `format=image` a ogni miniatura: un redirect dall'API, lento e soggetto a 429.
+
+// Nomi non risolti in questa sessione per errori temporanei (429, rete): si mostra il
+// fallback invece dello skeleton infinito; al prossimo avvio si riprova.
+const gaveUp = new Set()
+const giveUp = (k) => { gaveUp.add(k); notify(k) }
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+async function fuzzyResolve(keys) {
+  for (const k of keys) {
+    try {
+      const res = await fetch(`${BASE}/cards/named?fuzzy=${encodeURIComponent(k)}`)
+      if (res.ok) cache[k] = imgUris(await res.json())
+      else if (res.status === 404) cache[k] = { missing: true, fz: true }
+      else { giveUp(k); continue } // 429/5xx: si riprova al prossimo avvio
+      notify(k)
+    } catch { giveUp(k) }
+    await sleep(110)
+  }
+  persist()
+}
+
+// Da (ri)scaricare: mai visto, oppure segnato "mancante" dal solo batch (senza ricerca fuzzy)
+const needsFetch = (k) => !(k in cache) || (cache[k].missing && !cache[k].fz)
+
 // Scarica e mette in cache i dati per i nomi (chiavi) indicati. Awaitable.
-async function fetchAndCache(keys) {
+// fuzzy: per le miniature, i nomi non trovati dal batch passano dalla ricerca fuzzy.
+async function fetchAndCache(keys, { fuzzy = false } = {}) {
+  const notFound = []
   for (let i = 0; i < keys.length; i += 75) {
     const chunk = keys.slice(i, i + 75)
     try {
@@ -46,7 +76,7 @@ async function fetchAndCache(keys) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifiers: chunk.map(n => ({ name: n })) }),
       })
-      if (!res.ok) continue // rate limit/errore: si riproverà
+      if (!res.ok) { if (fuzzy) chunk.forEach(giveUp); continue } // rate limit/errore: si riproverà
       const data = await res.json()
       for (const card of data.data || []) {
         const k = key(card.name)
@@ -54,17 +84,22 @@ async function fetchAndCache(keys) {
         notify(k)
       }
       for (const k of chunk) {
-        if (!(k in cache)) { cache[k] = { missing: true }; notify(k) }
+        if (!(k in cache) || (cache[k].missing && !cache[k].fz)) {
+          if (fuzzy) notFound.push(k)
+          else { cache[k] = { missing: true }; notify(k) }
+        }
       }
       persist()
-    } catch { /* rete giù: non segnare, si riprova */ }
+    } catch { if (fuzzy) chunk.forEach(giveUp) } // rete giù: non segnare, si riprova
   }
+  if (notFound.length) await fuzzyResolve(notFound)
 }
 
 // ── stato per le miniature (DeckThumb) ──
 export function lookupArt(name) {
-  const c = cache[key(name)]
-  if (!c) return { status: 'loading' }
+  const k = key(name)
+  const c = cache[k]
+  if (!c || needsFetch(k)) return gaveUp.has(k) ? { status: 'missing' } : { status: 'loading' }
   if (c.missing) return { status: 'missing' }
   return { status: 'ready', art: c.art, normal: c.normal }
 }
@@ -84,29 +119,35 @@ const notify = (k) => subs.get(k)?.forEach(cb => cb())
 
 function requestArt(name) {
   const k = key(name)
-  if (!k || k in cache) return
+  if (!k || !needsFetch(k) || gaveUp.has(k)) return
   queue.add(k)
   if (!flushTimer) flushTimer = setTimeout(async () => {
     flushTimer = null
-    const keys = [...queue].filter(k => !(k in cache))
+    const keys = [...queue].filter(needsFetch)
     queue.clear()
-    if (keys.length) await fetchAndCache(keys)
+    if (keys.length) await fetchAndCache(keys, { fuzzy: true })
   }, 60)
 }
 
+const NO_NAME = { status: 'missing' }
+
 export function useCardArt(name) {
-  const [state, setState] = useState(() => lookupArt(name))
+  const [state, setState] = useState(() => ({ name, art: name ? lookupArt(name) : NO_NAME }))
   useEffect(() => {
-    if (!name) { setState({ status: 'missing' }); return }
+    if (!name) { setState({ name, art: NO_NAME }); return }
     const cur = lookupArt(name)
-    setState(cur)
+    setState({ name, art: cur })
     if (cur.status === 'loading') {
       requestArt(name)
-      const unsub = subscribe(name, () => setState(lookupArt(name)))
+      const unsub = subscribe(name, () => setState({ name, art: lookupArt(name) }))
       return unsub
     }
   }, [name])
-  return state
+  // Nome appena cambiato (es. arriva il commander di default): lo stato è ancora del nome
+  // precedente fino all'effetto, quindi si legge subito la cache per il nome nuovo.
+  // Prima, per un render, restava "missing" e partiva la richiesta format=image di ripiego.
+  if (state.name !== name) return name ? lookupArt(name) : NO_NAME
+  return state.art
 }
 
 // ── lista carte per tipo (profilo mazzo / pannello) ──

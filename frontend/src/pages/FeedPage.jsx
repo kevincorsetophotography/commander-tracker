@@ -164,7 +164,7 @@ function StatsBento({ snapshot, t, user, navigate }) {
         </div>
         {streak >= 2 && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 10, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, color: t.primary, background: t.primaryBg, border: `1px solid ${t.primaryBorder}` }}>
-            <Icon name="flame" size={14} /> {streak} vittorie di fila
+            <span className="ct-flame"><Icon name="flame" size={14} /></span> {streak} vittorie di fila
           </div>
         )}
       </div>

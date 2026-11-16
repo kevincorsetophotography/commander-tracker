@@ -80,7 +80,7 @@ function TopBar({ n }) {
         {String(n).padStart(2, '0')}<span style={{ color: C.muted, fontWeight: 600 }}>/03</span>
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <img src="/logo.png" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
+        <img src="/logo-192.webp" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
         <div>
           <div style={{ fontSize: 8, fontWeight: 900, color: C.green, letterSpacing: '0.18em', lineHeight: 1 }}>COMMANDERONE</div>
           <div style={{ fontSize: 6.5, color: C.muted, letterSpacing: '0.14em', marginTop: 1.5 }}>VILLASTELLONE</div>
@@ -322,7 +322,7 @@ function Slide3({ mostWins, mostGames, topKiller, bestWinRate, topStreak, mostCo
       {/* Footer QR — spinto a fondo da marginTop:auto */}
       <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '6px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="/logo.png" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
+          <img src="/logo-192.webp" alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
           <div>
             <div style={{ fontSize: 9, fontWeight: 900, color: C.green, letterSpacing: '0.18em' }}>COMMANDERONE</div>
             <div style={{ fontSize: 7, color: C.muted, letterSpacing: '0.14em', marginTop: 1.5 }}>VILLASTELLONE</div>
@@ -429,7 +429,7 @@ export default function SeasonRecap({ season, seasonKey, seasons, games, playerS
   ]
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: '16px 12px 40px' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)', overflowY: 'auto', padding: 'calc(16px + var(--sat)) 12px calc(40px + env(safe-area-inset-bottom))' }}>
       <div onClick={e => e.stopPropagation()} className="ct-modal-in" style={{ maxWidth: 400, margin: '0 auto' }}>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>

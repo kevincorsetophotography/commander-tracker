@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast as sonner } from 'sonner'
 import { api } from '../lib/api'
+import { prefetchTable, loadTablePage } from '../lib/tablePrefetch'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
@@ -26,7 +27,9 @@ function TableCard({ table, me, t, onChange, showEvent }) {
   const winner = table.game?.players?.[0]
   // Tavolo chiuso (dal creatore o pieno): chi è seduto apre la pagina del tavolo (mazzi, segnapunti)
   const closed = !done && (!table.isOpen || free <= 0)
-  const openPage = seated && closed ? () => navigate(`/tavoli/${table.id}`) : null
+  const openPage = seated && closed ? () => { prefetchTable(table.id); navigate(`/tavoli/${table.id}`) } : null
+  // Il codice della pagina del tavolo si scarica già qui, così il tocco su "Apri" non aspetta
+  useEffect(() => { if (seated && closed) loadTablePage().catch(() => {}) }, [seated, closed])
 
   const run = async (fn, okMsg) => {
     setBusy(true)

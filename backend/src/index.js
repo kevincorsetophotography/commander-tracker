@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 require('dotenv').config();
 
 // Guard di sicurezza: il server non parte con un JWT_SECRET assente o debole
@@ -95,8 +96,15 @@ app.use(cors({
     }
 
     return callback(new Error(`Origin non consentita: ${origin}`));
-  }
+  },
+  // Il frontend (Vercel) è su un altro dominio e manda l'header Authorization: ogni
+  // richiesta è preceduta da un preflight OPTIONS. Senza Max-Age il browser lo
+  // ricorda ~5s, quindi quasi ogni chiamata costava DUE viaggi verso Railway.
+  // I browser lo limitano da soli (Chrome 2h, Safari 10 min).
+  maxAge: 7200,
 }));
+// JSON compresso (gzip/br): le liste partite/statistiche si riducono di 5-10 volte.
+app.use(compression());
 app.use(express.json());
 
 app.use('/api/auth',          authLimiter, wrapRouter(authRoutes));

@@ -4,6 +4,15 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root {
+  /* Margini sicuri (notch, status bar, home indicator). --sat ha un minimo di riserva
+     per la web app iOS da Home: vedi lib/safeArea.js */
+  --sat-min: 0px;
+  --sat: max(env(safe-area-inset-top, 0px), var(--sat-min));
+  --sar: env(safe-area-inset-right, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -187,10 +196,31 @@ body {
 }
 .ct-glow-pulse { animation: ct-glow-pulse 3.2s ease-in-out infinite; }
 
+/* Segnapunti: il numero della vita "rimbalza" a ogni tocco, il delta sale e svanisce */
+@keyframes ct-life-bump { 0% { transform: scale(1); } 35% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.ct-life-bump { display: inline-block; animation: ct-life-bump 0.22s cubic-bezier(0.34,1.4,0.64,1); }
+@keyframes ct-delta-in { from { opacity: 0; transform: translateY(6px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.ct-delta-in { animation: ct-delta-in 0.18s ease-out both; }
+
+/* Badge notifiche: pop quando arriva qualcosa di nuovo, campanella che oscilla */
+@keyframes ct-badge-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.ct-badge-pop { animation: ct-badge-pop 0.42s cubic-bezier(0.34,1.4,0.64,1) both; }
+@keyframes ct-bell-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); }  60% { transform: rotate(-5deg); } 75% { transform: rotate(2deg); }
+}
+.ct-bell-ring { display: flex; transform-origin: 50% 10%; animation: ct-bell-ring 0.9s ease-in-out; }
+
+/* Fiammella della serie di vittorie */
+@keyframes ct-flame { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.12) rotate(-4deg); } }
+.ct-flame { display: inline-flex; transform-origin: 50% 90%; animation: ct-flame 1.6s ease-in-out infinite; }
+
 /* Riduce motion per chi lo preferisce */
 @media (prefers-reduced-motion: reduce) {
   .ct-aurora::before, .ct-aurora::after,
   .ct-fade-up, .ct-bar-fill, .ct-section-open, .ct-modal-in,
-  .ct-ring-fill, .ct-sheet-in, .ct-glow-pulse, .ct-pop { animation: none; }
+  .ct-ring-fill, .ct-sheet-in, .ct-glow-pulse, .ct-pop,
+  .ct-life-bump, .ct-delta-in, .ct-badge-pop, .ct-bell-ring, .ct-flame { animation: none; }
   .ct-lift:active, .ct-press:active { transform: none; }
 }

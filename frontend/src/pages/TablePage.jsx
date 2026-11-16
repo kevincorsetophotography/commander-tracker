@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast as sonner } from 'sonner'
 import { api } from '../lib/api'
+import { takePrefetchedTable } from '../lib/tablePrefetch'
 import { useTheme } from '../hooks/useTheme'
 import { useAuth } from '../hooks/useAuth'
 import { useFeedback } from '../hooks/useFeedback'
@@ -56,14 +57,14 @@ export default function TablePage() {
     setScore(toScore(sb))
   }, [])
 
-  const loadDetail = useCallback(() => api.getTable(tid)
+  const loadDetail = useCallback((first) => ((first && takePrefetchedTable(tid)) || api.getTable(tid))
     .then(tb => { setTable(tb); setError(''); acceptScore(tb.scoreboard) })
     .catch(e => setError(e.error || 'Tavolo non trovato')), [tid, acceptScore])
 
   // dettaglio: subito e poi ogni ~12s (mazzi scelti dagli altri, risultato registrato)
   useEffect(() => {
     if (!Number.isInteger(tid)) { setError('Tavolo non trovato'); return }
-    loadDetail()
+    loadDetail(true)
     const iv = setInterval(() => { if (!document.hidden) loadDetail() }, DETAIL_POLL_MS)
     return () => clearInterval(iv)
   }, [tid, loadDetail])

@@ -13,20 +13,20 @@ export default function PlayerAvatar({ username, avatarCardName, avatarScryfallI
   const { t } = useTheme()
   const [errSrc, setErrSrc] = useState(null)
 
-  // Avatar scelto dall'utente: ha sempre la precedenza
-  const chosenSrc = avatarScryfallId
-    ? cdnArt(avatarScryfallId)
-    : (avatarCardName ? scryfallArt(avatarCardName) : null)
+  // Avatar scelto dall'utente: ha sempre la precedenza. Con l'id Scryfall è un URL CDN
+  // diretto; col solo nome passa dalla cache carte (URL CDN salvato), non dall'API a ogni avatar.
+  const chosenSrc = avatarScryfallId ? cdnArt(avatarScryfallId) : null
 
   // Nessuna scelta: commander più giocato (o creato per ultimo), risolto via cache Scryfall
-  const defaultCmd = useDefaultAvatar(chosenSrc ? null : username)
-  const art = useCardArt(defaultCmd)
-  const defaultSrc = !defaultCmd ? null
+  const defaultCmd = useDefaultAvatar(avatarScryfallId || avatarCardName ? null : username)
+  const cardName = chosenSrc ? null : (avatarCardName || defaultCmd)
+  const art = useCardArt(cardName)
+  const cardSrc = !cardName ? null
     : art.status === 'ready' ? art.art
-    : art.status === 'missing' ? scryfallArt(defaultCmd)
+    : art.status === 'missing' ? scryfallArt(cardName)
     : null // in risoluzione: per un attimo restano le iniziali
 
-  const imgSrc = chosenSrc || defaultSrc
+  const imgSrc = chosenSrc || cardSrc
   const showImg = !!imgSrc && errSrc !== imgSrc
 
   return (
@@ -41,7 +41,7 @@ export default function PlayerAvatar({ username, avatarCardName, avatarScryfallI
         ? <img
             src={imgSrc}
             alt={username}
-            title={!chosenSrc && defaultCmd ? defaultCmd : undefined}
+            title={!chosenSrc && !avatarCardName && defaultCmd ? defaultCmd : undefined}
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 15%' }}
             onError={() => setErrSrc(imgSrc)}
           />

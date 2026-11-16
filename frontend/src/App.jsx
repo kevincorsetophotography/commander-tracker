@@ -94,7 +94,7 @@ function Brand({ logoSize = 42, titleSize = 14, compact = false }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
       <img
-        src="/logo.png"
+        src="/logo-192.webp"
         alt="Commanderone"
         onError={e => { e.currentTarget.style.display = 'none' }}
         style={{ height: logoSize, width: logoSize, objectFit: 'contain', filter: dark ? `drop-shadow(0 0 10px ${t.primaryBorder})` : 'none' }}
@@ -321,7 +321,7 @@ function Layout() {
 
         {isMobile ? (
           /* ── HEADER MOBILE v2: brand · campanella · avatar (menu account) ── */
-          <div style={{ ...navBar, padding: '0 0.85rem', paddingTop: 'env(safe-area-inset-top)' }}>
+          <div style={{ ...navBar, paddingTop: 'var(--sat)', paddingBottom: 0, paddingLeft: 'calc(0.85rem + var(--sal))', paddingRight: 'calc(0.85rem + var(--sar))' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 60 }}>
               {/* Logo + scritta come su main (wordmark sfumato); cede per primo se lo spazio manca */}
               <div style={{ minWidth: 0, overflow: 'hidden', flexShrink: 1 }}>
@@ -335,7 +335,7 @@ function Layout() {
           </div>
         ) : (
           /* ── NAVBAR DESKTOP ── */
-          <div style={{ ...navBar, padding: '0 1rem' }}>
+          <div style={{ ...navBar, paddingTop: 'var(--sat)', paddingBottom: 0, paddingLeft: 'calc(1rem + var(--sal))', paddingRight: 'calc(1rem + var(--sar))' }}>
             <div style={{ maxWidth: 980, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 62, padding: '8px 0', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <div style={{ marginRight: 8 }}><Brand /></div>
@@ -389,7 +389,8 @@ function ThemedToaster() {
     <Toaster
       theme={dark ? 'dark' : 'light'}
       position="top-center"
-      offset={16}
+      offset={{ top: 'calc(16px + var(--sat))' }}
+      mobileOffset={{ top: 'calc(16px + var(--sat))' }}
       toastOptions={{
         style: {
           background: dark ? '#0e122b' : '#FFFFFF', color: t.text, border: `1px solid ${t.primaryBorder}`,

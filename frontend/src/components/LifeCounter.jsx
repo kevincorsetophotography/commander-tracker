@@ -161,11 +161,11 @@ function Panel({ rect, seat, index, p, seatIds, nameOf, onAct, starter, nameInse
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
             <span aria-hidden="true" style={{ position: 'absolute', left: '9%', fontSize: big * 0.42, fontWeight: 300, opacity: 0.42 }}>−</span>
-            <span style={{ fontSize: big, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums',
+            <span key={`${idx}:${value}`} className="ct-life-bump" style={{ fontSize: big, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums',
               color: out ? '#c9c9d1' : target.kind === 'poison' ? '#b9f6a8' : target.kind === 'cmd' ? '#ffd38a' : '#fff' }}>{value}</span>
             <span aria-hidden="true" style={{ position: 'absolute', right: '9%', fontSize: big * 0.42, fontWeight: 300, opacity: 0.42 }}>+</span>
             {flash && flash.sum !== 0 && (
-              <span key={flash.key} style={{ position: 'absolute', top: -small * 0.6, left: '50%', marginLeft: big * 0.55, fontSize: small + 4, fontWeight: 900,
+              <span key={flash.key} className="ct-delta-in" style={{ position: 'absolute', top: -small * 0.6, left: '50%', marginLeft: big * 0.55, fontSize: small + 4, fontWeight: 900,
                 color: flash.sum > 0 ? '#86efac' : '#fca5a5' }}>{flash.sum > 0 ? `+${flash.sum}` : `−${-flash.sum}`}</span>
             )}
           </div>
@@ -229,7 +229,7 @@ function Menu({ lastEntry, nameOf, isOwner, onUndo, onReset, onClose, onExit, on
     <div onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }} style={{ position: 'absolute', inset: 0, zIndex: 3, background: 'rgba(3,4,12,.62)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, touchAction: 'none' }}>
       <div role="dialog" aria-label="Menu segnapunti" className="ct-modal-in" style={{ width: '100%', maxWidth: 340, borderRadius: 22, padding: 14, background: '#0e122b', border: '1px solid rgba(255,255,255,.12)', boxShadow: '0 20px 60px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
-          <img src="/logo.png" alt="" style={{ width: 34, height: 34, borderRadius: '50%' }} />
+          <img src="/logo-192.webp" alt="" style={{ width: 34, height: 34, borderRadius: '50%' }} />
           <span style={{ flex: 1, color: '#fff', fontSize: 17, fontWeight: 900 }}>Segnapunti</span>
           <button onClick={onClose} aria-label="Chiudi menu" style={{ width: 40, height: 40, borderRadius: 12, border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
         </div>
@@ -410,7 +410,7 @@ export default function LifeCounter({ seats, score, isOwner, onAct, onUndo, onRe
     <div role="application" aria-label="Segnapunti" style={{
       position: 'fixed', inset: 0, zIndex: 1000, background: '#05060d', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
       touchAction: 'none', overscrollBehavior: 'none', WebkitTapHighlightColor: 'transparent',
-      padding: 'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)', boxSizing: 'border-box',
+      padding: 'var(--sat) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)', boxSizing: 'border-box',
     }}>
       <div ref={area} style={{ position: 'relative', width: '100%', height: '100%' }}>
         {layout && score && ordered.map((s, i) => (
@@ -435,7 +435,7 @@ export default function LifeCounter({ seats, score, isOwner, onAct, onUndo, onRe
             border: '3px solid #05060d', background: '#0e122b', boxShadow: '0 4px 18px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', touchAction: 'manipulation',
           }}>
-            <img src="/logo.png" alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/logo-192.webp" alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </button>
         )}
         {menu && (
